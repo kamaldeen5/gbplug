@@ -60,29 +60,29 @@ export default function Home() {
         onToggleTheme={handleToggleTheme}
       />
 
-      {/* Main Content Area: Responsive 1-col on mobile, 2-col on desktop */}
-      <main className="w-full max-w-7xl mx-auto px-4 sm:px-8 py-4 sm:py-8 flex-1 flex flex-col justify-center">
+      {/* Main Content Area: Responsive 1-col on mobile, 2-col on Fold/Tablet/PC */}
+      <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-4 sm:py-6 md:py-8 flex-1 flex flex-col justify-center">
         {/* Error notification */}
         {errorMsg && (
-          <div className="max-w-md mx-auto lg:max-w-none w-full mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold tracking-tight animate-pulse text-center">
+          <div className="max-w-md mx-auto md:max-w-none w-full mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold tracking-tight animate-pulse text-center">
             {errorMsg}
           </div>
         )}
 
-        {/* Responsive Grid: 1-col on mobile, 2-col on desktop */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 xl:gap-16 items-center">
-          {/* Left Column: Hero Headline + Subtitle + (Desktop) Trust Badges */}
-          <div className="lg:col-span-6 xl:col-span-7 flex flex-col justify-center">
+        {/* Responsive Grid: 1-col on phone, 2-col on fold/tablet/desktop */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-8 lg:gap-12 xl:gap-16 items-center">
+          {/* Left Column: Hero Headline + Subtitle + (Desktop/Tablet) Trust Badges */}
+          <div className="md:col-span-6 lg:col-span-6 xl:col-span-7 flex flex-col justify-center">
             <Hero isDark={isDark} />
 
-            {/* Desktop Trust Badges */}
-            <div className="hidden lg:block pt-8 xl:pt-10">
+            {/* Desktop/Tablet Trust Badges */}
+            <div className="hidden md:block pt-6 md:pt-8 xl:pt-10">
               <TrustBadges isDark={isDark} className="max-w-md" />
             </div>
           </div>
 
           {/* Right Column: Form Card */}
-          <div className="lg:col-span-6 xl:col-span-5 w-full max-w-md mx-auto lg:max-w-none">
+          <div className="md:col-span-6 lg:col-span-6 xl:col-span-5 w-full max-w-md mx-auto md:max-w-none">
             <PurchaseCard
               isDark={isDark}
               selectedNetwork={selectedNetwork}
@@ -94,8 +94,8 @@ export default function Home() {
               onBuyNow={handleBuyNow}
             />
 
-            {/* Mobile Trust Badges */}
-            <div className="block lg:hidden mt-6">
+            {/* Mobile Trust Badges (below card on small mobile phones only) */}
+            <div className="block md:hidden mt-6">
               <TrustBadges isDark={isDark} />
             </div>
           </div>
