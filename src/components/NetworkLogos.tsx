@@ -21,18 +21,18 @@ export function MTNLogo({ className = 'w-14 h-7' }: { className?: string }) {
   );
 }
 
-export function VodafoneLogo({ className = 'w-9 h-9' }: { className?: string }) {
+export function TelecelLogo({ className = 'w-8 h-8' }: { className?: string }) {
   return (
     <div className={`relative flex items-center justify-center bg-[#E60000] rounded-full ${className}`}>
-      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none">
-        <path
-          d="M12 4C7.8 4 4.5 7.3 4.5 11.5C4.5 14.5 6.3 17 8.9 18.2L8.5 21.5C14.5 20.5 18.8 16.8 18.8 11.5C18.8 7.3 15.5 4 12 4ZM12 14.8C9.9 14.8 8.3 13.2 8.3 11.1C8.3 9 9.9 7.4 12 7.4C14.1 7.4 15.7 9 15.7 11.1C15.7 13.2 14.1 14.8 12 14.8Z"
-          fill="white"
-        />
-      </svg>
+      <span className="text-white font-extrabold text-[15px] font-sans tracking-tighter leading-none select-none pl-0.5">
+        t<span className="text-[#FFCC00] text-[16px] leading-none">.</span>
+      </span>
     </div>
   );
 }
+
+// Alias for compatibility
+export const VodafoneLogo = TelecelLogo;
 
 export function AirtelTigoLogo({ className = 'w-auto h-7' }: { className?: string }) {
   return (

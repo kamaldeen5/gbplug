@@ -1,5 +1,5 @@
 export interface Network {
-  id: 'mtn' | 'vodafone' | 'airteltigo';
+  id: 'mtn' | 'telecel' | 'airteltigo';
   name: string;
   displayName: string;
   badgeColor?: string;
@@ -25,9 +25,9 @@ export const NETWORKS: Network[] = [
     phonePrefixes: ['024', '054', '055', '059', '025'],
   },
   {
-    id: 'vodafone',
-    name: 'Vodafone',
-    displayName: 'Vodafone',
+    id: 'telecel',
+    name: 'Telecel',
+    displayName: 'Telecel',
     color: '#E60000',
     phonePrefixes: ['020', '050'],
   },
@@ -56,15 +56,15 @@ export const NETWORK_BUNDLES: Record<string, BundleOption[]> = {
     { id: 'mtn-50', name: '50 GB Non-Expiry', data: '50 GB', price: 220.0, validity: 'No Expiry' },
     { id: 'mtn-100', name: '100 GB Non-Expiry', data: '100 GB', price: 390.0, validity: 'No Expiry' },
   ],
-  vodafone: [
-    { id: 'voda-1', name: '1 GB Non-Expiry', data: '1 GB', price: 6.0, validity: 'No Expiry' },
-    { id: 'voda-2', name: '2 GB Non-Expiry', data: '2 GB', price: 11.0, validity: 'No Expiry' },
-    { id: 'voda-4', name: '4 GB Non-Expiry', data: '4 GB', price: 20.0, validity: 'No Expiry' },
-    { id: 'voda-5', name: '5 GB Non-Expiry', data: '5 GB', price: 25.0, validity: 'No Expiry', popular: true },
-    { id: 'voda-10', name: '10 GB Non-Expiry', data: '10 GB', price: 48.0, validity: 'No Expiry', popular: true },
-    { id: 'voda-15', name: '15 GB Non-Expiry', data: '15 GB', price: 70.0, validity: 'No Expiry' },
-    { id: 'voda-20', name: '20 GB Non-Expiry', data: '20 GB', price: 90.0, validity: 'No Expiry' },
-    { id: 'voda-50', name: '50 GB Non-Expiry', data: '50 GB', price: 210.0, validity: 'No Expiry' },
+  telecel: [
+    { id: 'telecel-1', name: '1 GB Non-Expiry', data: '1 GB', price: 6.0, validity: 'No Expiry' },
+    { id: 'telecel-2', name: '2 GB Non-Expiry', data: '2 GB', price: 11.0, validity: 'No Expiry' },
+    { id: 'telecel-4', name: '4 GB Non-Expiry', data: '4 GB', price: 20.0, validity: 'No Expiry' },
+    { id: 'telecel-5', name: '5 GB Non-Expiry', data: '5 GB', price: 25.0, validity: 'No Expiry', popular: true },
+    { id: 'telecel-10', name: '10 GB Non-Expiry', data: '10 GB', price: 48.0, validity: 'No Expiry', popular: true },
+    { id: 'telecel-15', name: '15 GB Non-Expiry', data: '15 GB', price: 70.0, validity: 'No Expiry' },
+    { id: 'telecel-20', name: '20 GB Non-Expiry', data: '20 GB', price: 90.0, validity: 'No Expiry' },
+    { id: 'telecel-50', name: '50 GB Non-Expiry', data: '50 GB', price: 210.0, validity: 'No Expiry' },
   ],
   airteltigo: [
     { id: 'at-1', name: '1 GB Big Time', data: '1 GB', price: 5.5, validity: 'No Expiry' },

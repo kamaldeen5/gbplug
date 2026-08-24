@@ -5,22 +5,16 @@ import Link from 'next/link';
 import {
   Search,
   CheckCircle2,
-  Clock,
   ArrowLeft,
-  Phone,
   Zap,
-  ShieldCheck,
-  Headphones,
-  RotateCcw,
-  Sparkles,
 } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { SideMenu } from '@/components/SideMenu';
-import { MTNLogo, VodafoneLogo, AirtelTigoLogo, WhatsAppIcon } from '@/components/NetworkLogos';
+import { MTNLogo, TelecelLogo, AirtelTigoLogo, WhatsAppIcon } from '@/components/NetworkLogos';
 
 interface OrderRecord {
   id: string;
-  network: 'mtn' | 'vodafone' | 'airteltigo';
+  network: 'mtn' | 'telecel' | 'airteltigo';
   networkName: string;
   bundle: string;
   data: string;
@@ -66,8 +60,8 @@ export default function TrackOrderPage() {
     },
     {
       id: 'GBP-738192',
-      network: 'vodafone',
-      networkName: 'Telecel / Vodafone',
+      network: 'telecel',
+      networkName: 'Telecel Ghana',
       bundle: '10 GB Non-Expiry',
       data: '10 GB',
       phone: '020 987 6543',
@@ -94,13 +88,12 @@ export default function TrackOrderPage() {
     } else {
       // Generate a realistic dynamic match for the user's phone number
       const isMtn = clean.startsWith('024') || clean.startsWith('054') || clean.startsWith('055') || clean.startsWith('059');
-      const isVoda = clean.startsWith('020') || clean.startsWith('050');
-      const isAt = clean.startsWith('027') || clean.startsWith('057') || clean.startsWith('026');
+      const isTelecel = clean.startsWith('020') || clean.startsWith('050');
 
       setFoundOrder({
         id: `GBP-${Math.floor(100000 + Math.random() * 900000)}`,
-        network: isMtn ? 'mtn' : isVoda ? 'vodafone' : 'airteltigo',
-        networkName: isMtn ? 'MTN Ghana' : isVoda ? 'Telecel Ghana' : 'AirtelTigo',
+        network: isMtn ? 'mtn' : isTelecel ? 'telecel' : 'airteltigo',
+        networkName: isMtn ? 'MTN Ghana' : isTelecel ? 'Telecel Ghana' : 'AirtelTigo',
         bundle: '5 GB Non-Expiry',
         data: '5 GB',
         phone: searchQuery,
@@ -281,7 +274,7 @@ export default function TrackOrderPage() {
                 </span>
                 <div className="flex items-center gap-2 font-bold">
                   {foundOrder.network === 'mtn' && <MTNLogo className="w-12 h-6" />}
-                  {foundOrder.network === 'vodafone' && <VodafoneLogo className="w-7 h-7" />}
+                  {foundOrder.network === 'telecel' && <TelecelLogo className="w-7 h-7" />}
                   {foundOrder.network === 'airteltigo' && <AirtelTigoLogo className="w-16 h-6" />}
                   <span className="text-xs sm:text-sm">{foundOrder.networkName}</span>
                 </div>

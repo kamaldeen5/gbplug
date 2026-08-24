@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Check, ChevronDown, UserSquare2 } from 'lucide-react';
 import { NETWORKS, NETWORK_BUNDLES, Network, BundleOption } from '../data/bundles';
-import { MTNLogo, VodafoneLogo, AirtelTigoLogo } from './NetworkLogos';
+import { MTNLogo, TelecelLogo, AirtelTigoLogo } from './NetworkLogos';
 
 interface PurchaseCardProps {
   isDark: boolean;
@@ -118,7 +118,7 @@ export function PurchaseCard({
                 {/* Network Logo */}
                 <div className="flex-1 flex items-center justify-center scale-105 sm:scale-100">
                   {network.id === 'mtn' && <MTNLogo />}
-                  {network.id === 'vodafone' && <VodafoneLogo />}
+                  {network.id === 'telecel' && <TelecelLogo />}
                   {network.id === 'airteltigo' && <AirtelTigoLogo />}
                 </div>
 

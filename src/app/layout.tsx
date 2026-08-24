@@ -3,7 +3,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'GB Plug - Buy Data Instantly | Affordable Data Bundles in Ghana',
-  description: 'Affordable data bundles for all networks in Ghana (MTN, Telecel/Vodafone, AirtelTigo). Instant delivery and secure payments.',
+  description: 'Affordable data bundles for all networks in Ghana (MTN, Telecel, AirtelTigo). Instant delivery and secure payments.',
   icons: {
     icon: '/icon.png',
     shortcut: '/favicon.ico',
@@ -19,8 +19,6 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   viewportFit: 'cover',
   themeColor: [
     { media: '(prefers-color-scheme: dark)', color: '#070D18' },

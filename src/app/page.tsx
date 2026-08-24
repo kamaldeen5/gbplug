@@ -5,7 +5,6 @@ import { Header } from '@/components/Header';
 import { Hero } from '@/components/Hero';
 import { PurchaseCard } from '@/components/PurchaseCard';
 import { TrustBadges } from '@/components/TrustBadges';
-import { SideMenu } from '@/components/SideMenu';
 import { PaymentModal } from '@/components/PaymentModal';
 import { NETWORKS, Network, BundleOption } from '@/data/bundles';
 
@@ -14,7 +13,6 @@ export default function Home() {
   const [selectedNetwork, setSelectedNetwork] = useState<Network>(NETWORKS[0]); // MTN default
   const [selectedBundle, setSelectedBundle] = useState<BundleOption | null>(null);
   const [phoneNumber, setPhoneNumber] = useState<string>('');
-  const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -59,7 +57,6 @@ export default function Home() {
       <Header
         isDark={isDark}
         onToggleTheme={handleToggleTheme}
-        onOpenMenu={() => setIsMenuOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -71,14 +68,14 @@ export default function Home() {
           </div>
         )}
 
-        {/* Responsive Layout: Single column on mobile, 2-column on desktop (matching web mockup) */}
+        {/* 2-Column Desktop Grid Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 xl:gap-16 items-center">
-          {/* Left Column: Hero Headline + Subtitle + (Desktop) Trust Badges */}
+          {/* Left Column: Hero Headline + Subtitle + Desktop Trust Badges */}
           <div className="lg:col-span-6 xl:col-span-7 flex flex-col justify-center">
             <Hero isDark={isDark} />
 
-            {/* Desktop Trust Badges (positioned below hero text on web view) */}
-            <div className="hidden lg:block pt-10">
+            {/* Trust Badges on Left (Desktop & Tablet) */}
+            <div className="hidden lg:block pt-8 xl:pt-10">
               <TrustBadges isDark={isDark} className="max-w-md" />
             </div>
           </div>
@@ -96,20 +93,13 @@ export default function Home() {
               onBuyNow={handleBuyNow}
             />
 
-            {/* Mobile Trust Badges (positioned below card on mobile view) */}
+            {/* Trust Badges below Card on smaller viewports */}
             <div className="block lg:hidden mt-6">
               <TrustBadges isDark={isDark} />
             </div>
           </div>
         </div>
       </main>
-
-      {/* Side Navigation Menu for Mobile */}
-      <SideMenu
-        isOpen={isMenuOpen}
-        onClose={() => setIsMenuOpen(false)}
-        isDark={isDark}
-      />
 
       {/* Payment / Order Confirmation Modal */}
       {selectedBundle && (
