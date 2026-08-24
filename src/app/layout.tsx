@@ -2,8 +2,9 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'GB Plug - Buy Data Instantly | Affordable Data Bundles in Ghana',
-  description: 'Affordable data bundles for all networks in Ghana (MTN, Telecel, AirtelTigo). Instant delivery and secure payments.',
+  title: 'GB Plug - Buy Cheap Data Ghana | Instant Delivery',
+  description: 'Ghana’s #1 automated data bundle plug. Buy affordable non-expiry data for MTN, Telecel, and AirtelTigo instantly with Mobile Money.',
+  manifest: '/manifest.json',
   icons: {
     icon: '/icon.png',
     shortcut: '/favicon.ico',
@@ -14,6 +15,9 @@ export const metadata: Metadata = {
     statusBarStyle: 'black-translucent',
     title: 'GB Plug',
   },
+  applicationName: 'GB Plug',
+  authors: [{ name: 'GB Plug Ghana' }],
+  keywords: ['data bundle ghana', 'cheap data', 'buy mtn data', 'buy telecel data', 'airteltigo data', 'ghana data plug'],
 };
 
 export const viewport: Viewport = {
@@ -34,6 +38,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className="dark">
       <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <link rel="apple-touch-icon" href="/apple-icon.png" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link

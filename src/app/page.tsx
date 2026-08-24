@@ -6,6 +6,7 @@ import { Hero } from '@/components/Hero';
 import { PurchaseCard } from '@/components/PurchaseCard';
 import { TrustBadges } from '@/components/TrustBadges';
 import { PaymentModal } from '@/components/PaymentModal';
+import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import { NETWORKS, Network, BundleOption } from '@/data/bundles';
 
 export default function Home() {
@@ -68,13 +69,13 @@ export default function Home() {
           </div>
         )}
 
-        {/* Responsive Grid: 1-col on mobile, 2-col on desktop (and desktop-mode) */}
+        {/* Responsive Grid: 1-col on mobile, 2-col on desktop */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 xl:gap-16 items-center">
           {/* Left Column: Hero Headline + Subtitle + (Desktop) Trust Badges */}
           <div className="lg:col-span-6 xl:col-span-7 flex flex-col justify-center">
             <Hero isDark={isDark} />
 
-            {/* Desktop Trust Badges (positioned below hero text on web view) */}
+            {/* Desktop Trust Badges */}
             <div className="hidden lg:block pt-8 xl:pt-10">
               <TrustBadges isDark={isDark} className="max-w-md" />
             </div>
@@ -93,13 +94,16 @@ export default function Home() {
               onBuyNow={handleBuyNow}
             />
 
-            {/* Mobile Trust Badges (positioned below card on mobile view) */}
+            {/* Mobile Trust Badges */}
             <div className="block lg:hidden mt-6">
               <TrustBadges isDark={isDark} />
             </div>
           </div>
         </div>
       </main>
+
+      {/* PWA Install Prompt Banner */}
+      <PWAInstallPrompt isDark={isDark} />
 
       {/* Payment / Order Confirmation Modal */}
       {selectedBundle && (
