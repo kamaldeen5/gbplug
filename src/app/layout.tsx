@@ -17,9 +17,9 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  width: 1024,
-  initialScale: 0.38,
-  userScalable: true,
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
   themeColor: [
     { media: '(prefers-color-scheme: dark)', color: '#070D18' },
     { media: '(prefers-color-scheme: light)', color: '#F8FAFC' },
@@ -41,7 +41,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="bg-[#070D18] dark:bg-[#070D18] text-slate-100 min-h-screen transition-colors duration-200 antialiased selection:bg-[#00C853]/20 selection:text-[#00C853]">
+      <body className="bg-[#070D18] dark:bg-[#070D18] text-slate-100 min-h-screen transition-colors duration-200 antialiased selection:bg-[#00C853]/20 selection:text-[#00C853] overflow-x-hidden">
         {children}
       </body>
     </html>
