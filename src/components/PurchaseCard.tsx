@@ -163,7 +163,11 @@ export function PurchaseCard({
         >
           {selectedBundle ? (
             <div className="flex items-center justify-between w-full pr-2">
-              <span className="font-semibold tracking-tight text-white dark:text-white truncate mr-2">
+              <span
+                className={`font-semibold tracking-tight truncate mr-2 ${
+                  isDark ? 'text-white' : 'text-[#0F172A]'
+                }`}
+              >
                 {selectedBundle.name}
               </span>
               <span className="text-[#00C853] font-bold text-[14px] sm:text-[15px] tracking-tight shrink-0">
@@ -212,7 +216,17 @@ export function PurchaseCard({
                   }`}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold tracking-tight">{bundle.name}</span>
+                    <span
+                      className={`font-semibold tracking-tight ${
+                        isSelected
+                          ? 'text-[#00C853]'
+                          : isDark
+                          ? 'text-white'
+                          : 'text-[#0F172A]'
+                      }`}
+                    >
+                      {bundle.name}
+                    </span>
                     {bundle.popular && (
                       <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#00C853]/20 text-[#00C853]">
                         Popular

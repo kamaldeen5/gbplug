@@ -243,7 +243,7 @@ export default function TrackOrderPage() {
                     Delivered
                   </span>
                 </div>
-                <h3 className="text-xl font-extrabold tracking-tight text-white dark:text-white">
+                <h3 className={`text-xl font-extrabold tracking-tight ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>
                   {foundOrder.bundle}
                 </h3>
               </div>

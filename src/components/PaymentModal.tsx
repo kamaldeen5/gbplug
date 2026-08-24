@@ -126,7 +126,7 @@ export function PaymentModal({
             </div>
             <h4 className="font-extrabold text-lg tracking-tight mb-1">Bundle Sent Successfully!</h4>
             <p className={`text-xs mb-5 ${isDark ? 'text-[#8E9CAE]' : 'text-slate-500'}`}>
-              {bundle.data} has been credited to <span className="font-bold text-white">{phoneNumber}</span>.
+              {bundle.data} has been credited to <span className={`font-bold ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>{phoneNumber}</span>.
             </p>
             <button
               type="button"
