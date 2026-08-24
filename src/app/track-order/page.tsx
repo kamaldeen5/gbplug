@@ -9,7 +9,6 @@ import {
   Zap,
 } from 'lucide-react';
 import { Header } from '@/components/Header';
-import { SideMenu } from '@/components/SideMenu';
 import { MTNLogo, TelecelLogo, AirtelTigoLogo, WhatsAppIcon } from '@/components/NetworkLogos';
 
 interface OrderRecord {
@@ -26,7 +25,6 @@ interface OrderRecord {
 
 export default function TrackOrderPage() {
   const [isDark, setIsDark] = useState<boolean>(true);
-  const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [searched, setSearched] = useState<boolean>(false);
   const [foundOrder, setFoundOrder] = useState<OrderRecord | null>(null);
@@ -86,7 +84,6 @@ export default function TrackOrderPage() {
     if (match) {
       setFoundOrder(match);
     } else {
-      // Generate a realistic dynamic match for the user's phone number
       const isMtn = clean.startsWith('024') || clean.startsWith('054') || clean.startsWith('055') || clean.startsWith('059');
       const isTelecel = clean.startsWith('020') || clean.startsWith('050');
 
@@ -113,7 +110,7 @@ export default function TrackOrderPage() {
 
   return (
     <div
-      className={`min-h-screen transition-colors duration-200 flex flex-col justify-between ${
+      className={`min-h-screen transition-colors duration-200 flex flex-col justify-between overflow-x-auto ${
         isDark ? 'bg-[#070D18] text-white' : 'bg-[#F8FAFC] text-slate-900'
       }`}
     >
@@ -121,16 +118,15 @@ export default function TrackOrderPage() {
       <Header
         isDark={isDark}
         onToggleTheme={handleToggleTheme}
-        onOpenMenu={() => setIsMenuOpen(true)}
       />
 
       {/* Main Track Order Content */}
-      <main className="w-full max-w-3xl mx-auto px-4 sm:px-8 py-6 sm:py-10 flex-1 flex flex-col justify-center">
+      <main className="w-full max-w-3xl min-w-[720px] mx-auto px-8 py-10 flex-1 flex flex-col justify-center">
         {/* Back Link */}
         <div className="mb-6">
           <Link
             href="/"
-            className={`inline-flex items-center gap-2 text-xs sm:text-sm font-semibold tracking-tight transition-colors ${
+            className={`inline-flex items-center gap-2 text-sm font-semibold tracking-tight transition-colors ${
               isDark ? 'text-[#8E9CAE] hover:text-white' : 'text-slate-500 hover:text-slate-900'
             }`}
           >
@@ -140,12 +136,12 @@ export default function TrackOrderPage() {
         </div>
 
         {/* Hero Title */}
-        <div className="text-center sm:text-left mb-8">
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold sm:font-black tracking-[-0.035em] leading-tight">
+        <div className="text-left mb-8">
+          <h1 className="text-4xl lg:text-5xl font-black tracking-[-0.035em] leading-tight">
             <span>Track Your</span> <span className="text-[#00C853]">Order.</span>
           </h1>
           <p
-            className={`mt-2.5 text-sm sm:text-base font-normal ${
+            className={`mt-2.5 text-base font-normal ${
               isDark ? 'text-[#94A3B8]' : 'text-[#64748B]'
             }`}
           >
@@ -156,7 +152,7 @@ export default function TrackOrderPage() {
         {/* Search Card */}
         <form
           onSubmit={handleSearch}
-          className={`rounded-2xl p-5 sm:p-6 transition-all border mb-8 ${
+          className={`rounded-2xl p-6 transition-all border mb-8 ${
             isDark
               ? 'bg-[#09121F] border-[#15233A] shadow-[0_25px_60px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.05)]'
               : 'bg-white border-[#E2E8F0] shadow-xl shadow-slate-200/50'
@@ -170,14 +166,14 @@ export default function TrackOrderPage() {
             Enter Phone Number or Order ID
           </label>
 
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex gap-3">
             <div className="relative flex-1">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="e.g. 024 123 4567 or GBP-849201"
-                className={`w-full h-[52px] sm:h-[54px] px-4 pl-11 rounded-xl border text-[16px] font-medium tracking-tight transition-all outline-none ${
+                className={`w-full h-[54px] px-4 pl-11 rounded-xl border text-[16px] font-medium tracking-tight transition-all outline-none ${
                   isDark
                     ? 'bg-[#070D18] border-[#18263E] text-white placeholder-[#5A6E85] focus:border-[#00C853] focus:ring-2 focus:ring-[#00C853]/25'
                     : 'bg-white border-[#E2E8F0] text-slate-900 placeholder-slate-400 focus:border-[#00C853] focus:ring-2 focus:ring-[#00C853]/20'
@@ -192,7 +188,7 @@ export default function TrackOrderPage() {
 
             <button
               type="submit"
-              className="h-[52px] sm:h-[54px] px-8 bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white font-bold text-base tracking-tight rounded-xl shadow-[0_4px_16px_rgba(0,200,83,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer shrink-0"
+              className="h-[54px] px-8 bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white font-bold text-base tracking-tight rounded-xl shadow-[0_4px_16px_rgba(0,200,83,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer shrink-0"
             >
               <span>Track</span>
             </button>
@@ -236,7 +232,7 @@ export default function TrackOrderPage() {
             }`}
           >
             {/* Top info */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b border-slate-700/20 gap-3">
+            <div className="flex items-center justify-between pb-5 border-b border-slate-700/20 gap-3">
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <span className={`text-xs font-mono font-bold ${isDark ? 'text-[#8E9CAE]' : 'text-slate-500'}`}>
@@ -252,7 +248,7 @@ export default function TrackOrderPage() {
                 </h3>
               </div>
 
-              <div className="text-left sm:text-right">
+              <div className="text-right">
                 <span className="text-2xl font-black text-[#00C853] tracking-tight">
                   GH₵ {foundOrder.amount.toFixed(2)}
                 </span>
@@ -276,7 +272,7 @@ export default function TrackOrderPage() {
                   {foundOrder.network === 'mtn' && <MTNLogo className="w-12 h-6" />}
                   {foundOrder.network === 'telecel' && <TelecelLogo className="w-7 h-7" />}
                   {foundOrder.network === 'airteltigo' && <AirtelTigoLogo className="w-16 h-6" />}
-                  <span className="text-xs sm:text-sm">{foundOrder.networkName}</span>
+                  <span className="text-sm">{foundOrder.networkName}</span>
                 </div>
               </div>
 
@@ -288,7 +284,7 @@ export default function TrackOrderPage() {
                 <span className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-[#64748B]' : 'text-slate-400'}`}>
                   Recipient Number
                 </span>
-                <span className="font-bold font-mono text-sm sm:text-base text-[#00C853]">
+                <span className="font-bold font-mono text-base text-[#00C853]">
                   {foundOrder.phone}
                 </span>
               </div>
@@ -318,7 +314,7 @@ export default function TrackOrderPage() {
             </div>
 
             {/* Actions */}
-            <div className="pt-4 border-t border-slate-700/20 flex flex-col sm:flex-row gap-3">
+            <div className="pt-4 border-t border-slate-700/20 flex gap-3">
               <Link
                 href="/"
                 className="flex-1 h-12 bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white font-bold text-sm tracking-tight rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
@@ -344,13 +340,6 @@ export default function TrackOrderPage() {
           </div>
         )}
       </main>
-
-      {/* Side Navigation Menu for Mobile */}
-      <SideMenu
-        isOpen={isMenuOpen}
-        onClose={() => setIsMenuOpen(false)}
-        isDark={isDark}
-      />
     </div>
   );
 }
