@@ -49,7 +49,7 @@ export default function Home() {
 
   return (
     <div
-      className={`min-h-screen transition-colors duration-200 flex flex-col justify-between overflow-x-auto ${
+      className={`min-h-screen transition-colors duration-200 flex flex-col justify-between ${
         isDark ? 'bg-[#070D18] text-white' : 'bg-[#F8FAFC] text-slate-900'
       }`}
     >
@@ -59,29 +59,29 @@ export default function Home() {
         onToggleTheme={handleToggleTheme}
       />
 
-      {/* Main 2-Column Desktop View */}
-      <main className="w-full max-w-7xl min-w-[960px] mx-auto px-8 py-8 flex-1 flex flex-col justify-center">
+      {/* Main Content Area: Responsive 1-col on mobile, 2-col on desktop */}
+      <main className="w-full max-w-7xl mx-auto px-4 sm:px-8 py-4 sm:py-8 flex-1 flex flex-col justify-center">
         {/* Error notification */}
         {errorMsg && (
-          <div className="max-w-md mx-auto w-full mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold tracking-tight animate-pulse text-center">
+          <div className="max-w-md mx-auto lg:max-w-none w-full mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold tracking-tight animate-pulse text-center">
             {errorMsg}
           </div>
         )}
 
-        {/* Authentic 2-Column PC Layout */}
-        <div className="grid grid-cols-12 gap-12 xl:gap-16 items-center">
-          {/* Left Column: Hero Headline + Subtitle + Trust Badges */}
-          <div className="col-span-7 flex flex-col justify-center">
+        {/* Responsive Grid: 1-col on mobile, 2-col on desktop (and desktop-mode) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 xl:gap-16 items-center">
+          {/* Left Column: Hero Headline + Subtitle + (Desktop) Trust Badges */}
+          <div className="lg:col-span-6 xl:col-span-7 flex flex-col justify-center">
             <Hero isDark={isDark} />
 
-            {/* Desktop Trust Badges */}
-            <div className="pt-10">
+            {/* Desktop Trust Badges (positioned below hero text on web view) */}
+            <div className="hidden lg:block pt-8 xl:pt-10">
               <TrustBadges isDark={isDark} className="max-w-md" />
             </div>
           </div>
 
           {/* Right Column: Form Card */}
-          <div className="col-span-5 w-full">
+          <div className="lg:col-span-6 xl:col-span-5 w-full max-w-md mx-auto lg:max-w-none">
             <PurchaseCard
               isDark={isDark}
               selectedNetwork={selectedNetwork}
@@ -92,6 +92,11 @@ export default function Home() {
               setPhoneNumber={setPhoneNumber}
               onBuyNow={handleBuyNow}
             />
+
+            {/* Mobile Trust Badges (positioned below card on mobile view) */}
+            <div className="block lg:hidden mt-6">
+              <TrustBadges isDark={isDark} />
+            </div>
           </div>
         </div>
       </main>

@@ -10,7 +10,6 @@ import { ThemeToggle } from './ThemeToggle';
 interface HeaderProps {
   isDark: boolean;
   onToggleTheme: () => void;
-  onOpenMenu?: () => void;
 }
 
 export function Header({
@@ -25,7 +24,7 @@ export function Header({
   };
 
   return (
-    <header className="w-full max-w-7xl min-w-[960px] mx-auto flex items-center justify-between py-5 px-8 transition-colors duration-200">
+    <header className="w-full max-w-7xl mx-auto flex items-center justify-between py-4 sm:py-5 px-4 sm:px-8 transition-colors duration-200">
       {/* Left: GB Plug Logo */}
       <div className="flex items-center">
         <Link href="/" className="flex items-center">
@@ -33,12 +32,12 @@ export function Header({
         </Link>
       </div>
 
-      {/* Right: Desktop Controls */}
-      <div className="flex items-center gap-4">
+      {/* Right Controls */}
+      <div className="flex items-center gap-2.5 sm:gap-4">
         {/* Track Order Link */}
         <Link
           href="/track-order"
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-[13.5px] font-semibold tracking-tight transition-all ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-[12.5px] sm:text-[13.5px] font-semibold tracking-tight transition-all ${
             isTrackOrder
               ? 'bg-[#00C853]/15 text-[#00C853] shadow-[0_0_12px_rgba(0,200,83,0.15)] border border-[#00C853]/30'
               : isDark
@@ -53,10 +52,19 @@ export function Header({
         {/* Theme Toggle */}
         <ThemeToggle isDark={isDark} onToggle={onToggleTheme} />
 
-        {/* WhatsApp Button */}
+        {/* Mobile WhatsApp icon button */}
         <button
           onClick={openWhatsApp}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white text-[13.5px] font-semibold tracking-tight shadow-[0_2px_8px_rgba(0,200,83,0.25),inset_0_1px_0_rgba(255,255,255,0.2)] transition-all transform active:scale-95 cursor-pointer shrink-0"
+          aria-label="Contact support on WhatsApp"
+          className="sm:hidden w-9 h-9 rounded-xl bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white flex items-center justify-center shadow-[0_2px_8px_rgba(0,200,83,0.25),inset_0_1px_0_rgba(255,255,255,0.2)] transition-all transform active:scale-95 cursor-pointer shrink-0"
+        >
+          <WhatsAppIcon className="w-4 h-4 fill-current" />
+        </button>
+
+        {/* Desktop WhatsApp Button with Text */}
+        <button
+          onClick={openWhatsApp}
+          className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white text-[13.5px] font-semibold tracking-tight shadow-[0_2px_8px_rgba(0,200,83,0.25),inset_0_1px_0_rgba(255,255,255,0.2)] transition-all transform active:scale-95 cursor-pointer shrink-0"
         >
           <WhatsAppIcon className="w-4 h-4 fill-current shrink-0" />
           <span>Chat on WhatsApp</span>
