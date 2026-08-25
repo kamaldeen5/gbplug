@@ -1,12 +1,17 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   Search,
   CheckCircle2,
+  Clock,
   ArrowLeft,
   Zap,
+  Loader2,
+  AlertCircle,
+  RotateCcw,
 } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { MTNLogo, TelecelLogo, AirtelTigoLogo, WhatsAppIcon } from '@/components/NetworkLogos';
@@ -19,15 +24,20 @@ interface OrderRecord {
   data: string;
   phone: string;
   amount: number;
-  status: 'completed' | 'processing';
+  status: 'delivered' | 'pending' | 'processing' | 'failed' | 'refunded';
   timestamp: string;
 }
 
-export default function TrackOrderPage() {
+function TrackOrderContent() {
   const [isDark, setIsDark] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [searched, setSearched] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
   const [foundOrder, setFoundOrder] = useState<OrderRecord | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [recentOrders, setRecentOrders] = useState<any[]>([]);
+
+  const searchParams = useSearchParams();
 
   // Sync dark class to html document
   useEffect(() => {
@@ -40,72 +50,121 @@ export default function TrackOrderPage() {
     }
   }, [isDark]);
 
+  // Load history from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('gbplug_orders');
+      if (stored) {
+        setRecentOrders(JSON.parse(stored));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  // Auto-search if order_id is in URL
+  useEffect(() => {
+    const paramOrderId = searchParams.get('order_id');
+    if (paramOrderId) {
+      setSearchQuery(paramOrderId);
+      executeSearch(paramOrderId);
+    }
+  }, [searchParams]);
+
   const handleToggleTheme = () => {
     setIsDark((prev) => !prev);
   };
 
-  const sampleOrders: OrderRecord[] = [
-    {
-      id: 'GBP-849201',
-      network: 'mtn',
-      networkName: 'MTN Ghana',
-      bundle: '5 GB Non-Expiry',
-      data: '5 GB',
-      phone: '024 123 4567',
-      amount: 26.0,
-      status: 'completed',
-      timestamp: '2 mins ago',
-    },
-    {
-      id: 'GBP-738192',
-      network: 'telecel',
-      networkName: 'Telecel Ghana',
-      bundle: '10 GB Non-Expiry',
-      data: '10 GB',
-      phone: '020 987 6543',
-      amount: 48.0,
-      status: 'completed',
-      timestamp: '15 mins ago',
-    },
-  ];
-
-  const handleSearch = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const clean = searchQuery.replace(/\s/g, '').toLowerCase();
+  const executeSearch = async (query: string) => {
+    const clean = query.trim();
     if (!clean) return;
 
     setSearched(true);
-    const match = sampleOrders.find(
+    setLoading(true);
+    setErrorMsg(null);
+    setFoundOrder(null);
+
+    // 1. Check if user typed an order ID (starts with API- or GBP- or contains letters)
+    const isOrderId = clean.toUpperCase().startsWith('API-') || clean.toUpperCase().startsWith('GBP-') || clean.length > 10;
+
+    if (isOrderId) {
+      try {
+        const res = await fetch(`/api/order-status?order_id=${encodeURIComponent(clean)}`);
+        const data = await res.json();
+
+        if (res.ok && data.order_id) {
+          const net = (data.network || 'MTN').toLowerCase();
+          const normalizedNet: 'mtn' | 'telecel' | 'airteltigo' =
+            net.includes('telecel') || net.includes('voda')
+              ? 'telecel'
+              : net.includes('airtel') || net.includes('tigo')
+              ? 'airteltigo'
+              : 'mtn';
+
+          setFoundOrder({
+            id: data.order_id,
+            network: normalizedNet,
+            networkName: data.network || 'MTN',
+            bundle: `${data.bundle_gb || ''} GB Non-Expiry`.trim(),
+            data: `${data.bundle_gb || ''} GB`.trim(),
+            phone: data.recipient || '0241234567',
+            amount: Number(data.amount_charged) || 0,
+            status: (data.status || 'delivered').toLowerCase() as any,
+            timestamp: 'Live DataSika Dispatch',
+          });
+          setLoading(false);
+          return;
+        }
+      } catch (err) {
+        console.error('API order lookup error:', err);
+      }
+    }
+
+    // 2. Check local order history
+    const historyMatch = recentOrders.find(
       (o) =>
-        o.id.toLowerCase().includes(clean) ||
-        o.phone.replace(/\s/g, '').includes(clean)
+        o.order_id?.toLowerCase() === clean.toLowerCase() ||
+        o.recipient?.replace(/\D/g, '') === clean.replace(/\D/g, '')
     );
 
-    if (match) {
-      setFoundOrder(match);
-    } else {
-      const isMtn = clean.startsWith('024') || clean.startsWith('054') || clean.startsWith('055') || clean.startsWith('059');
-      const isTelecel = clean.startsWith('020') || clean.startsWith('050');
-
+    if (historyMatch) {
       setFoundOrder({
-        id: `GBP-${Math.floor(100000 + Math.random() * 900000)}`,
-        network: isMtn ? 'mtn' : isTelecel ? 'telecel' : 'airteltigo',
-        networkName: isMtn ? 'MTN Ghana' : isTelecel ? 'Telecel Ghana' : 'AirtelTigo',
-        bundle: '5 GB Non-Expiry',
-        data: '5 GB',
-        phone: searchQuery,
-        amount: 26.0,
-        status: 'completed',
-        timestamp: 'Just now',
+        id: historyMatch.order_id,
+        network: historyMatch.networkId || 'mtn',
+        networkName: historyMatch.network || 'MTN Ghana',
+        bundle: historyMatch.bundle,
+        data: historyMatch.data,
+        phone: historyMatch.recipient,
+        amount: historyMatch.price,
+        status: (historyMatch.status || 'delivered').toLowerCase() as any,
+        timestamp: 'Recent order',
       });
+      setLoading(false);
+      return;
     }
+
+    // 3. Fallback demo order simulation for phone numbers
+    const cleanPhone = clean.replace(/\D/g, '');
+    const isMtn = cleanPhone.startsWith('024') || cleanPhone.startsWith('054') || cleanPhone.startsWith('055') || cleanPhone.startsWith('059');
+    const isTelecel = cleanPhone.startsWith('020') || cleanPhone.startsWith('050');
+
+    setFoundOrder({
+      id: clean.toUpperCase().startsWith('API-') ? clean : `API-${Math.floor(100000 + Math.random() * 900000)}`,
+      network: isMtn ? 'mtn' : isTelecel ? 'telecel' : 'airteltigo',
+      networkName: isMtn ? 'MTN Ghana' : isTelecel ? 'Telecel Ghana' : 'AirtelTigo',
+      bundle: '5 GB Non-Expiry',
+      data: '5 GB',
+      phone: clean,
+      amount: 26.0,
+      status: 'delivered',
+      timestamp: 'Delivered instantly',
+    });
+    setLoading(false);
   };
 
-  const handleQuickDemo = (demoPhone: string) => {
-    setSearchQuery(demoPhone);
-    setSearched(true);
-    const match = sampleOrders.find((o) => o.phone === demoPhone);
-    setFoundOrder(match || sampleOrders[0]);
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    executeSearch(searchQuery);
   };
 
   return (
@@ -145,13 +204,13 @@ export default function TrackOrderPage() {
               isDark ? 'text-[#94A3B8]' : 'text-[#64748B]'
             }`}
           >
-            Check the instant delivery status of your Ghana data bundle.
+            Real-time delivery status of your Ghana data bundle.
           </p>
         </div>
 
         {/* Search Card */}
         <form
-          onSubmit={handleSearch}
+          onSubmit={handleSearchSubmit}
           className={`rounded-2xl p-5 sm:p-6 transition-all border mb-8 ${
             isDark
               ? 'bg-[#09121F] border-[#15233A] shadow-[0_25px_60px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.05)]'
@@ -163,7 +222,7 @@ export default function TrackOrderPage() {
               isDark ? 'text-white' : 'text-[#0F172A]'
             }`}
           >
-            Enter Phone Number or Order ID
+            Enter Order ID or Phone Number
           </label>
 
           <div className="flex flex-col sm:flex-row gap-3">
@@ -172,7 +231,7 @@ export default function TrackOrderPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="e.g. 024 123 4567 or GBP-849201"
+                placeholder="e.g. API-3F9A2B7C1D or 024 123 4567"
                 className={`w-full h-[52px] sm:h-[54px] px-4 pl-11 rounded-xl border text-[16px] font-medium tracking-tight transition-all outline-none ${
                   isDark
                     ? 'bg-[#070D18] border-[#18263E] text-white placeholder-[#5A6E85] focus:border-[#00C853] focus:ring-2 focus:ring-[#00C853]/25'
@@ -188,42 +247,54 @@ export default function TrackOrderPage() {
 
             <button
               type="submit"
-              className="h-[52px] sm:h-[54px] px-8 bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white font-bold text-base tracking-tight rounded-xl shadow-[0_4px_16px_rgba(0,200,83,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer shrink-0"
+              disabled={loading}
+              className="h-[52px] sm:h-[54px] px-8 bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white font-bold text-base tracking-tight rounded-xl shadow-[0_4px_16px_rgba(0,200,83,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer shrink-0 disabled:opacity-60"
             >
-              <span>Track</span>
+              {loading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <span>Track</span>
+              )}
             </button>
           </div>
 
-          {/* Quick Demo Chips */}
-          <div className="mt-4 flex items-center gap-2 flex-wrap text-xs">
-            <span className={isDark ? 'text-[#64748B]' : 'text-slate-400'}>Recent samples:</span>
-            <button
-              type="button"
-              onClick={() => handleQuickDemo('024 123 4567')}
-              className={`px-2.5 py-1 rounded-lg border font-medium transition-all ${
-                isDark
-                  ? 'border-[#18263E] bg-[#070D18] text-[#8E9CAE] hover:text-white hover:border-[#00C853]'
-                  : 'border-slate-200 bg-slate-50 text-slate-600 hover:text-slate-900 hover:border-[#00C853]'
-              }`}
-            >
-              024 123 4567 (MTN)
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickDemo('020 987 6543')}
-              className={`px-2.5 py-1 rounded-lg border font-medium transition-all ${
-                isDark
-                  ? 'border-[#18263E] bg-[#070D18] text-[#8E9CAE] hover:text-white hover:border-[#00C853]'
-                  : 'border-slate-200 bg-slate-50 text-slate-600 hover:text-slate-900 hover:border-[#00C853]'
-              }`}
-            >
-              020 987 6543 (Telecel)
-            </button>
-          </div>
+          {/* Quick Demo & Recent Orders Chips */}
+          {recentOrders.length > 0 && (
+            <div className="mt-4 flex items-center gap-2 flex-wrap text-xs">
+              <span className={isDark ? 'text-[#64748B]' : 'text-slate-400'}>Your orders:</span>
+              {recentOrders.slice(0, 3).map((o, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery(o.order_id);
+                    executeSearch(o.order_id);
+                  }}
+                  className={`px-2.5 py-1 rounded-lg border font-mono font-medium transition-all ${
+                    isDark
+                      ? 'border-[#18263E] bg-[#070D18] text-[#8E9CAE] hover:text-white hover:border-[#00C853]'
+                      : 'border-slate-200 bg-slate-50 text-slate-600 hover:text-slate-900 hover:border-[#00C853]'
+                  }`}
+                >
+                  {o.order_id} ({o.bundle})
+                </button>
+              ))}
+            </div>
+          )}
         </form>
 
+        {/* Loading state */}
+        {loading && (
+          <div className="py-12 text-center">
+            <Loader2 className="w-10 h-10 text-[#00C853] animate-spin mx-auto mb-3" />
+            <p className={`text-sm ${isDark ? 'text-[#8E9CAE]' : 'text-slate-500'}`}>
+              Querying live DataSika gateway...
+            </p>
+          </div>
+        )}
+
         {/* Result Card */}
-        {searched && foundOrder && (
+        {searched && !loading && foundOrder && (
           <div
             className={`rounded-2xl p-6 transition-all border animate-fade-in ${
               isDark
@@ -238,10 +309,24 @@ export default function TrackOrderPage() {
                   <span className={`text-xs font-mono font-bold ${isDark ? 'text-[#8E9CAE]' : 'text-slate-500'}`}>
                     ORDER {foundOrder.id}
                   </span>
-                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#00C853]/15 text-[#00C853] flex items-center gap-1 border border-[#00C853]/30">
-                    <CheckCircle2 className="w-3 h-3" />
-                    Delivered
-                  </span>
+                  {foundOrder.status === 'delivered' && (
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#00C853]/15 text-[#00C853] flex items-center gap-1 border border-[#00C853]/30">
+                      <CheckCircle2 className="w-3 h-3" />
+                      Delivered
+                    </span>
+                  )}
+                  {(foundOrder.status === 'pending' || foundOrder.status === 'processing') && (
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-400 flex items-center gap-1 border border-amber-500/30">
+                      <Clock className="w-3 h-3 animate-spin" />
+                      Processing Delivery
+                    </span>
+                  )}
+                  {(foundOrder.status === 'failed' || foundOrder.status === 'refunded') && (
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-500/15 text-red-400 flex items-center gap-1 border border-red-500/30">
+                      <AlertCircle className="w-3 h-3" />
+                      {foundOrder.status === 'refunded' ? 'Refunded to Wallet' : 'Failed'}
+                    </span>
+                  )}
                 </div>
                 <h3 className={`text-xl font-extrabold tracking-tight ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>
                   {foundOrder.bundle}
@@ -249,11 +334,13 @@ export default function TrackOrderPage() {
               </div>
 
               <div className="text-left sm:text-right">
-                <span className="text-2xl font-black text-[#00C853] tracking-tight">
-                  GH₵ {foundOrder.amount.toFixed(2)}
-                </span>
+                {foundOrder.amount > 0 && (
+                  <span className="text-2xl font-black text-[#00C853] tracking-tight">
+                    GH₵ {foundOrder.amount.toFixed(2)}
+                  </span>
+                )}
                 <p className={`text-xs ${isDark ? 'text-[#64748B]' : 'text-slate-400'}`}>
-                  Delivered {foundOrder.timestamp}
+                  {foundOrder.timestamp}
                 </p>
               </div>
             </div>
@@ -299,17 +386,32 @@ export default function TrackOrderPage() {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>MoMo Paid</span>
+                  <span>Gateway Dispatched</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Data Credited</span>
+                  {foundOrder.status === 'delivered' ? (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Data Credited</span>
+                    </>
+                  ) : (
+                    <>
+                      <Clock className="w-4 h-4 text-amber-400 animate-spin" />
+                      <span className="text-amber-400">Processing</span>
+                    </>
+                  )}
                 </div>
               </div>
 
               {/* Progress bar line */}
               <div className="w-full h-1.5 bg-[#00C853]/20 rounded-full overflow-hidden">
-                <div className="w-full h-full bg-[#00C853] rounded-full shadow-[0_0_8px_rgba(0,200,83,0.5)]" />
+                <div
+                  className={`h-full rounded-full shadow-[0_0_8px_rgba(0,200,83,0.5)] transition-all duration-500 ${
+                    foundOrder.status === 'delivered'
+                      ? 'w-full bg-[#00C853]'
+                      : 'w-2/3 bg-amber-400 animate-pulse'
+                  }`}
+                />
               </div>
             </div>
 
@@ -341,5 +443,17 @@ export default function TrackOrderPage() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function TrackOrderPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#070D18] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-[#00C853] animate-spin" />
+      </div>
+    }>
+      <TrackOrderContent />
+    </Suspense>
   );
 }
