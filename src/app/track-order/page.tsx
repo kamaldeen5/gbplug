@@ -314,20 +314,18 @@ function TrackOrderContent() {
                     ORDER {foundOrder.id}
                   </span>
                   {foundOrder.status === 'delivered' && (
-                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#00C853]/15 text-[#00C853] flex items-center gap-1 border border-[#00C853]/30">
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#00C853]/15 text-[#00C853] flex items-center gap-1 border border-[#00C853]/30">
                       <CheckCircle2 className="w-3 h-3" />
-                      Delivered to SIM
+                      Delivered
                     </span>
                   )}
                   {(foundOrder.status === 'pending' || foundOrder.status === 'processing') && (
-                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-400 flex items-center gap-1 border border-amber-500/30">
-                      <Clock className="w-3 h-3 animate-spin" />
-                      Paid & Dispatching
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                      Processing
                     </span>
                   )}
                   {(foundOrder.status === 'failed' || foundOrder.status === 'refunded') && (
-                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-500/15 text-red-400 flex items-center gap-1 border border-red-500/30">
-                      <AlertCircle className="w-3 h-3" />
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-500/15 text-red-400 border border-red-500/30">
                       {foundOrder.status === 'refunded' ? 'Refunded' : 'Failed'}
                     </span>
                   )}
@@ -343,9 +341,6 @@ function TrackOrderContent() {
                     GH₵ {foundOrder.amount.toFixed(2)}
                   </span>
                 )}
-                <p className={`text-xs ${isDark ? 'text-[#64748B]' : 'text-slate-400'}`}>
-                  {foundOrder.timestamp}
-                </p>
               </div>
             </div>
 
@@ -418,6 +413,13 @@ function TrackOrderContent() {
                 />
               </div>
             </div>
+
+            {/* Wait notice — only shown while processing */}
+            {(foundOrder.status === 'pending' || foundOrder.status === 'processing') && (
+              <p className={`text-center text-xs mt-4 mb-1 ${isDark ? 'text-[#64748B]' : 'text-slate-400'}`}>
+                ⏳ Orders can take up to <strong>1 hour</strong> to arrive — please be patient.
+              </p>
+            )}
 
             {/* Actions */}
             <div className="pt-4 border-t border-slate-700/20 flex flex-col sm:flex-row gap-3">
