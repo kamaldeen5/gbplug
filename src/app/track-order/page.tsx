@@ -28,14 +28,126 @@ interface OrderRecord {
   timestamp: string;
 }
 
+function OrderCard({ order, isDark, searchQuery, onRefresh }: {
+  order: OrderRecord;
+  isDark: boolean;
+  searchQuery: string;
+  onRefresh: () => void;
+}) {
+  return (
+    <div
+      className={`rounded-2xl p-5 transition-all border animate-fade-in ${
+        isDark
+          ? 'bg-[#09121F] border-[#15233A] shadow-2xl'
+          : 'bg-white border-[#E2E8F0] shadow-xl'
+      }`}
+    >
+      {/* Top row: ref + badge + amount */}
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div>
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <span className={`text-[11px] font-mono font-bold ${isDark ? 'text-[#8E9CAE]' : 'text-slate-400'}`}>
+              {order.id}
+            </span>
+            {order.status === 'delivered' && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#00C853]/15 text-[#00C853] flex items-center gap-1 border border-[#00C853]/30">
+                <CheckCircle2 className="w-2.5 h-2.5" /> Delivered
+              </span>
+            )}
+            {(order.status === 'pending' || order.status === 'processing') && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                Processing
+              </span>
+            )}
+            {(order.status === 'failed' || order.status === 'refunded') && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/15 text-red-400 border border-red-500/30">
+                {order.status === 'refunded' ? 'Refunded' : 'Failed'}
+              </span>
+            )}
+          </div>
+          <p className={`text-base font-extrabold tracking-tight ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>
+            {order.bundle}
+          </p>
+        </div>
+        {order.amount > 0 && (
+          <span className="text-lg font-black text-[#00C853] tracking-tight shrink-0">
+            GH₵ {order.amount.toFixed(2)}
+          </span>
+        )}
+      </div>
+
+      {/* Network + Phone row */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#070D18] border-[#18263E]' : 'bg-slate-50 border-slate-100'}`}>
+          <span className={`block text-[10px] font-medium mb-1 ${isDark ? 'text-[#64748B]' : 'text-slate-400'}`}>Network</span>
+          <div className="flex items-center gap-1.5 font-bold text-xs">
+            {order.network === 'mtn' && <MTNLogo className="w-10 h-5" />}
+            {order.network === 'telecel' && <TelecelLogo className="w-6 h-6" />}
+            {order.network === 'airteltigo' && <AirtelTigoLogo className="w-14 h-5" />}
+            <span>{order.networkName}</span>
+          </div>
+        </div>
+        <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#070D18] border-[#18263E]' : 'bg-slate-50 border-slate-100'}`}>
+          <span className={`block text-[10px] font-medium mb-1 ${isDark ? 'text-[#64748B]' : 'text-slate-400'}`}>Recipient</span>
+          <span className="font-bold font-mono text-sm text-[#00C853]">{order.phone}</span>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div className="w-full h-1.5 bg-[#00C853]/20 rounded-full overflow-hidden mb-3">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ${
+            order.status === 'delivered'
+              ? 'w-full bg-[#00C853] shadow-[0_0_8px_rgba(0,200,83,0.5)]'
+              : order.status === 'failed' || order.status === 'refunded'
+              ? 'w-1/4 bg-red-400'
+              : 'w-2/3 bg-amber-400 animate-pulse'
+          }`}
+        />
+      </div>
+
+      {/* Wait notice */}
+      {(order.status === 'pending' || order.status === 'processing') && (
+        <p className={`text-center text-[11px] mb-3 ${isDark ? 'text-[#64748B]' : 'text-slate-400'}`}>
+          ⏳ Orders can take up to <strong>1 hour</strong> to arrive — please be patient.
+        </p>
+      )}
+
+      {/* Actions */}
+      <div className="flex gap-2 pt-3 border-t border-slate-700/20">
+        <button
+          type="button"
+          onClick={onRefresh}
+          className="flex-1 h-10 bg-[#00C853] hover:bg-[#00B74A] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+          Refresh
+        </button>
+        <a
+          href={`https://wa.me/233241234567?text=Hello%20GB%20Plug,%20I%20am%20inquiring%20about%20order%20${order.id}`}
+          target="_blank"
+          rel="noreferrer"
+          className={`h-10 px-4 rounded-xl font-semibold text-xs flex items-center gap-1.5 border transition-all ${
+            isDark
+              ? 'border-[#18263E] bg-[#070D18] hover:bg-white/5 text-slate-200'
+              : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
+          }`}
+        >
+          <WhatsAppIcon className="w-3.5 h-3.5 text-[#00C853] fill-current" />
+          Help
+        </a>
+      </div>
+    </div>
+  );
+}
+
 function TrackOrderContent() {
   const [isDark, setIsDark] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [searched, setSearched] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
-  const [foundOrder, setFoundOrder] = useState<OrderRecord | null>(null);
+  const [foundOrders, setFoundOrders] = useState<OrderRecord[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [recentOrders, setRecentOrders] = useState<any[]>([]);
 
   const searchParams = useSearchParams();
 
@@ -50,26 +162,15 @@ function TrackOrderContent() {
     }
   }, [isDark]);
 
-  // Load actual local history
+  // Auto-search if phone is in URL
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('gbplug_orders');
-      if (stored) {
-        setRecentOrders(JSON.parse(stored));
-      }
-    } catch (e) {
-      console.error(e);
+    const paramPhone = searchParams.get('phone');
+    if (paramPhone) {
+      setSearchQuery(paramPhone);
+      executeSearch(paramPhone);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Auto-search if order_id is in URL
-  useEffect(() => {
-    const paramOrderId = searchParams.get('order_id');
-    if (paramOrderId) {
-      setSearchQuery(paramOrderId);
-      executeSearch(paramOrderId);
-    }
-  }, [searchParams]);
 
   const handleToggleTheme = () => {
     setIsDark((prev) => !prev);
@@ -82,50 +183,26 @@ function TrackOrderContent() {
     setSearched(true);
     setLoading(true);
     setErrorMsg(null);
-    setFoundOrder(null);
+    setFoundOrders([]);
 
     try {
-      // Query server live tracking endpoint (checks SikaPay live transactions + DataSika live gateway)
       const res = await fetch(`/api/track?query=${encodeURIComponent(clean)}`);
       const data = await res.json();
 
-      if (data.success && data.order) {
-        setFoundOrder(data.order);
+      if (data.success && Array.isArray(data.orders) && data.orders.length > 0) {
+        setFoundOrders(data.orders);
         setLoading(false);
         return;
       }
 
-      // Check local storage fallback
-      const stored = JSON.parse(localStorage.getItem('gbplug_orders') || '[]');
-      const cleanDigits = clean.replace(/\D/g, '');
-      const historyMatch = stored.find(
-        (o: any) =>
-          (cleanDigits.length >= 9 && o.recipient?.replace(/\D/g, '') === cleanDigits) ||
-          o.order_id?.toLowerCase() === clean.toLowerCase()
+      setErrorMsg(
+        data.error ||
+        `No orders found for "${clean}". Make sure you enter the number you used to pay.`
       );
-
-      if (historyMatch) {
-        setFoundOrder({
-          id: historyMatch.order_id,
-          network: historyMatch.networkId || 'mtn',
-          networkName: historyMatch.network || 'MTN Ghana',
-          bundle: `${historyMatch.bundle || historyMatch.data} Data Bundle`,
-          data: historyMatch.data,
-          phone: historyMatch.recipient,
-          amount: historyMatch.price,
-          status: (historyMatch.status || 'delivered').toLowerCase() as any,
-          timestamp: 'Recent purchase',
-        });
-        setLoading(false);
-        return;
-      }
-
-      // Not found
-      setErrorMsg(`No active order found for "${clean}". Please verify the 10-digit number or Reference ID.`);
       setLoading(false);
     } catch (err: any) {
       console.error('Track error:', err);
-      setErrorMsg('Unable to retrieve order details right now. Please try again.');
+      setErrorMsg('Unable to retrieve orders right now. Please try again.');
       setLoading(false);
     }
   };
@@ -190,16 +267,17 @@ function TrackOrderContent() {
               isDark ? 'text-white' : 'text-[#0F172A]'
             }`}
           >
-            Enter Phone Number or Reference ID
+            Enter Your Phone Number
           </label>
 
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <input
-                type="text"
+                type="tel"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="e.g. 0542778141 or SKPY_MT9RXRUX_1D2B4652568E"
+                placeholder="e.g. 0542778141"
+                inputMode="numeric"
                 className={`w-full h-[52px] sm:h-[54px] px-4 pl-11 rounded-xl border text-[16px] font-medium tracking-tight transition-all outline-none ${
                   isDark
                     ? 'bg-[#070D18] border-[#18263E] text-white placeholder-[#5A6E85] focus:border-[#00C853] focus:ring-2 focus:ring-[#00C853]/25'
@@ -221,34 +299,10 @@ function TrackOrderContent() {
               {loading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
-                <span>Track Live</span>
+                <span>Track Orders</span>
               )}
             </button>
           </div>
-
-          {/* Real Recent Orders Chips */}
-          {recentOrders.length > 0 && (
-            <div className="mt-4 flex items-center gap-2 flex-wrap text-xs">
-              <span className={isDark ? 'text-[#64748B]' : 'text-slate-400'}>Recent on this device:</span>
-              {recentOrders.slice(0, 3).map((o, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => {
-                    setSearchQuery(o.order_id || o.recipient);
-                    executeSearch(o.order_id || o.recipient);
-                  }}
-                  className={`px-2.5 py-1 rounded-lg border font-mono font-medium transition-all ${
-                    isDark
-                      ? 'border-[#18263E] bg-[#070D18] text-[#8E9CAE] hover:text-white hover:border-[#00C853]'
-                      : 'border-slate-200 bg-slate-50 text-slate-600 hover:text-slate-900 hover:border-[#00C853]'
-                  }`}
-                >
-                  {o.order_id} ({o.data || o.bundle})
-                </button>
-              ))}
-            </div>
-          )}
         </form>
 
         {/* Loading state */}
@@ -256,7 +310,7 @@ function TrackOrderContent() {
           <div className="py-12 text-center">
             <Loader2 className="w-10 h-10 text-[#00C853] animate-spin mx-auto mb-3" />
             <p className={`text-sm ${isDark ? 'text-[#8E9CAE]' : 'text-slate-500'}`}>
-              Searching live SikaPay transactions & network gateway...
+              Looking up live orders...
             </p>
           </div>
         )}
@@ -297,155 +351,21 @@ function TrackOrderContent() {
           </div>
         )}
 
-        {/* Real Live Result Card */}
-        {searched && !loading && foundOrder && (
-          <div
-            className={`rounded-2xl p-6 transition-all border animate-fade-in ${
-              isDark
-                ? 'bg-[#09121F] border-[#15233A] shadow-2xl'
-                : 'bg-white border-[#E2E8F0] shadow-xl'
-            }`}
-          >
-            {/* Top info */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b border-slate-700/20 gap-3">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className={`text-xs font-mono font-bold ${isDark ? 'text-[#8E9CAE]' : 'text-slate-500'}`}>
-                    ORDER {foundOrder.id}
-                  </span>
-                  {foundOrder.status === 'delivered' && (
-                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#00C853]/15 text-[#00C853] flex items-center gap-1 border border-[#00C853]/30">
-                      <CheckCircle2 className="w-3 h-3" />
-                      Delivered
-                    </span>
-                  )}
-                  {(foundOrder.status === 'pending' || foundOrder.status === 'processing') && (
-                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
-                      Processing
-                    </span>
-                  )}
-                  {(foundOrder.status === 'failed' || foundOrder.status === 'refunded') && (
-                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-500/15 text-red-400 border border-red-500/30">
-                      {foundOrder.status === 'refunded' ? 'Refunded' : 'Failed'}
-                    </span>
-                  )}
-                </div>
-                <h3 className={`text-xl font-extrabold tracking-tight ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>
-                  {foundOrder.bundle}
-                </h3>
-              </div>
-
-              <div className="text-left sm:text-right">
-                {foundOrder.amount > 0 && (
-                  <span className="text-2xl font-black text-[#00C853] tracking-tight">
-                    GH₵ {foundOrder.amount.toFixed(2)}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Network & Recipient Details */}
-            <div className="py-5 grid grid-cols-2 gap-4 text-sm">
-              <div
-                className={`p-3.5 rounded-xl border ${
-                  isDark ? 'bg-[#070D18] border-[#18263E]' : 'bg-slate-50 border-slate-100'
-                }`}
-              >
-                <span className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-[#64748B]' : 'text-slate-400'}`}>
-                  Network
-                </span>
-                <div className="flex items-center gap-2 font-bold">
-                  {foundOrder.network === 'mtn' && <MTNLogo className="w-12 h-6" />}
-                  {foundOrder.network === 'telecel' && <TelecelLogo className="w-7 h-7" />}
-                  {foundOrder.network === 'airteltigo' && <AirtelTigoLogo className="w-16 h-6" />}
-                  <span className="text-xs sm:text-sm">{foundOrder.networkName}</span>
-                </div>
-              </div>
-
-              <div
-                className={`p-3.5 rounded-xl border ${
-                  isDark ? 'bg-[#070D18] border-[#18263E]' : 'bg-slate-50 border-slate-100'
-                }`}
-              >
-                <span className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-[#64748B]' : 'text-slate-400'}`}>
-                  Recipient Number
-                </span>
-                <span className="font-bold font-mono text-sm sm:text-base text-[#00C853]">
-                  {foundOrder.phone}
-                </span>
-              </div>
-            </div>
-
-            {/* Visual Delivery Step Timeline */}
-            <div className="pt-2 pb-5">
-              <div className="flex items-center justify-between text-xs font-semibold text-[#00C853] mb-2">
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Paid via MoMo</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Gateway Confirmed</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  {foundOrder.status === 'delivered' ? (
-                    <>
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>Data Credited</span>
-                    </>
-                  ) : (
-                    <>
-                      <Clock className="w-4 h-4 text-amber-400 animate-spin" />
-                      <span className="text-amber-400">Crediting SIM...</span>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Progress bar line */}
-              <div className="w-full h-1.5 bg-[#00C853]/20 rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full shadow-[0_0_8px_rgba(0,200,83,0.5)] transition-all duration-500 ${
-                    foundOrder.status === 'delivered'
-                      ? 'w-full bg-[#00C853]'
-                      : 'w-2/3 bg-amber-400 animate-pulse'
-                  }`}
-                />
-              </div>
-            </div>
-
-            {/* Wait notice — only shown while processing */}
-            {(foundOrder.status === 'pending' || foundOrder.status === 'processing') && (
-              <p className={`text-center text-xs mt-4 mb-1 ${isDark ? 'text-[#64748B]' : 'text-slate-400'}`}>
-                ⏳ Orders can take up to <strong>1 hour</strong> to arrive — please be patient.
-              </p>
-            )}
-
-            {/* Actions */}
-            <div className="pt-4 border-t border-slate-700/20 flex flex-col sm:flex-row gap-3">
-              <button
-                type="button"
-                onClick={() => executeSearch(searchQuery)}
-                className="flex-1 h-12 bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white font-bold text-sm tracking-tight rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <RefreshCw className="w-4 h-4" />
-                <span>Refresh Status</span>
-              </button>
-
-              <a
-                href={`https://wa.me/233241234567?text=Hello%20GB%20Plug,%20I%20am%20inquiring%20about%20Order%20${foundOrder.id}`}
-                target="_blank"
-                rel="noreferrer"
-                className={`h-12 px-5 rounded-xl font-semibold text-sm tracking-tight transition-all flex items-center justify-center gap-2 border ${
-                  isDark
-                    ? 'border-[#18263E] bg-[#070D18] hover:bg-white/5 text-slate-200'
-                    : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-800'
-                }`}
-              >
-                <WhatsAppIcon className="w-4 h-4 text-[#00C853] fill-current" />
-                <span>Need Help?</span>
-              </a>
-            </div>
+        {/* Live Order Results — up to 5 */}
+        {searched && !loading && foundOrders.length > 0 && (
+          <div className="flex flex-col gap-4">
+            <p className={`text-xs font-semibold ${isDark ? 'text-[#8E9CAE]' : 'text-slate-500'}`}>
+              {foundOrders.length} order{foundOrders.length > 1 ? 's' : ''} found for {searchQuery}
+            </p>
+            {foundOrders.map((order) => (
+              <OrderCard
+                key={order.id}
+                order={order}
+                isDark={isDark}
+                searchQuery={searchQuery}
+                onRefresh={() => executeSearch(searchQuery)}
+              />
+            ))}
           </div>
         )}
       </main>
