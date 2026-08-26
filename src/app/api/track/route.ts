@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
+import { registerOrderEntry, getOrdersByPhone } from '@/lib/order-registry';
 
 export const dynamic = 'force-dynamic';
 
-const SIKAPAY_BASE_URL = 'https://api.sikapaygh.com/api/v1';
 const DATASIKA_BASE_URL = 'https://nrsfvhztpzwkadwciizp.supabase.co/functions/v1';
 
 function detectNetwork(phone: string): { id: 'mtn' | 'telecel' | 'airteltigo'; name: string } {
@@ -12,102 +12,37 @@ function detectNetwork(phone: string): { id: 'mtn' | 'telecel' | 'airteltigo'; n
   return { id: 'airteltigo', name: 'AirtelTigo' };
 }
 
-async function fetchLiveOrderDetails(
-  t: any,
-  cleanDigits: string,
-  dataSikaKey?: string
-) {
-  const isPaid = t.status?.toLowerCase() === 'success';
-  const recipientPhone =
-    (t.metadata?.recipient_phone || '').replace(/\D/g, '') ||
-    (t.customer?.phone || '').replace(/\D/g, '').slice(-10) ||
-    cleanDigits;
+async function fetchDsOrder(orderId: string, dataSikaKey: string) {
+  const res = await fetch(
+    `${DATASIKA_BASE_URL}/api-order-status?order_id=${encodeURIComponent(orderId)}`,
+    { headers: { Authorization: `Bearer ${dataSikaKey}` }, cache: 'no-store' }
+  );
+  if (!res.ok) return null;
+  return res.json() as Promise<any>;
+}
 
-  const { id: networkId, name: networkName } = detectNetwork(recipientPhone);
-  const bundleName = t.metadata?.bundle_name || '';
-  const productId = t.metadata?.product_id;
-
-  let orderId = t.reference;
-  let status: 'delivered' | 'pending' | 'processing' | 'failed' | 'refunded' = isPaid
-    ? 'processing'
-    : 'pending';
-
-  let orderPlacedAt = t.created_at || null;
-  let processingAt: string | null = t.paid_at || null;
-  let deliveredAt: string | null = null;
-
-  // If customer paid, query DataSika for the live gateway record & real status
-  if (isPaid && dataSikaKey && productId && recipientPhone) {
-    try {
-      // 1. Idempotently resolve DataSika order record
-      const dsRes = await fetch(`${DATASIKA_BASE_URL}/api-buy-data`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${dataSikaKey}`,
-          'Idempotency-Key': `sikapay-${t.reference}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          product_id: productId,
-          recipient: recipientPhone.slice(-10),
-        }),
-      });
-
-      const dsData = await dsRes.json();
-
-      if (dsData.order_id) {
-        orderId = dsData.order_id;
-
-        // 2. Query DataSika live order status endpoint for accurate timestamps & state
-        const statusRes = await fetch(
-          `${DATASIKA_BASE_URL}/api-order-status?order_id=${encodeURIComponent(dsData.order_id)}`,
-          {
-            headers: { Authorization: `Bearer ${dataSikaKey}` },
-            cache: 'no-store',
-          }
-        );
-
-        if (statusRes.ok) {
-          const statusData = await statusRes.json();
-          const dsStatus = (statusData.status || '').toLowerCase();
-
-          if (dsStatus === 'delivered') {
-            status = 'delivered';
-            deliveredAt = statusData.updated_at || statusData.created_at || null;
-          } else if (dsStatus === 'failed') {
-            status = 'failed';
-            deliveredAt = statusData.updated_at || null;
-          } else if (dsStatus === 'refunded') {
-            status = 'refunded';
-            deliveredAt = statusData.updated_at || null;
-          } else {
-            status = 'processing';
-          }
-
-          if (statusData.created_at) {
-            processingAt = statusData.created_at;
-          }
-        }
-      }
-    } catch (err) {
-      console.error('DataSika live status query error:', err);
-    }
-  }
-
+function dsOrderToUi(ds: any) {
+  const { id: networkId, name: networkName } = detectNetwork(ds.recipient || '');
+  const dsStatus = (ds.status || '').toLowerCase();
   return {
-    id: orderId,
-    reference: t.reference,
+    id: ds.order_id,
+    reference: ds.order_id,
     network: networkId,
-    networkName,
-    bundle: bundleName ? `${bundleName} Data Bundle` : 'Data Bundle',
-    data: bundleName,
-    phone: recipientPhone,
-    amount: Number(t.amount) || 0,
-    status,
+    networkName: ds.network ? `${ds.network} Ghana` : networkName,
+    bundle: ds.bundle_gb ? `${ds.bundle_gb} GB Data Bundle` : 'Data Bundle',
+    data: ds.bundle_gb ? `${ds.bundle_gb} GB` : 'Data Bundle',
+    phone: ds.recipient || '',
+    amount: Number(ds.amount_charged) || 0,
+    status: dsStatus as 'delivered' | 'processing' | 'pending' | 'failed' | 'refunded',
     timeline: {
-      orderPlacedAt,
-      processingAt,
-      deliveredAt,
+      orderPlacedAt: ds.created_at || null,
+      processingAt: ds.created_at || null,
+      deliveredAt:
+        dsStatus === 'delivered'
+          ? ds.updated_at || ds.created_at
+          : dsStatus === 'failed' || dsStatus === 'refunded'
+          ? ds.updated_at || null
+          : null,
     },
   };
 }
@@ -118,7 +53,7 @@ export async function GET(req: NextRequest) {
     const query = (searchParams.get('query') || '').trim();
 
     if (!query) {
-      return NextResponse.json({ success: false, error: 'Phone number or Order ID is required.' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Phone number is required.' }, { status: 400 });
     }
 
     const dataSikaKey = process.env.DATA_API_KEY || process.env.DSK_API_KEY;
@@ -126,110 +61,56 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'DataSika API key not configured.' }, { status: 500 });
     }
 
-    // 1. Direct DataSika Order ID Lookup (e.g., API-..., FLX-...)
+    // Path A: direct order ID lookup (API-... or FLX-...)
     if (query.toUpperCase().startsWith('API-') || query.toUpperCase().startsWith('FLX-')) {
-      const statusRes = await fetch(
-        `${DATASIKA_BASE_URL}/api-order-status?order_id=${encodeURIComponent(query.toUpperCase())}`,
-        {
-          headers: { Authorization: `Bearer ${dataSikaKey}` },
-          cache: 'no-store',
-        }
-      );
-
-      if (statusRes.ok) {
-        const ds = await statusRes.json();
-        const { id: networkId, name: networkName } = detectNetwork(ds.recipient || '');
-        const dsStatus = (ds.status || '').toLowerCase();
-
-        return NextResponse.json({
-          success: true,
-          orders: [
-            {
-              id: ds.order_id,
-              reference: ds.order_id,
-              network: networkId,
-              networkName: ds.network ? `${ds.network} Ghana` : networkName,
-              bundle: ds.bundle_gb ? `${ds.bundle_gb} GB Data Bundle` : 'Data Bundle',
-              data: ds.bundle_gb ? `${ds.bundle_gb} GB` : 'Data Bundle',
-              phone: ds.recipient || '',
-              amount: Number(ds.amount_charged) || 0,
-              status: dsStatus,
-              timeline: {
-                orderPlacedAt: ds.created_at || null,
-                processingAt: ds.created_at || null,
-                deliveredAt: dsStatus === 'delivered' ? (ds.updated_at || ds.created_at) : null,
-              },
-            },
-          ],
-        });
-      } else {
+      const ds = await fetchDsOrder(query.toUpperCase(), dataSikaKey);
+      if (!ds) {
         return NextResponse.json({
           success: false,
-          error: `Order ID ${query} was not found on DataSika. Check the ID and try again.`,
+          error: `Order ${query} not found. Double-check the Order ID and try again.`,
         });
       }
+      registerOrderEntry({ orderId: ds.order_id, recipient: ds.recipient, createdAt: ds.created_at });
+      return NextResponse.json({ success: true, orders: [dsOrderToUi(ds)] });
     }
 
-    // 2. Phone Number Lookup
+    // Path B: phone number lookup via DataSika order registry
     const cleanDigits = query.replace(/\D/g, '');
     if (cleanDigits.length < 9) {
       return NextResponse.json(
-        { success: false, error: 'Please enter a valid 10-digit phone number or Order ID (e.g. API-...).' },
+        { success: false, error: 'Please enter your 10-digit recipient phone number.' },
         { status: 400 }
       );
     }
 
-    const secretKey = process.env.SIKAPAY_SECRET_KEY;
-    if (!secretKey) {
-      return NextResponse.json({ success: false, error: 'Payment gateway not configured.' }, { status: 500 });
-    }
-
-    // Fetch live transactions from SikaPay to identify paid references for this number
-    const res = await fetch(`${SIKAPAY_BASE_URL}/transaction`, {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${secretKey}` },
-      cache: 'no-store',
-    });
-
-    const data = await res.json();
-    if (!data.status || !Array.isArray(data.data)) {
-      return NextResponse.json(
-        { success: false, error: 'Could not reach gateway. Try again shortly.' },
-        { status: 502 }
-      );
-    }
-
-    // Strictly match completed, paid transactions for this phone
-    const matches = (data.data as any[]).filter((t) => {
-      const isPaid = (t.status || '').toLowerCase() === 'success';
-      if (!isPaid) return false;
-
-      const inEmail = (t.customer?.email || '').includes(cleanDigits);
-      const inMeta = (t.metadata?.recipient_phone || '').replace(/\D/g, '').includes(cleanDigits);
-      const inPhone = (t.customer?.phone || '').replace(/\D/g, '').includes(cleanDigits);
-      return inEmail || inMeta || inPhone;
-    });
-
-    if (matches.length === 0) {
+    const entries = getOrdersByPhone(cleanDigits);
+    if (entries.length === 0) {
       return NextResponse.json({
         success: false,
-        error: `No orders found on DataSika for ${query}. Make sure you enter the recipient number or the number you used to pay.`,
+        error: `No orders found for ${query}. Make sure you enter the recipient number used at checkout.`,
       });
     }
 
-    // Sort newest first, take up to 5
-    const sorted = [...matches]
-      .sort((a, b) => {
-        const at = new Date(a.paid_at || a.created_at || 0).getTime();
-        const bt = new Date(b.paid_at || b.created_at || 0).getTime();
-        return bt - at;
-      })
-      .slice(0, 5);
+    // Sort newest first, cap at 10
+    const sorted = [...entries]
+      .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+      .slice(0, 10);
 
-    // Query DataSika for each order to pull live gateway details and timeline
-    const orders = await Promise.all(
-      sorted.map((t) => fetchLiveOrderDetails(t, cleanDigits, dataSikaKey))
+    // Fetch live status from DataSika for each order in parallel
+    const settled = await Promise.allSettled(
+      sorted.map((e) => fetchDsOrder(e.orderId, dataSikaKey))
     );
+
+    const orders = settled
+      .map((r) => (r.status === 'fulfilled' && r.value ? dsOrderToUi(r.value) : null))
+      .filter(Boolean);
+
+    if (orders.length === 0) {
+      return NextResponse.json({
+        success: false,
+        error: 'Could not retrieve order details from DataSika right now. Try again shortly.',
+      });
+    }
 
     return NextResponse.json({ success: true, orders });
   } catch (error: any) {
@@ -237,6 +118,3 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
-
-
-

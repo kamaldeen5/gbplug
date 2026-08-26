@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { buyDataBundle } from '@/lib/datasika';
+import { registerOrderEntry } from '@/lib/order-registry';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,6 +36,11 @@ export async function POST(req: NextRequest) {
       recipient: cleanRecipient,
       idempotencyKey,
     });
+
+    // Register in order registry so tracking by phone always finds this order
+    if (result.order_id) {
+      registerOrderEntry({ orderId: result.order_id, recipient: cleanRecipient });
+    }
 
     return NextResponse.json({
       success: true,

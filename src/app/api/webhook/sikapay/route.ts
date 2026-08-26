@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { buyDataBundle } from '@/lib/datasika';
+import { registerOrderEntry } from '@/lib/order-registry';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,6 +43,9 @@ export async function POST(req: NextRequest) {
             idempotencyKey: `sikapay-webhook-${reference}`,
           });
           console.log(`DataSika order dispatched for ${reference}:`, order.order_id);
+          if (order.order_id) {
+            registerOrderEntry({ orderId: order.order_id, recipient: recipientPhone.replace(/\D/g, '') });
+          }
         } catch (err: any) {
           console.error(`DataSika dispatch failed for ${reference}:`, err.message);
           // Still return 200 so SikaPay doesn't retry the webhook endlessly
