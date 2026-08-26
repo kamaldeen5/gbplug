@@ -154,8 +154,11 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Filter strictly by phone number
+    // Filter strictly by phone number AND successful payment (ignore unpaid/abandoned checkout sessions)
     const matches = (data.data as any[]).filter((t) => {
+      const isPaid = (t.status || '').toLowerCase() === 'success';
+      if (!isPaid) return false;
+
       const inEmail = (t.customer?.email || '').includes(cleanDigits);
       const inMeta = (t.metadata?.recipient_phone || '').replace(/\D/g, '').includes(cleanDigits);
       const inPhone = (t.customer?.phone || '').replace(/\D/g, '').includes(cleanDigits);
@@ -165,7 +168,7 @@ export async function GET(req: NextRequest) {
     if (matches.length === 0) {
       return NextResponse.json({
         success: false,
-        error: `No orders found for ${query}. Make sure you enter the number you used to pay.`,
+        error: `No paid orders found for ${query}. Make sure you enter the recipient number or the number you used to pay.`,
       });
     }
 
