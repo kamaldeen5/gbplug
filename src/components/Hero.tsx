@@ -7,11 +7,12 @@ interface HeroProps {
 export function Hero({ isDark }: HeroProps) {
   return (
     <>
-      {/* Mobile: Crisp 1-Line Value Proposition (Larger & Pops) */}
-      <div className="block md:hidden text-center pt-0 pb-0.5 mb-2.5">
-        <h1 className="text-[17px] xs:text-[18.5px] sm:text-[21px] font-black tracking-tight leading-snug">
-          <span className={isDark ? 'text-white' : 'text-[#0F172A]'}>Fast, affordable data bundles for </span>
-          <span className="text-[#00C853] drop-shadow-[0_0_14px_rgba(0,200,83,0.35)]">all networks</span>
+      {/* Mobile: Big & Bold Double-Line Headline */}
+      <div className="block md:hidden text-center pt-0 pb-1 mb-3">
+        <h1 className="text-[24px] xs:text-[27px] sm:text-[32px] font-black tracking-tight leading-[1.12]">
+          <span className={isDark ? 'text-white' : 'text-[#0F172A]'}>Buy Data Online.</span>
+          <br />
+          <span className="text-[#00C853] drop-shadow-[0_0_16px_rgba(0,200,83,0.35)]">Stay Connected.</span>
         </h1>
       </div>
 
