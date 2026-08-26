@@ -208,18 +208,22 @@ export function PurchaseCard({
 
         <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
           {NETWORKS.map((network) => {
+            const isFlexaDisabled = activeTab === 'flexa' && network.id !== 'mtn';
             const isSelected = selectedNetwork.id === network.id;
             return (
               <button
                 key={network.id}
                 type="button"
+                disabled={isFlexaDisabled}
                 onClick={() => handleSelectNetwork(network)}
-                className={`relative flex flex-col items-center justify-between py-3.5 px-1 rounded-xl transition-all h-[98px] sm:h-[104px] active:scale-[0.97] cursor-pointer select-none ${
-                  isSelected
-                    ? 'border-2 border-[#00C853] bg-[#00C853]/[0.03] shadow-[0_0_16px_rgba(0,200,83,0.15)]'
+                className={`relative flex flex-col items-center justify-between py-3.5 px-1 rounded-xl transition-all h-[98px] sm:h-[104px] select-none ${
+                  isFlexaDisabled
+                    ? 'opacity-30 cursor-not-allowed border border-slate-700/20 grayscale'
+                    : isSelected
+                    ? 'border-2 border-[#00C853] bg-[#00C853]/[0.03] shadow-[0_0_16px_rgba(0,200,83,0.15)] cursor-pointer active:scale-[0.97]'
                     : isDark
-                    ? 'border border-[#17263E] bg-[#070D18] hover:border-[#263E63]'
-                    : 'border border-[#E2E8F0] bg-[#FAFAFA] hover:border-slate-300'
+                    ? 'border border-[#17263E] bg-[#070D18] hover:border-[#263E63] cursor-pointer active:scale-[0.97]'
+                    : 'border border-[#E2E8F0] bg-[#FAFAFA] hover:border-slate-300 cursor-pointer active:scale-[0.97]'
                 }`}
               >
                 {/* Active Checkmark Badge */}
@@ -239,7 +243,9 @@ export function PurchaseCard({
                 {/* Network Label */}
                 <span
                   className={`text-[12px] font-semibold truncate max-w-full px-0.5 tracking-tight ${
-                    isSelected
+                    isFlexaDisabled
+                      ? 'text-slate-500'
+                      : isSelected
                       ? isDark
                         ? 'text-white'
                         : 'text-[#0F172A]'
@@ -374,7 +380,7 @@ export function PurchaseCard({
           <input
             type="tel"
             inputMode="numeric"
-            placeholder="e.g. 024 123 4567"
+            placeholder={activeTab === 'flexa' ? 'e.g. 024 123 4567 (MTN only)' : 'e.g. 024 123 4567'}
             value={phoneNumber}
             onChange={handlePhoneChange}
             className={`w-full h-[52px] sm:h-[54px] px-4 pr-12 rounded-xl border text-[16px] font-medium tracking-tight transition-all outline-none ${
@@ -396,6 +402,13 @@ export function PurchaseCard({
             <UserSquare2 className="w-5 h-5 stroke-[1.8]" />
           </button>
         </div>
+
+        {/* Warning if non-MTN phone entered during Flexa tab */}
+        {activeTab === 'flexa' && phoneNumber.replace(/\D/g, '').length >= 3 && !['024', '054', '055', '059', '025'].some(p => phoneNumber.replace(/\D/g, '').startsWith(p)) && (
+          <p className="text-amber-400 text-xs mt-2 font-medium flex items-center gap-1">
+            <span>⚠️ MTN Flexa is for MTN numbers only (024, 054, 055, 059, 025). Switch to Data Bundles for other networks.</span>
+          </p>
+        )}
       </div>
 
       {/* Buy Now CTA Button / Out of Stock Banner */}

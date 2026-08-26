@@ -38,12 +38,23 @@ export default function Home() {
       setTimeout(() => setErrorMsg(null), 3000);
       return;
     }
-    const cleanPhone = phoneNumber.replace(/\s/g, '');
+    const cleanPhone = phoneNumber.replace(/\D/g, '');
     if (cleanPhone.length < 10) {
       setErrorMsg('Please enter a valid 10-digit Ghana phone number.');
       setTimeout(() => setErrorMsg(null), 3000);
       return;
     }
+
+    // Strict MTN-only check for Flexa
+    if (selectedBundle.serviceType === 'mtn_flexa') {
+      const isMtn = ['024', '054', '055', '059', '025'].some((p) => cleanPhone.startsWith(p));
+      if (!isMtn) {
+        setErrorMsg('MTN Flexa is only for MTN numbers (024, 054, 055, 059, 025). Switch to Data Bundles for other networks.');
+        setTimeout(() => setErrorMsg(null), 4000);
+        return;
+      }
+    }
+
     setErrorMsg(null);
     setIsPaymentOpen(true);
   };
