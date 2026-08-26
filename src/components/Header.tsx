@@ -24,7 +24,7 @@ export function Header({
   };
 
   return (
-    <header className="w-full max-w-7xl mx-auto flex items-center justify-between py-4 sm:py-5 px-4 sm:px-8 transition-colors duration-200">
+    <header className="w-full max-w-7xl mx-auto flex items-center justify-between py-2.5 sm:py-5 px-3.5 sm:px-8 transition-colors duration-200">
       {/* Left: GB Plug Logo */}
       <div className="flex items-center">
         <Link href="/" className="flex items-center">

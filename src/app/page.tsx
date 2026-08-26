@@ -72,16 +72,16 @@ export default function Home() {
       />
 
       {/* Main Content Area: Responsive 1-col on mobile, 2-col on Fold/Tablet/PC */}
-      <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-4 sm:py-6 md:py-8 flex-1 flex flex-col justify-center">
+      <main className="w-full max-w-7xl mx-auto px-3.5 sm:px-6 md:px-8 py-2 sm:py-6 md:py-8 flex-1 flex flex-col justify-center">
         {/* Error notification */}
         {errorMsg && (
-          <div className="max-w-md mx-auto md:max-w-none w-full mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold tracking-tight animate-pulse text-center">
+          <div className="max-w-md mx-auto md:max-w-none w-full mb-3 p-2.5 sm:p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold tracking-tight animate-pulse text-center">
             {errorMsg}
           </div>
         )}
 
         {/* Responsive Grid: 1-col on phone, 2-col on fold/tablet/desktop */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-8 lg:gap-12 xl:gap-16 items-center">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5 sm:gap-6 md:gap-8 lg:gap-12 xl:gap-16 items-center">
           {/* Left Column: Hero Headline + Subtitle + (Desktop/Tablet) Trust Badges */}
           <div className="md:col-span-6 lg:col-span-6 xl:col-span-7 flex flex-col justify-center">
             <Hero isDark={isDark} />

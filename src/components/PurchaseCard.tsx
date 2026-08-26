@@ -104,7 +104,7 @@ export function PurchaseCard({
 
   return (
     <div
-      className={`w-full rounded-[22px] sm:rounded-2xl p-5 sm:p-6 transition-all duration-200 border ${
+      className={`w-full rounded-[18px] sm:rounded-2xl p-3.5 sm:p-6 transition-all duration-200 border ${
         isDark
           ? 'bg-[#09121F] border-[#15233A] shadow-[0_25px_60px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.05)]'
           : 'bg-white border-[#E2E8F0] shadow-[0_20px_50px_rgba(0,0,0,0.06),0_1px_3px_rgba(0,0,0,0.05)]'
@@ -112,7 +112,7 @@ export function PurchaseCard({
     >
       {/* Service Type Tab Switcher */}
       <div
-        className={`p-1 rounded-xl mb-5 flex items-center border ${
+        className={`p-1 rounded-xl mb-3 sm:mb-5 flex items-center border ${
           isDark ? 'bg-[#070D18] border-[#18263E]' : 'bg-slate-100/90 border-slate-200'
         }`}
       >
@@ -122,7 +122,7 @@ export function PurchaseCard({
             setActiveTab('regular');
             setSelectedBundle(null);
           }}
-          className={`flex-1 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all text-center cursor-pointer ${
+          className={`flex-1 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-bold transition-all text-center cursor-pointer ${
             activeTab === 'regular'
               ? isDark
                 ? 'bg-[#09121F] text-white shadow-md border border-[#1F2F4A]'
@@ -142,7 +142,7 @@ export function PurchaseCard({
             setSelectedNetwork(mtnNet);
             setSelectedBundle(null);
           }}
-          className={`flex-1 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer ${
+          className={`flex-1 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-bold transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer ${
             activeTab === 'flexa'
               ? isDark
                 ? 'bg-[#09121F] text-[#00C853] shadow-md border border-[#00C853]/40'
@@ -163,40 +163,40 @@ export function PurchaseCard({
       {/* Flexa Feature Callout */}
       {activeTab === 'flexa' && (
         <div
-          className={`mb-5 p-3.5 rounded-xl border text-xs leading-relaxed animate-fade-in ${
+          className={`mb-3 sm:mb-5 p-2.5 sm:p-3.5 rounded-xl border text-xs leading-relaxed animate-fade-in ${
             isDark
               ? 'bg-[#070D18]/90 border-[#18263E] text-slate-300'
               : 'bg-emerald-50/60 border-emerald-200 text-slate-700'
           }`}
         >
-          <div className="flex items-center gap-1.5 font-bold text-[#00C853] mb-1">
+          <div className="flex items-center gap-1.5 font-bold text-[#00C853] mb-0.5 sm:mb-1">
             <Zap className="w-3.5 h-3.5 fill-current" />
-            <span>MTN Flexa Delivery</span>
+            <span className="text-[11.5px] sm:text-xs">MTN Flexa Delivery</span>
           </div>
-          <p className={isDark ? 'text-slate-300 text-[12px]' : 'text-slate-700 text-[12px]'}>
+          <p className={isDark ? 'text-slate-300 text-[11px] sm:text-[12px]' : 'text-slate-700 text-[11px] sm:text-[12px]'}>
             Most MTN Flexa orders arrive almost instantly. In rare cases, delivery can take up to 24 hours. New numbers complete a standard one-time network check.
           </p>
         </div>
       )}
 
       {/* 1. Choose Network */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-3">
+      <div className="mb-3 sm:mb-5">
+        <div className="flex items-center justify-between mb-1.5 sm:mb-2.5">
           <label
-            className={`block text-[14px] font-bold tracking-tight ${
+            className={`block text-[13px] sm:text-[14px] font-bold tracking-tight ${
               isDark ? 'text-white' : 'text-[#0F172A]'
             }`}
           >
             1. Choose Network
           </label>
           {activeTab === 'flexa' && (
-            <span className="text-[11px] font-bold text-[#00C853] bg-[#00C853]/10 px-2 py-0.5 rounded-full border border-[#00C853]/20">
+            <span className="text-[10px] sm:text-[11px] font-bold text-[#00C853] bg-[#00C853]/10 px-2 py-0.5 rounded-full border border-[#00C853]/20">
               MTN Only
             </span>
           )}
         </div>
 
-        <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {NETWORKS.map((network) => {
             const isFlexaDisabled = activeTab === 'flexa' && network.id !== 'mtn';
             const isSelected = selectedNetwork.id === network.id;
@@ -206,7 +206,7 @@ export function PurchaseCard({
                 type="button"
                 disabled={isFlexaDisabled}
                 onClick={() => handleSelectNetwork(network)}
-                className={`relative flex flex-col items-center justify-between py-3.5 px-1 rounded-xl transition-all h-[98px] sm:h-[104px] select-none ${
+                className={`relative flex flex-col items-center justify-between py-2 sm:py-3 px-1 rounded-xl transition-all h-[68px] sm:h-[94px] md:h-[104px] select-none ${
                   isFlexaDisabled
                     ? 'opacity-30 cursor-not-allowed border border-slate-700/20 grayscale'
                     : isSelected
@@ -218,13 +218,13 @@ export function PurchaseCard({
               >
                 {/* Active Checkmark Badge */}
                 {isSelected && (
-                  <div className="absolute -top-1.5 -right-1.5 w-[18px] h-[18px] bg-[#00C853] rounded-full flex items-center justify-center shadow-[0_2px_4px_rgba(0,0,0,0.4)]">
-                    <Check className="w-3 h-3 text-white stroke-[3.5]" />
+                  <div className="absolute -top-1 -right-1 sm:-top-1.5 sm:-right-1.5 w-4 h-4 sm:w-[18px] sm:h-[18px] bg-[#00C853] rounded-full flex items-center justify-center shadow-[0_2px_4px_rgba(0,0,0,0.4)]">
+                    <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white stroke-[3.5]" />
                   </div>
                 )}
 
                 {/* Network Logo */}
-                <div className="flex-1 flex items-center justify-center scale-105 sm:scale-100">
+                <div className="flex-1 flex items-center justify-center scale-90 sm:scale-100">
                   {network.id === 'mtn' && <MTNLogo />}
                   {network.id === 'telecel' && <TelecelLogo />}
                   {network.id === 'airteltigo' && <AirtelTigoLogo />}
@@ -232,7 +232,7 @@ export function PurchaseCard({
 
                 {/* Network Label */}
                 <span
-                  className={`text-[12px] font-semibold truncate max-w-full px-0.5 tracking-tight ${
+                  className={`text-[11px] sm:text-[12px] font-semibold truncate max-w-full px-0.5 tracking-tight ${
                     isFlexaDisabled
                       ? 'text-slate-500'
                       : isSelected
@@ -253,9 +253,9 @@ export function PurchaseCard({
       </div>
 
       {/* 2. Choose Bundle */}
-      <div className="mb-6 relative" ref={dropdownRef}>
+      <div className="mb-3 sm:mb-5 relative" ref={dropdownRef}>
         <label
-          className={`block text-[14px] font-bold tracking-tight mb-2.5 ${
+          className={`block text-[13px] sm:text-[14px] font-bold tracking-tight mb-1.5 sm:mb-2 ${
             isDark ? 'text-white' : 'text-[#0F172A]'
           }`}
         >
@@ -265,7 +265,7 @@ export function PurchaseCard({
         <button
           type="button"
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className={`w-full h-[52px] sm:h-[54px] flex items-center justify-between px-4 rounded-xl border text-[15px] font-medium transition-all text-left active:scale-[0.99] cursor-pointer ${
+          className={`w-full h-[46px] sm:h-[52px] md:h-[54px] flex items-center justify-between px-3.5 sm:px-4 rounded-xl border text-[14px] sm:text-[15px] font-medium transition-all text-left active:scale-[0.99] cursor-pointer ${
             isDark
               ? 'bg-[#070D18] border-[#18263E] text-slate-100 hover:border-[#263C5E]'
               : 'bg-white border-[#E2E8F0] text-slate-800 hover:border-slate-300'
@@ -274,23 +274,23 @@ export function PurchaseCard({
           {selectedBundle ? (
             <div className="flex items-center justify-between w-full pr-2">
               <span
-                className={`font-bold tracking-tight truncate mr-2 ${
+                className={`font-bold tracking-tight truncate mr-2 text-[14px] sm:text-[15px] ${
                   isDark ? 'text-white' : 'text-[#0F172A]'
                 }`}
               >
                 {selectedBundle.name} {activeTab === 'flexa' ? 'MTN Flexa' : 'Data Bundle'}
               </span>
-              <span className="text-[#00C853] font-bold text-[14px] sm:text-[15px] tracking-tight shrink-0">
+              <span className="text-[#00C853] font-bold text-[13.5px] sm:text-[15px] tracking-tight shrink-0">
                 GH₵ {selectedBundle.price.toFixed(2)}
               </span>
             </div>
           ) : (
-            <span className={isDark ? 'text-[#64748B]' : 'text-slate-400'}>
+            <span className={`text-[13.5px] sm:text-[15px] ${isDark ? 'text-[#64748B]' : 'text-slate-400'}`}>
               {activeTab === 'flexa' ? 'Select an MTN Flexa bundle' : 'Select a data bundle'}
             </span>
           )}
           <ChevronDown
-            className={`w-5 h-5 transition-transform duration-200 shrink-0 ${
+            className={`w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-200 shrink-0 ${
               isDark ? 'text-slate-400' : 'text-slate-500'
             } ${isDropdownOpen ? 'transform rotate-180 text-[#00C853]' : ''}`}
           />
@@ -315,7 +315,7 @@ export function PurchaseCard({
                     setSelectedBundle(bundle);
                     setIsDropdownOpen(false);
                   }}
-                  className={`w-full flex items-center justify-between px-3.5 sm:px-4 py-3 text-sm transition-colors text-left active:bg-[#00C853]/20 cursor-pointer ${
+                  className={`w-full flex items-center justify-between px-3.5 sm:px-4 py-2.5 sm:py-3 text-sm transition-colors text-left active:bg-[#00C853]/20 cursor-pointer ${
                     isSelected
                       ? isDark
                         ? 'bg-[#00C853]/15 text-[#00C853] font-bold'
@@ -327,7 +327,7 @@ export function PurchaseCard({
                 >
                   <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
                     <span
-                      className={`font-bold tracking-tight text-[14px] sm:text-[15px] ${
+                      className={`font-bold tracking-tight text-[13.5px] sm:text-[15px] ${
                         isSelected
                           ? 'text-[#00C853]'
                           : isDark
@@ -357,9 +357,9 @@ export function PurchaseCard({
       </div>
 
       {/* 3. Enter Phone Number */}
-      <div className="mb-6">
+      <div className="mb-3.5 sm:mb-5">
         <label
-          className={`block text-[14px] font-bold tracking-tight mb-2.5 ${
+          className={`block text-[13px] sm:text-[14px] font-bold tracking-tight mb-1.5 sm:mb-2 ${
             isDark ? 'text-white' : 'text-[#0F172A]'
           }`}
         >
@@ -373,7 +373,7 @@ export function PurchaseCard({
             placeholder={activeTab === 'flexa' ? 'e.g. 024 123 4567 (MTN only)' : 'e.g. 024 123 4567'}
             value={phoneNumber}
             onChange={handlePhoneChange}
-            className={`w-full h-[52px] sm:h-[54px] px-4 pr-12 rounded-xl border text-[16px] font-medium tracking-tight transition-all outline-none ${
+            className={`w-full h-[46px] sm:h-[52px] md:h-[54px] px-3.5 sm:px-4 pr-11 sm:pr-12 rounded-xl border text-[15px] sm:text-[16px] font-medium tracking-tight transition-all outline-none ${
               isDark
                 ? 'bg-[#070D18] border-[#18263E] text-white placeholder-[#5A6E85] focus:border-[#00C853] focus:ring-2 focus:ring-[#00C853]/25'
                 : 'bg-white border-[#E2E8F0] text-slate-900 placeholder-slate-400 focus:border-[#00C853] focus:ring-2 focus:ring-[#00C853]/20'
@@ -383,58 +383,33 @@ export function PurchaseCard({
             type="button"
             onClick={handleQuickContact}
             title="Autofill sample contact"
-            className={`absolute right-3.5 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-colors active:scale-95 ${
+            className={`absolute right-2.5 sm:right-3.5 top-1/2 -translate-y-1/2 p-1.5 sm:p-2 rounded-lg transition-colors active:scale-95 ${
               isDark
                 ? 'text-[#64748B] hover:text-white hover:bg-white/5'
                 : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'
             }`}
           >
-            <UserSquare2 className="w-5 h-5 stroke-[1.8]" />
+            <UserSquare2 className="w-4 h-4 sm:w-5 sm:h-5 stroke-[1.8]" />
           </button>
         </div>
 
         {/* Warning if non-MTN phone entered during Flexa tab */}
         {activeTab === 'flexa' && phoneNumber.replace(/\D/g, '').length >= 3 && !['024', '054', '055', '059', '025'].some(p => phoneNumber.replace(/\D/g, '').startsWith(p)) && (
-          <p className="text-amber-400 text-xs mt-2 font-medium flex items-center gap-1">
+          <p className="text-amber-400 text-[11px] sm:text-xs mt-1.5 font-medium flex items-center gap-1">
             <span>⚠️ MTN Flexa is for MTN numbers only (024, 054, 055, 059, 025). Switch to Data Bundles for other networks.</span>
           </p>
         )}
       </div>
 
-      {/* Buy Now CTA Button / Out of Stock Banner */}
-      {inStock ? (
-        <button
-          type="button"
-          onClick={onBuyNow}
-          className="w-full h-[54px] sm:h-[56px] bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white font-bold text-[16px] sm:text-[17px] tracking-tight rounded-xl transition-all transform active:scale-[0.98] shadow-[0_4px_18px_rgba(0,200,83,0.35),inset_0_1px_0_rgba(255,255,255,0.22)] flex items-center justify-center gap-2 cursor-pointer select-none"
-        >
-          <Zap className="w-4 h-4 fill-current" />
-          <span>Buy Now</span>
-        </button>
-      ) : (
-        <div className="space-y-2">
-          <button
-            type="button"
-            disabled
-            className="w-full h-[54px] sm:h-[56px] bg-amber-500/15 border border-amber-500/30 text-amber-400 font-bold text-[15px] tracking-tight rounded-xl flex items-center justify-center gap-2 cursor-not-allowed opacity-90"
-          >
-            <AlertTriangle className="w-4 h-4" />
-            <span>Temporarily Restocking — Back in 5 Mins</span>
-          </button>
-
-          <a
-            href="https://wa.me/233241234567?text=Hello%20GB%20Plug,%20please%20notify%20me%20when%20data%20is%20back%20in%20stock."
-            target="_blank"
-            rel="noreferrer"
-            className={`w-full h-10 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 border transition-all ${
-              isDark ? 'border-[#18263E] text-slate-300 hover:bg-white/5' : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            <WhatsAppIcon className="w-3.5 h-3.5 text-[#00C853] fill-current" />
-            <span>Notify Me When In Stock</span>
-          </a>
-        </div>
-      )}
+      {/* Buy Now CTA Button */}
+      <button
+        type="button"
+        onClick={onBuyNow}
+        className="w-full h-[48px] sm:h-[54px] md:h-[56px] bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white font-bold text-[15px] sm:text-[17px] tracking-tight rounded-xl transition-all transform active:scale-[0.98] shadow-[0_4px_18px_rgba(0,200,83,0.35),inset_0_1px_0_rgba(255,255,255,0.22)] flex items-center justify-center gap-2 cursor-pointer select-none"
+      >
+        <Zap className="w-4 h-4 fill-current" />
+        <span>Buy Now</span>
+      </button>
     </div>
   );
 }
