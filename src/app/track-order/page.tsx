@@ -11,7 +11,6 @@ import {
   Zap,
   Loader2,
   AlertCircle,
-  RotateCcw,
 } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { MTNLogo, TelecelLogo, AirtelTigoLogo, WhatsAppIcon } from '@/components/NetworkLogos';
@@ -50,7 +49,7 @@ function TrackOrderContent() {
     }
   }, [isDark]);
 
-  // Load history from localStorage
+  // Load actual local history
   useEffect(() => {
     try {
       const stored = localStorage.getItem('gbplug_orders');
@@ -84,10 +83,10 @@ function TrackOrderContent() {
     setErrorMsg(null);
     setFoundOrder(null);
 
-    // 1. Check if user typed an order ID (starts with API- or GBP- or contains letters)
-    const isOrderId = clean.toUpperCase().startsWith('API-') || clean.toUpperCase().startsWith('GBP-') || clean.length > 10;
+    const cleanPhoneDigits = clean.replace(/\D/g, '');
 
-    if (isOrderId) {
+    // 1. Check if input is a direct DataSika Order ID (starts with API-)
+    if (clean.toUpperCase().startsWith('API-')) {
       try {
         const res = await fetch(`/api/order-status?order_id=${encodeURIComponent(clean)}`);
         const data = await res.json();
@@ -104,62 +103,108 @@ function TrackOrderContent() {
           setFoundOrder({
             id: data.order_id,
             network: normalizedNet,
-            networkName: data.network || 'MTN',
-            bundle: `${data.bundle_gb || ''} GB Non-Expiry`.trim(),
+            networkName: data.network || 'MTN Ghana',
+            bundle: `${data.bundle_gb || ''} GB Data Bundle`.trim(),
             data: `${data.bundle_gb || ''} GB`.trim(),
-            phone: data.recipient || '0241234567',
+            phone: data.recipient || clean,
             amount: Number(data.amount_charged) || 0,
             status: (data.status || 'delivered').toLowerCase() as any,
-            timestamp: 'Live DataSika Dispatch',
+            timestamp: 'Live Gateway Status',
           });
           setLoading(false);
           return;
         }
       } catch (err) {
-        console.error('API order lookup error:', err);
+        console.error('DataSika API lookup error:', err);
       }
     }
 
-    // 2. Check local order history
-    const historyMatch = recentOrders.find(
-      (o) =>
-        o.order_id?.toLowerCase() === clean.toLowerCase() ||
-        o.recipient?.replace(/\D/g, '') === clean.replace(/\D/g, '')
+    // 2. Check if input is a SikaPay Reference (starts with SKPY_ or GBP-)
+    if (clean.toUpperCase().startsWith('SKPY_') || clean.toUpperCase().startsWith('GBP-')) {
+      try {
+        const res = await fetch(`/api/payment/verify/${encodeURIComponent(clean)}`);
+        const data = await res.json();
+
+        if (data.success && data.payment) {
+          const paymentData = data.payment;
+          const orderData = data.order;
+
+          // If DataSika order exists, check its status
+          let realStatus: 'delivered' | 'pending' | 'processing' | 'failed' | 'refunded' =
+            paymentData.status === 'success' ? (orderData?.status?.toLowerCase() || 'delivered') : 'pending';
+
+          if (orderData?.order_id) {
+            try {
+              const statusRes = await fetch(`/api/order-status?order_id=${encodeURIComponent(orderData.order_id)}`);
+              const statusData = await statusRes.json();
+              if (statusData.status) {
+                realStatus = statusData.status.toLowerCase();
+              }
+            } catch (e) {}
+          }
+
+          const recipientPhone = paymentData.customer?.phone || paymentData.metadata?.recipient_phone || clean;
+          const bundleName = paymentData.metadata?.bundle_name || 'Data Bundle';
+
+          setFoundOrder({
+            id: orderData?.order_id || clean,
+            network: 'mtn',
+            networkName: 'Mobile Network',
+            bundle: bundleName,
+            data: bundleName,
+            phone: recipientPhone,
+            amount: Number(paymentData.amount) || 0,
+            status: realStatus,
+            timestamp: paymentData.paid_at ? new Date(paymentData.paid_at).toLocaleTimeString() : 'Recent Payment',
+          });
+          setLoading(false);
+          return;
+        }
+      } catch (err) {
+        console.error('SikaPay verify error:', err);
+      }
+    }
+
+    // 3. Search local order storage (e.g. by Phone Number or Order ID)
+    const stored = JSON.parse(localStorage.getItem('gbplug_orders') || '[]');
+    const historyMatch = stored.find(
+      (o: any) =>
+        (cleanPhoneDigits.length >= 9 && o.recipient?.replace(/\D/g, '') === cleanPhoneDigits) ||
+        o.order_id?.toLowerCase() === clean.toLowerCase()
     );
 
     if (historyMatch) {
+      let liveStatus = (historyMatch.status || 'delivered').toLowerCase();
+
+      // Check live status if it's a real DataSika ID
+      if (historyMatch.order_id?.startsWith('API-')) {
+        try {
+          const res = await fetch(`/api/order-status?order_id=${encodeURIComponent(historyMatch.order_id)}`);
+          const data = await res.json();
+          if (data.status) {
+            liveStatus = data.status.toLowerCase();
+          }
+        } catch (e) {}
+      }
+
       setFoundOrder({
         id: historyMatch.order_id,
         network: historyMatch.networkId || 'mtn',
         networkName: historyMatch.network || 'MTN Ghana',
-        bundle: historyMatch.bundle,
+        bundle: `${historyMatch.bundle || historyMatch.data} Data Bundle`,
         data: historyMatch.data,
         phone: historyMatch.recipient,
         amount: historyMatch.price,
-        status: (historyMatch.status || 'delivered').toLowerCase() as any,
-        timestamp: 'Recent order',
+        status: liveStatus as any,
+        timestamp: new Date(historyMatch.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       });
       setLoading(false);
       return;
     }
 
-    // 3. Fallback demo order simulation for phone numbers
-    const cleanPhone = clean.replace(/\D/g, '');
-    const isMtn = cleanPhone.startsWith('024') || cleanPhone.startsWith('054') || cleanPhone.startsWith('055') || cleanPhone.startsWith('059');
-    const isTelecel = cleanPhone.startsWith('020') || cleanPhone.startsWith('050');
-
-    setFoundOrder({
-      id: clean.toUpperCase().startsWith('API-') ? clean : `API-${Math.floor(100000 + Math.random() * 900000)}`,
-      network: isMtn ? 'mtn' : isTelecel ? 'telecel' : 'airteltigo',
-      networkName: isMtn ? 'MTN Ghana' : isTelecel ? 'Telecel Ghana' : 'AirtelTigo',
-      bundle: '5 GB Non-Expiry',
-      data: '5 GB',
-      phone: clean,
-      amount: 26.0,
-      status: 'delivered',
-      timestamp: 'Delivered instantly',
-    });
+    // 4. No real order found
     setLoading(false);
+    setErrorMsg(`No active order found for "${clean}". Please verify the phone number or Order Reference ID.`);
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -204,7 +249,7 @@ function TrackOrderContent() {
               isDark ? 'text-[#94A3B8]' : 'text-[#64748B]'
             }`}
           >
-            Real-time delivery status of your Ghana data bundle.
+            Real-time delivery verification directly from the network gateway.
           </p>
         </div>
 
@@ -222,7 +267,7 @@ function TrackOrderContent() {
               isDark ? 'text-white' : 'text-[#0F172A]'
             }`}
           >
-            Enter Order ID or Phone Number
+            Enter Phone Number or Order Reference ID
           </label>
 
           <div className="flex flex-col sm:flex-row gap-3">
@@ -231,7 +276,7 @@ function TrackOrderContent() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="e.g. API-3F9A2B7C1D or 024 123 4567"
+                placeholder="e.g. 024 123 4567 or API-XXXXX or GBP-XXXXX"
                 className={`w-full h-[52px] sm:h-[54px] px-4 pl-11 rounded-xl border text-[16px] font-medium tracking-tight transition-all outline-none ${
                   isDark
                     ? 'bg-[#070D18] border-[#18263E] text-white placeholder-[#5A6E85] focus:border-[#00C853] focus:ring-2 focus:ring-[#00C853]/25'
@@ -253,22 +298,22 @@ function TrackOrderContent() {
               {loading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
-                <span>Track</span>
+                <span>Track Live</span>
               )}
             </button>
           </div>
 
-          {/* Quick Demo & Recent Orders Chips */}
+          {/* Real Recent Orders Chips */}
           {recentOrders.length > 0 && (
             <div className="mt-4 flex items-center gap-2 flex-wrap text-xs">
-              <span className={isDark ? 'text-[#64748B]' : 'text-slate-400'}>Your orders:</span>
+              <span className={isDark ? 'text-[#64748B]' : 'text-slate-400'}>Your recent orders:</span>
               {recentOrders.slice(0, 3).map((o, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => {
-                    setSearchQuery(o.order_id);
-                    executeSearch(o.order_id);
+                    setSearchQuery(o.order_id || o.recipient);
+                    executeSearch(o.order_id || o.recipient);
                   }}
                   className={`px-2.5 py-1 rounded-lg border font-mono font-medium transition-all ${
                     isDark
@@ -276,7 +321,7 @@ function TrackOrderContent() {
                       : 'border-slate-200 bg-slate-50 text-slate-600 hover:text-slate-900 hover:border-[#00C853]'
                   }`}
                 >
-                  {o.order_id} ({o.bundle})
+                  {o.order_id} ({o.data || o.bundle})
                 </button>
               ))}
             </div>
@@ -288,12 +333,48 @@ function TrackOrderContent() {
           <div className="py-12 text-center">
             <Loader2 className="w-10 h-10 text-[#00C853] animate-spin mx-auto mb-3" />
             <p className={`text-sm ${isDark ? 'text-[#8E9CAE]' : 'text-slate-500'}`}>
-              Querying live DataSika gateway...
+              Connecting to live network gateway...
             </p>
           </div>
         )}
 
-        {/* Result Card */}
+        {/* Not Found / Error State */}
+        {searched && !loading && errorMsg && (
+          <div
+            className={`rounded-2xl p-6 transition-all border text-center animate-fade-in ${
+              isDark ? 'bg-[#09121F] border-[#15233A]' : 'bg-white border-[#E2E8F0] shadow-lg'
+            }`}
+          >
+            <div className="w-12 h-12 rounded-full bg-amber-500/15 text-amber-500 flex items-center justify-center mx-auto mb-3">
+              <AlertCircle className="w-6 h-6 stroke-[2.2]" />
+            </div>
+            <h3 className="font-bold text-base tracking-tight mb-1">Order Not Found</h3>
+            <p className={`text-xs max-w-md mx-auto mb-5 ${isDark ? 'text-[#8E9CAE]' : 'text-slate-500'}`}>
+              {errorMsg}
+            </p>
+            <div className="flex justify-center gap-3">
+              <Link
+                href="/"
+                className="px-5 py-2.5 bg-[#00C853] hover:bg-[#00B74A] text-white font-bold text-xs rounded-xl shadow-md transition-all"
+              >
+                Buy a Data Bundle
+              </Link>
+              <a
+                href={`https://wa.me/233241234567?text=Hello%20GB%20Plug,%20I%20need%20help%20tracking%20my%20order%20for%20${searchQuery}`}
+                target="_blank"
+                rel="noreferrer"
+                className={`px-5 py-2.5 rounded-xl font-semibold text-xs transition-all border flex items-center gap-1.5 ${
+                  isDark ? 'border-[#18263E] text-slate-200 hover:bg-white/5' : 'border-slate-200 text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                <WhatsAppIcon className="w-3.5 h-3.5 text-[#00C853] fill-current" />
+                <span>Contact Support</span>
+              </a>
+            </div>
+          </div>
+        )}
+
+        {/* Real Live Result Card */}
         {searched && !loading && foundOrder && (
           <div
             className={`rounded-2xl p-6 transition-all border animate-fade-in ${
@@ -312,19 +393,19 @@ function TrackOrderContent() {
                   {foundOrder.status === 'delivered' && (
                     <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#00C853]/15 text-[#00C853] flex items-center gap-1 border border-[#00C853]/30">
                       <CheckCircle2 className="w-3 h-3" />
-                      Delivered
+                      Delivered to SIM
                     </span>
                   )}
                   {(foundOrder.status === 'pending' || foundOrder.status === 'processing') && (
                     <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-400 flex items-center gap-1 border border-amber-500/30">
                       <Clock className="w-3 h-3 animate-spin" />
-                      Processing Delivery
+                      Dispatching Data
                     </span>
                   )}
                   {(foundOrder.status === 'failed' || foundOrder.status === 'refunded') && (
                     <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-500/15 text-red-400 flex items-center gap-1 border border-red-500/30">
                       <AlertCircle className="w-3 h-3" />
-                      {foundOrder.status === 'refunded' ? 'Refunded to Wallet' : 'Failed'}
+                      {foundOrder.status === 'refunded' ? 'Refunded' : 'Failed'}
                     </span>
                   )}
                 </div>
@@ -382,7 +463,7 @@ function TrackOrderContent() {
               <div className="flex items-center justify-between text-xs font-semibold text-[#00C853] mb-2">
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>Order Placed</span>
+                  <span>Paid via MoMo</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4" />
@@ -397,7 +478,7 @@ function TrackOrderContent() {
                   ) : (
                     <>
                       <Clock className="w-4 h-4 text-amber-400 animate-spin" />
-                      <span className="text-amber-400">Processing</span>
+                      <span className="text-amber-400">Crediting SIM...</span>
                     </>
                   )}
                 </div>
@@ -436,7 +517,7 @@ function TrackOrderContent() {
                 }`}
               >
                 <WhatsAppIcon className="w-4 h-4 text-[#00C853] fill-current" />
-                <span>Help with this order</span>
+                <span>Need Help?</span>
               </a>
             </div>
           </div>
