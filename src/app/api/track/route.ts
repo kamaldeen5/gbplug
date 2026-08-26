@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { registerOrderEntry, getOrdersByPhone } from '@/lib/order-registry';
 
 export const dynamic = 'force-dynamic';
@@ -32,7 +32,8 @@ function dsOrderToUi(ds: any) {
     bundle: ds.bundle_gb ? `${ds.bundle_gb} GB Data Bundle` : 'Data Bundle',
     data: ds.bundle_gb ? `${ds.bundle_gb} GB` : 'Data Bundle',
     phone: ds.recipient || '',
-    amount: Number(ds.amount_charged) || 0,
+    // DataSika returns our wholesale cost — show retail (wholesale × 1.125) so customers never see our cost price
+    amount: Math.ceil(Number(ds.amount_charged) * 1.125 * 100) / 100,
     status: dsStatus as 'delivered' | 'processing' | 'pending' | 'failed' | 'refunded',
     timeline: {
       orderPlacedAt: ds.created_at || null,

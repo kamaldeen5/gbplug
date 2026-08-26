@@ -86,83 +86,83 @@ export const NETWORK_BUNDLES: Record<string, BundleOption[]> = {
 export const MTN_FLEXA_BUNDLES: BundleOption[] = [
   {
     id: 'flexa-1',
-    productId: '17490299-29e5-4e73-bcae-85be8ed68972',
+    productId: 'e5825a25-f365-4926-b78e-8a5b7d2a1c40',
     name: '1 GB',
     data: '1 GB',
-    costPrice: 4.15,
-    price: 4.67, // GHS 4.15 + 12.5%
+    costPrice: 4.10,
+    price: 4.61, // GHS 4.10 + 12.5%
     validity: '90 Days',
     serviceType: 'mtn_flexa',
   },
   {
     id: 'flexa-2',
-    productId: '15f90b99-ae56-41d1-bc86-0770ba7d8d74',
+    productId: 'b285a7da-adea-4bdd-be49-8dd54ad2663f',
     name: '2 GB',
     data: '2 GB',
-    costPrice: 9.13,
-    price: 10.27, // GHS 9.13 + 12.5%
+    costPrice: 8.50,
+    price: 9.56, // GHS 8.50 + 12.5%
     validity: '90 Days',
     serviceType: 'mtn_flexa',
   },
   {
     id: 'flexa-3',
-    productId: 'cb0f6cf3-efa5-4cc1-a1a9-27ac095130a0',
+    productId: '211647ff-747a-4c00-99d1-f793ced9755c',
     name: '3 GB',
     data: '3 GB',
-    costPrice: 13.70,
-    price: 15.41, // GHS 13.70 + 12.5%
+    costPrice: 12.50,
+    price: 14.06, // GHS 12.50 + 12.5%
     validity: '90 Days',
     serviceType: 'mtn_flexa',
   },
   {
     id: 'flexa-4',
-    productId: 'd5898b8c-9979-4a09-bc52-f08430157498',
+    productId: 'd56621a9-875a-496d-b216-cc21cb5bae02',
     name: '4 GB',
     data: '4 GB',
-    costPrice: 18.26,
-    price: 20.54, // GHS 18.26 + 12.5%
+    costPrice: 16.70,
+    price: 18.79, // GHS 16.70 + 12.5%
     validity: '90 Days',
     serviceType: 'mtn_flexa',
   },
   {
     id: 'flexa-5',
-    productId: 'ca208754-ed35-4f7a-af14-f103691947c8',
+    productId: '440262fb-f6fe-4c43-89f3-b6c470f24fea',
     name: '5 GB',
     data: '5 GB',
-    costPrice: 22.83,
-    price: 25.68, // GHS 22.83 + 12.5%
+    costPrice: 21.00,
+    price: 23.63, // GHS 21.00 + 12.5%
     validity: '90 Days',
     popular: true,
     serviceType: 'mtn_flexa',
   },
   {
     id: 'flexa-8',
-    productId: 'c6625d9d-722b-4f33-bf20-9a7eba9a3d6a',
+    productId: '45caa58f-397c-41d2-a4f1-48ad8d6e1b23',
     name: '8 GB',
     data: '8 GB',
-    costPrice: 36.30,
-    price: 40.84, // GHS 36.30 + 12.5%
+    costPrice: 33.00,
+    price: 37.13, // GHS 33.00 + 12.5%
     validity: '90 Days',
     serviceType: 'mtn_flexa',
   },
   {
     id: 'flexa-10',
-    productId: '16527bc5-9832-476d-913f-1f1abc7e79e8',
+    productId: '56456480-f69d-4cb2-8d0f-fd90e5a3e7b7',
     name: '10 GB',
     data: '10 GB',
-    costPrice: 43.44,
-    price: 48.87, // GHS 43.44 + 12.5%
+    costPrice: 41.80,
+    price: 47.03, // GHS 41.80 + 12.5%
     validity: '90 Days',
     popular: true,
     serviceType: 'mtn_flexa',
   },
   {
     id: 'flexa-15',
-    productId: '3c78af77-a372-4bf8-9a5b-23dc7c45a134',
+    productId: 'c5418c3a-83fb-461b-ba61-59c1583d5699',
     name: '15 GB',
     data: '15 GB',
-    costPrice: 65.34,
-    price: 73.51, // GHS 65.34 + 12.5%
+    costPrice: 63.00,
+    price: 70.88, // GHS 63.00 + 12.5%
     validity: '90 Days',
     serviceType: 'mtn_flexa',
   },
