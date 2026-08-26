@@ -32,8 +32,9 @@ function dsOrderToUi(ds: any) {
     bundle: ds.bundle_gb ? `${ds.bundle_gb} GB Data Bundle` : 'Data Bundle',
     data: ds.bundle_gb ? `${ds.bundle_gb} GB` : 'Data Bundle',
     phone: ds.recipient || '',
-    // DataSika returns our wholesale cost — show retail (wholesale × 1.125) so customers never see our cost price
-    amount: Math.ceil(Number(ds.amount_charged) * 1.125 * 100) / 100,
+    // Wholesale cost → retail: apply 12.5% margin then round UP to nearest GHS 0.50
+    // This mirrors the catalog pricing so tracker always shows the same clean price the customer paid
+    amount: Math.ceil((Number(ds.amount_charged) * 1.125) / 0.5) * 0.5,
     status: dsStatus as 'delivered' | 'processing' | 'pending' | 'failed' | 'refunded',
     timeline: {
       orderPlacedAt: ds.created_at || null,
