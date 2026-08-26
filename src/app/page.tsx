@@ -82,14 +82,8 @@ export default function Home() {
 
         {/* Responsive Grid: 1-col on phone, 2-col on fold/tablet/desktop */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5 sm:gap-6 md:gap-8 lg:gap-12 xl:gap-16 items-center">
-          {/* Left Column: Hero Headline + Subtitle + (Desktop/Tablet) Trust Badges */}
           <div className="md:col-span-6 lg:col-span-6 xl:col-span-7 flex flex-col justify-center">
             <Hero isDark={isDark} />
-
-            {/* Desktop/Tablet Trust Badges */}
-            <div className="hidden md:block pt-6 md:pt-8 xl:pt-10">
-              <TrustBadges isDark={isDark} className="max-w-md" />
-            </div>
           </div>
 
           {/* Right Column: Form Card */}
