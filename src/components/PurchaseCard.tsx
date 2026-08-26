@@ -110,16 +110,6 @@ export function PurchaseCard({
           : 'bg-white border-[#E2E8F0] shadow-[0_20px_50px_rgba(0,0,0,0.06),0_1px_3px_rgba(0,0,0,0.05)]'
       }`}
     >
-      {/* Stock Status Indicator */}
-      <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-700/15">
-        <div className="flex items-center gap-1.5 text-xs font-semibold">
-          <span className={`w-2 h-2 rounded-full ${inStock ? 'bg-[#00C853] animate-pulse shadow-[0_0_8px_#00C853]' : 'bg-amber-500'}`} />
-          <span className={inStock ? 'text-[#00C853]' : 'text-amber-400'}>
-            {inStock ? (activeTab === 'flexa' ? 'MTN Flexa Gateway Active' : 'Orders Delivered Daily') : 'Restocking Shortly'}
-          </span>
-        </div>
-      </div>
-
       {/* Service Type Tab Switcher */}
       <div
         className={`p-1 rounded-xl mb-5 flex items-center border ${
@@ -173,7 +163,7 @@ export function PurchaseCard({
       {/* Flexa Feature Callout */}
       {activeTab === 'flexa' && (
         <div
-          className={`mb-5 p-3 rounded-xl border text-xs leading-relaxed animate-fade-in ${
+          className={`mb-5 p-3.5 rounded-xl border text-xs leading-relaxed animate-fade-in ${
             isDark
               ? 'bg-[#070D18]/90 border-[#18263E] text-slate-300'
               : 'bg-emerald-50/60 border-emerald-200 text-slate-700'
@@ -181,10 +171,10 @@ export function PurchaseCard({
         >
           <div className="flex items-center gap-1.5 font-bold text-[#00C853] mb-1">
             <Zap className="w-3.5 h-3.5 fill-current" />
-            <span>Near-Instant MTN Delivery</span>
+            <span>MTN Flexa Delivery</span>
           </div>
-          <p className={isDark ? 'text-slate-400 text-[11px]' : 'text-slate-600 text-[11px]'}>
-            Powered by a dedicated supplier for fast delivery on MTN. New numbers complete a standard one-time network check.
+          <p className={isDark ? 'text-slate-300 text-[12px]' : 'text-slate-700 text-[12px]'}>
+            Most MTN Flexa orders arrive almost instantly. In rare cases, delivery can take up to 24 hours. New numbers complete a standard one-time network check.
           </p>
         </div>
       )}
