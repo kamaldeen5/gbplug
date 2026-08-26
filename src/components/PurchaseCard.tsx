@@ -150,7 +150,7 @@ export function PurchaseCard({
             setActiveTab('flexa');
             const mtnNet = NETWORKS.find((n) => n.id === 'mtn') || NETWORKS[0];
             setSelectedNetwork(mtnNet);
-            setSelectedBundle(MTN_FLEXA_BUNDLES[0] || null);
+            setSelectedBundle(null);
           }}
           className={`flex-1 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer ${
             activeTab === 'flexa'
