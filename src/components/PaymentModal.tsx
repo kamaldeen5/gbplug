@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { X, CheckCircle2, ShieldCheck, Loader2, AlertCircle, PackageSearch, Smartphone } from 'lucide-react';
+import { X, CheckCircle2, ShieldCheck, Loader2, AlertCircle, PackageSearch, Smartphone, ExternalLink } from 'lucide-react';
 import { Network, BundleOption } from '../data/bundles';
 
 interface PaymentModalProps {
@@ -14,7 +14,7 @@ interface PaymentModalProps {
   phoneNumber: string;
 }
 
-type ModalStatus = 'review' | 'prompt_sent' | 'success' | 'error';
+type ModalStatus = 'review' | 'redirecting' | 'prompt_sent' | 'success' | 'error';
 
 export function PaymentModal({
   isOpen,
@@ -26,9 +26,8 @@ export function PaymentModal({
 }: PaymentModalProps) {
   const [status, setStatus] = useState<ModalStatus>('review');
   const [orderId, setOrderId] = useState<string | null>(null);
-  const [sikaReference, setSikaReference] = useState<string | null>(null);
+  const [authUrl, setAuthUrl] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [pollCount, setPollCount] = useState(0);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   const cleanPhone = phoneNumber.replace(/\D/g, '');
@@ -43,11 +42,10 @@ export function PaymentModal({
 
   const startPolling = (reference: string) => {
     let attempts = 0;
-    const maxAttempts = 36; // 36 × 5s = 3 minutes max
+    const maxAttempts = 40; // 40 × 4s = 160s
 
     pollingRef.current = setInterval(async () => {
       attempts++;
-      setPollCount(attempts);
 
       try {
         const url = `/api/payment/verify/${encodeURIComponent(reference)}?productId=${encodeURIComponent(bundle.productId)}&recipient=${encodeURIComponent(cleanPhone)}`;
@@ -56,7 +54,6 @@ export function PaymentModal({
 
         if (data.success && data.paymentStatus === 'success') {
           if (pollingRef.current) clearInterval(pollingRef.current);
-          // Save order to local history
           const newOrderId = data.order?.order_id || reference;
           setOrderId(newOrderId);
           try {
@@ -80,7 +77,7 @@ export function PaymentModal({
 
         if (data.paymentStatus === 'failed') {
           if (pollingRef.current) clearInterval(pollingRef.current);
-          setErrorMessage('Payment was not completed. Please try again.');
+          setErrorMessage('Payment was cancelled or failed. Please try again.');
           setStatus('error');
           return;
         }
@@ -90,17 +87,19 @@ export function PaymentModal({
 
       if (attempts >= maxAttempts) {
         if (pollingRef.current) clearInterval(pollingRef.current);
-        setErrorMessage('Payment is taking longer than expected. Check your MoMo or try again.');
-        setStatus('error');
       }
-    }, 5000);
+    }, 4000);
   };
 
   const handlePay = async () => {
-    setStatus('prompt_sent');
+    setStatus('redirecting');
     setErrorMessage(null);
 
     try {
+      const callbackUrl = typeof window !== 'undefined'
+        ? `${window.location.origin}/track-order`
+        : 'https://gbplug.com/track-order';
+
       const res = await fetch('/api/payment/charge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -109,6 +108,7 @@ export function PaymentModal({
           phone: cleanPhone,
           bundleName: bundle.name,
           productId: bundle.productId,
+          callbackUrl,
         }),
       });
 
@@ -118,10 +118,18 @@ export function PaymentModal({
         throw new Error(data.error || 'Failed to initiate payment');
       }
 
-      setSikaReference(data.reference);
-      startPolling(data.reference);
+      if (data.authorization_url) {
+        setAuthUrl(data.authorization_url);
+        startPolling(data.reference);
+        setStatus('prompt_sent');
+
+        // Automatically open the payment page in the window
+        window.location.href = data.authorization_url;
+      } else {
+        throw new Error('No checkout URL received from gateway');
+      }
     } catch (err: any) {
-      console.error('Charge error:', err);
+      console.error('Payment initialization error:', err);
       setErrorMessage(err.message || 'Payment initiation failed. Please try again.');
       setStatus('error');
     }
@@ -131,9 +139,8 @@ export function PaymentModal({
     if (pollingRef.current) clearInterval(pollingRef.current);
     setStatus('review');
     setOrderId(null);
-    setSikaReference(null);
+    setAuthUrl(null);
     setErrorMessage(null);
-    setPollCount(0);
     onClose();
   };
 
@@ -149,8 +156,8 @@ export function PaymentModal({
           : 'bg-white text-slate-900 border border-slate-200 shadow-2xl'
       }`}>
 
-        {/* Close — only on review & error states */}
-        {(status === 'review' || status === 'error') && (
+        {/* Close button */}
+        {(status === 'review' || status === 'error' || status === 'prompt_sent') && (
           <button onClick={handleDone} className={`absolute top-4 right-4 p-1.5 rounded-lg transition-colors ${
             isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
           }`}>
@@ -185,7 +192,7 @@ export function PaymentModal({
 
             <div className="flex items-center gap-2 mb-5 text-xs font-semibold text-[#00C853]">
               <ShieldCheck className="w-4 h-4 shrink-0" />
-              <span>MoMo prompt will be sent directly to {phoneNumber}</span>
+              <span>Instant automated data delivery to {phoneNumber}</span>
             </div>
 
             <button
@@ -194,43 +201,49 @@ export function PaymentModal({
               className="w-full h-12 bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white font-bold tracking-tight rounded-xl shadow-[0_4px_16px_rgba(0,200,83,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] transition-all flex items-center justify-center gap-2 cursor-pointer select-none"
             >
               <Smartphone className="w-4 h-4" />
-              <span>Send MoMo Prompt — GH₵ {bundle.price.toFixed(2)}</span>
+              <span>Pay GH₵ {bundle.price.toFixed(2)} with MoMo</span>
             </button>
           </div>
         )}
 
-        {/* ── PROMPT SENT / WAITING ── */}
+        {/* ── REDIRECTING / LOADING ── */}
+        {status === 'redirecting' && (
+          <div className="py-8 text-center">
+            <Loader2 className="w-12 h-12 text-[#00C853] animate-spin mx-auto mb-4" />
+            <h4 className="font-bold text-base tracking-tight mb-1">Opening Secure MoMo Gateway...</h4>
+            <p className={`text-xs ${isDark ? 'text-[#8E9CAE]' : 'text-slate-500'}`}>
+              Connecting to Ghana Mobile Money network...
+            </p>
+          </div>
+        )}
+
+        {/* ── PROMPT SENT / REDIRECT FALLBACK ── */}
         {status === 'prompt_sent' && (
           <div className="py-6 text-center">
-            <div className="w-16 h-16 rounded-full bg-[#00C853]/10 flex items-center justify-center mx-auto mb-5 shadow-[0_0_24px_rgba(0,200,83,0.2)]">
+            <div className="w-16 h-16 rounded-full bg-[#00C853]/10 flex items-center justify-center mx-auto mb-4 shadow-[0_0_24px_rgba(0,200,83,0.2)]">
               <Smartphone className="w-8 h-8 text-[#00C853] animate-pulse" />
             </div>
-            <h4 className="font-extrabold text-lg tracking-tight mb-2">Approve on Your Phone</h4>
-            <p className={`text-sm mb-1 ${isDark ? 'text-[#8E9CAE]' : 'text-slate-500'}`}>
-              A MoMo prompt for <span className="font-bold text-[#00C853]">GH₵ {bundle.price.toFixed(2)}</span> has been sent to
+            <h4 className="font-extrabold text-lg tracking-tight mb-2">Redirecting to Payment</h4>
+            <p className={`text-xs mb-5 ${isDark ? 'text-[#8E9CAE]' : 'text-slate-500'}`}>
+              If the payment page didn&apos;t open automatically, click the button below to authorize <span className="font-bold text-[#00C853]">GH₵ {bundle.price.toFixed(2)}</span>:
             </p>
-            <p className="font-bold font-mono text-lg text-[#00C853] mb-5">{phoneNumber}</p>
 
-            <div className={`rounded-xl p-3.5 mb-5 text-xs ${isDark ? 'bg-[#070D18] border border-[#18263E] text-[#8E9CAE]' : 'bg-slate-50 border border-slate-100 text-slate-500'}`}>
-              <p className="font-semibold mb-1">Instructions:</p>
-              <ol className="list-decimal list-inside space-y-1 text-left">
-                <li>Open your MoMo prompt notification</li>
-                <li>Enter your MoMo PIN to approve</li>
-                <li>Data is delivered automatically within seconds ✅</li>
-              </ol>
-            </div>
+            {authUrl && (
+              <a
+                href={authUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full h-12 mb-4 bg-[#00C853] hover:bg-[#00B74A] text-white font-bold text-sm tracking-tight rounded-xl shadow-[0_4px_16px_rgba(0,200,83,0.3)] transition-all flex items-center justify-center gap-2"
+              >
+                <span>Proceed to MoMo Payment</span>
+                <ExternalLink className="w-4 h-4" />
+              </a>
+            )}
 
             <div className="flex items-center justify-center gap-2 text-xs text-[#00C853]">
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              <span>Waiting for your MoMo approval...</span>
+              <span>Awaiting payment confirmation...</span>
             </div>
-
-            {pollCount > 6 && (
-              <p className={`mt-3 text-xs ${isDark ? 'text-[#64748B]' : 'text-slate-400'}`}>
-                Taking too long? Make sure you have sufficient MoMo balance or{' '}
-                <button onClick={handleDone} className="text-[#00C853] underline font-semibold">cancel and retry</button>.
-              </p>
-            )}
           </div>
         )}
 

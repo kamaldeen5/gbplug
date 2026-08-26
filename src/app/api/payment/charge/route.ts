@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { initiateMoMoCharge } from '@/lib/sikapay';
+import { initializePayment } from '@/lib/sikapay';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { amount, phone, bundleName, productId } = body;
+    const { amount, phone, bundleName, productId, callbackUrl } = body;
 
     if (!amount || !phone || !bundleName || !productId) {
       return NextResponse.json(
@@ -18,37 +18,34 @@ export async function POST(req: NextRequest) {
     const cleanPhone = phone.toString().replace(/\D/g, '');
     if (cleanPhone.length !== 10 || !cleanPhone.startsWith('0')) {
       return NextResponse.json(
-        { success: false, error: 'Invalid Ghana phone number' },
+        { success: false, error: 'Invalid Ghana phone number (e.g. 0241234567)' },
         { status: 400 }
       );
     }
 
-    // Generate a unique reference for this order
-    const reference = `GBP-${Date.now()}-${cleanPhone.slice(-4)}`;
-
-    const result = await initiateMoMoCharge({
+    const result = await initializePayment({
       amount: Number(amount),
       phone: cleanPhone,
-      reference,
       bundleName,
       productId,
+      callbackUrl,
     });
 
-    if (!result.status) {
+    if (!result.status || !result.data) {
       return NextResponse.json(
-        { success: false, error: result.message || 'Failed to initiate MoMo charge' },
+        { success: false, error: result.message || 'Failed to initialize payment' },
         { status: 400 }
       );
     }
 
     return NextResponse.json({
       success: true,
-      reference,
-      message: result.message,
-      data: result.data,
+      reference: result.data.reference,
+      authorization_url: result.data.authorization_url,
+      access_code: result.data.access_code,
     });
   } catch (error: any) {
-    console.error('SikaPay charge error:', error);
+    console.error('SikaPay initialize error:', error);
     return NextResponse.json(
       { success: false, error: error.message || 'Payment initiation failed' },
       { status: 500 }

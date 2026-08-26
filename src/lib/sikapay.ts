@@ -1,5 +1,5 @@
 // SikaPay Ghana Payment Gateway - Server-Side Client
-const SIKAPAY_BASE_URL = 'https://api.sikapaygh.com';
+const SIKAPAY_BASE_URL = 'https://api.sikapaygh.com/api/v1';
 
 function getSecretKey(): string {
   const key = process.env.SIKAPAY_SECRET_KEY;
@@ -7,33 +7,21 @@ function getSecretKey(): string {
   return key;
 }
 
-// Map network IDs to SikaPay provider codes
-export function getProviderFromPhone(phone: string): 'mtn' | 'vodafone' | 'airteltigo' {
-  const clean = phone.replace(/\D/g, '');
-  const prefix = clean.slice(0, 3);
-  const mtnPrefixes = ['024', '054', '055', '059', '025'];
-  const telecelPrefixes = ['020', '050'];
-  if (mtnPrefixes.includes(prefix)) return 'mtn';
-  if (telecelPrefixes.includes(prefix)) return 'vodafone'; // Telecel uses "vodafone" in SikaPay
-  return 'airteltigo';
-}
-
-export interface SikaChargeParams {
+export interface InitializePaymentParams {
   amount: number;
-  phone: string;        // Customer phone (also MoMo number)
-  reference: string;   // Your unique reference
+  phone: string;
   bundleName: string;
   productId: string;
+  callbackUrl?: string;
 }
 
-export interface SikaChargeResponse {
+export interface InitializePaymentResponse {
   status: boolean;
   message: string;
   data?: {
+    authorization_url: string;
+    access_code: string;
     reference: string;
-    amount: number;
-    status: string;    // pending, success, failed
-    authorization_url?: string;
   };
 }
 
@@ -44,50 +32,46 @@ export interface SikaVerifyResponse {
     reference: string;
     amount: number;
     currency: string;
-    status: string;    // success, failed, pending
-    channel: string;
-    customer: {
-      email: string;
-      phone: string;
+    status: string; // 'pending' | 'success' | 'failed'
+    customer?: {
+      email?: string;
+      phone?: string;
     };
+    metadata?: any;
     paid_at?: string;
   };
 }
 
 /**
- * Initiate a direct MoMo charge — sends prompt straight to customer's phone
+ * Initialize a SikaPay payment session
  */
-export async function initiateMoMoCharge({
+export async function initializePayment({
   amount,
   phone,
-  reference,
   bundleName,
-}: SikaChargeParams): Promise<SikaChargeResponse> {
+  productId,
+  callbackUrl,
+}: InitializePaymentParams): Promise<InitializePaymentResponse> {
   const secretKey = getSecretKey();
   const cleanPhone = phone.replace(/\D/g, '');
-  const provider = getProviderFromPhone(cleanPhone);
-
-  // Generate a placeholder email from phone (SikaPay requires email field)
   const email = `${cleanPhone}@gbplug.com`;
+  const defaultCallback = callbackUrl || 'https://gbplug.com/track-order';
 
-  const res = await fetch(`${SIKAPAY_BASE_URL}/v1/charge`, {
+  const res = await fetch(`${SIKAPAY_BASE_URL}/transaction/initialize`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${secretKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      amount,
+      amount: Number(amount),
       email,
       currency: 'GHS',
-      mobile_money: {
-        phone: cleanPhone,
-        provider,
-      },
+      callback_url: defaultCallback,
       metadata: {
+        product_id: productId,
         bundle_name: bundleName,
         recipient_phone: cleanPhone,
-        custom_reference: reference,
       },
     }),
   });
@@ -102,7 +86,7 @@ export async function initiateMoMoCharge({
 export async function verifyPayment(reference: string): Promise<SikaVerifyResponse> {
   const secretKey = getSecretKey();
 
-  const res = await fetch(`${SIKAPAY_BASE_URL}/v1/transaction/verify/${encodeURIComponent(reference)}`, {
+  const res = await fetch(`${SIKAPAY_BASE_URL}/transaction/verify/${encodeURIComponent(reference)}`, {
     method: 'GET',
     headers: {
       'Authorization': `Bearer ${secretKey}`,
