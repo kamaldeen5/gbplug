@@ -104,7 +104,7 @@ export function PurchaseCard({
 
   return (
     <div
-      className={`w-full rounded-2xl sm:rounded-2xl p-4 sm:p-6 transition-all duration-200 border ${
+      className={`w-full rounded-[22px] sm:rounded-3xl p-4 sm:p-7 transition-all duration-200 border ${
         isDark
           ? 'bg-[#09121F] border-[#15233A] shadow-[0_25px_60px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.05)]'
           : 'bg-white border-[#E2E8F0] shadow-[0_20px_50px_rgba(0,0,0,0.06),0_1px_3px_rgba(0,0,0,0.05)]'
@@ -112,7 +112,7 @@ export function PurchaseCard({
     >
       {/* Service Type Tab Switcher */}
       <div
-        className={`p-1 rounded-xl mb-4 sm:mb-5 flex items-center border ${
+        className={`p-1.5 rounded-2xl mb-4 sm:mb-6 flex items-center border ${
           isDark ? 'bg-[#070D18] border-[#18263E]' : 'bg-slate-100/90 border-slate-200'
         }`}
       >
@@ -122,7 +122,7 @@ export function PurchaseCard({
             setActiveTab('regular');
             setSelectedBundle(null);
           }}
-          className={`flex-1 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all text-center cursor-pointer ${
+          className={`flex-1 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-extrabold tracking-tight transition-all text-center cursor-pointer ${
             activeTab === 'regular'
               ? isDark
                 ? 'bg-[#09121F] text-white shadow-md border border-[#1F2F4A]'
@@ -142,7 +142,7 @@ export function PurchaseCard({
             setSelectedNetwork(mtnNet);
             setSelectedBundle(null);
           }}
-          className={`flex-1 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer ${
+          className={`flex-1 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-extrabold tracking-tight transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer ${
             activeTab === 'flexa'
               ? isDark
                 ? 'bg-[#09121F] text-[#00C853] shadow-md border border-[#00C853]/40'
@@ -163,7 +163,7 @@ export function PurchaseCard({
       {/* Flexa Feature Callout */}
       {activeTab === 'flexa' && (
         <div
-          className={`mb-4 sm:mb-5 p-3 sm:p-3.5 rounded-xl border text-xs leading-relaxed animate-fade-in ${
+          className={`mb-4 sm:mb-6 p-3 sm:p-3.5 rounded-2xl border text-xs leading-relaxed animate-fade-in ${
             isDark
               ? 'bg-[#070D18]/90 border-[#18263E] text-slate-300'
               : 'bg-emerald-50/60 border-emerald-200 text-slate-700'
@@ -180,10 +180,10 @@ export function PurchaseCard({
       )}
 
       {/* 1. Choose Network */}
-      <div className="mb-4 sm:mb-5">
+      <div className="mb-4 sm:mb-6">
         <div className="flex items-center justify-between mb-2 sm:mb-2.5">
           <label
-            className={`block text-[13.5px] sm:text-[14px] font-bold tracking-tight ${
+            className={`block text-[14px] sm:text-[15px] font-black tracking-tight ${
               isDark ? 'text-white' : 'text-[#0F172A]'
             }`}
           >
@@ -196,7 +196,7 @@ export function PurchaseCard({
           )}
         </div>
 
-        <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
+        <div className="grid grid-cols-3 gap-2.5 sm:gap-3.5">
           {NETWORKS.map((network) => {
             const isFlexaDisabled = activeTab === 'flexa' && network.id !== 'mtn';
             const isSelected = selectedNetwork.id === network.id;
@@ -206,11 +206,11 @@ export function PurchaseCard({
                 type="button"
                 disabled={isFlexaDisabled}
                 onClick={() => handleSelectNetwork(network)}
-                className={`relative flex flex-col items-center justify-between py-2.5 sm:py-3 px-1 rounded-xl transition-all h-[86px] sm:h-[98px] md:h-[104px] select-none ${
+                className={`relative flex flex-col items-center justify-between py-2.5 sm:py-3.5 px-1 rounded-2xl transition-all h-[88px] sm:h-[104px] select-none ${
                   isFlexaDisabled
                     ? 'opacity-30 cursor-not-allowed border border-slate-700/20 grayscale'
                     : isSelected
-                    ? 'border-2 border-[#00C853] bg-[#00C853]/[0.03] shadow-[0_0_16px_rgba(0,200,83,0.15)] cursor-pointer active:scale-[0.97]'
+                    ? 'border-2 border-[#00C853] bg-[#00C853]/[0.04] shadow-[0_0_18px_rgba(0,200,83,0.18)] cursor-pointer active:scale-[0.97]'
                     : isDark
                     ? 'border border-[#17263E] bg-[#070D18] hover:border-[#263E63] cursor-pointer active:scale-[0.97]'
                     : 'border border-[#E2E8F0] bg-[#FAFAFA] hover:border-slate-300 cursor-pointer active:scale-[0.97]'
@@ -232,7 +232,7 @@ export function PurchaseCard({
 
                 {/* Network Label */}
                 <span
-                  className={`text-[11.5px] sm:text-[12px] font-semibold truncate max-w-full px-0.5 tracking-tight ${
+                  className={`text-[12px] sm:text-[12.5px] font-bold truncate max-w-full px-0.5 tracking-tight ${
                     isFlexaDisabled
                       ? 'text-slate-500'
                       : isSelected
@@ -253,9 +253,9 @@ export function PurchaseCard({
       </div>
 
       {/* 2. Choose Bundle */}
-      <div className="mb-4 sm:mb-5 relative" ref={dropdownRef}>
+      <div className="mb-4 sm:mb-6 relative" ref={dropdownRef}>
         <label
-          className={`block text-[13.5px] sm:text-[14px] font-bold tracking-tight mb-2 sm:mb-2.5 ${
+          className={`block text-[14px] sm:text-[15px] font-black tracking-tight mb-2 sm:mb-2.5 ${
             isDark ? 'text-white' : 'text-[#0F172A]'
           }`}
         >
@@ -265,7 +265,7 @@ export function PurchaseCard({
         <button
           type="button"
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className={`w-full h-[50px] sm:h-[54px] flex items-center justify-between px-4 rounded-xl border text-[15px] font-medium transition-all text-left active:scale-[0.99] cursor-pointer ${
+          className={`w-full h-[52px] sm:h-[56px] flex items-center justify-between px-4 rounded-2xl border text-[15px] sm:text-[16px] font-medium transition-all text-left active:scale-[0.99] cursor-pointer ${
             isDark
               ? 'bg-[#070D18] border-[#18263E] text-slate-100 hover:border-[#263C5E]'
               : 'bg-white border-[#E2E8F0] text-slate-800 hover:border-slate-300'
@@ -274,18 +274,18 @@ export function PurchaseCard({
           {selectedBundle ? (
             <div className="flex items-center justify-between w-full pr-2">
               <span
-                className={`font-bold tracking-tight truncate mr-2 text-[14.5px] sm:text-[15px] ${
+                className={`font-bold tracking-tight truncate mr-2 text-[15px] sm:text-[16px] ${
                   isDark ? 'text-white' : 'text-[#0F172A]'
                 }`}
               >
                 {selectedBundle.name} {activeTab === 'flexa' ? 'MTN Flexa' : 'Data Bundle'}
               </span>
-              <span className="text-[#00C853] font-bold text-[14px] sm:text-[15px] tracking-tight shrink-0">
+              <span className="text-[#00C853] font-black text-[15px] sm:text-[16px] tracking-tight shrink-0">
                 GH₵ {selectedBundle.price.toFixed(2)}
               </span>
             </div>
           ) : (
-            <span className={`text-[14px] sm:text-[15px] ${isDark ? 'text-[#64748B]' : 'text-slate-400'}`}>
+            <span className={`text-[14.5px] sm:text-[15px] ${isDark ? 'text-[#64748B]' : 'text-slate-400'}`}>
               {activeTab === 'flexa' ? 'Select an MTN Flexa bundle' : 'Select a data bundle'}
             </span>
           )}
@@ -299,7 +299,7 @@ export function PurchaseCard({
         {/* Dropdown Menu */}
         {isDropdownOpen && (
           <div
-            className={`absolute left-0 right-0 top-full mt-2 max-h-64 overflow-y-auto rounded-xl border z-30 shadow-2xl ${
+            className={`absolute left-0 right-0 top-full mt-2 max-h-64 overflow-y-auto rounded-2xl border z-30 shadow-2xl ${
               isDark
                 ? 'bg-[#09121F] border-[#1A2840] divide-y divide-[#152338]'
                 : 'bg-white border-[#E2E8F0] divide-y divide-slate-100'
@@ -327,7 +327,7 @@ export function PurchaseCard({
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <span
-                      className={`font-bold tracking-tight text-[14px] sm:text-[15px] ${
+                      className={`font-bold tracking-tight text-[14.5px] sm:text-[15.5px] ${
                         isSelected
                           ? 'text-[#00C853]'
                           : isDark
@@ -343,9 +343,9 @@ export function PurchaseCard({
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-2.5 shrink-0">
                     <span className="text-[11px] font-medium text-slate-400 hidden sm:inline">{bundle.validity}</span>
-                    <span className="font-bold text-[#00C853] tracking-tight text-[13.5px] sm:text-[14px]">
+                    <span className="font-bold text-[#00C853] tracking-tight text-[14px] sm:text-[15px]">
                       GH₵ {bundle.price.toFixed(2)}
                     </span>
                   </div>
@@ -357,9 +357,9 @@ export function PurchaseCard({
       </div>
 
       {/* 3. Enter Phone Number */}
-      <div className="mb-4 sm:mb-5">
+      <div className="mb-4 sm:mb-6">
         <label
-          className={`block text-[13.5px] sm:text-[14px] font-bold tracking-tight mb-2 sm:mb-2.5 ${
+          className={`block text-[14px] sm:text-[15px] font-black tracking-tight mb-2 sm:mb-2.5 ${
             isDark ? 'text-white' : 'text-[#0F172A]'
           }`}
         >
@@ -373,7 +373,7 @@ export function PurchaseCard({
             placeholder={activeTab === 'flexa' ? 'e.g. 024 123 4567 (MTN only)' : 'e.g. 024 123 4567'}
             value={phoneNumber}
             onChange={handlePhoneChange}
-            className={`w-full h-[50px] sm:h-[54px] px-4 pr-12 rounded-xl border text-[15.5px] sm:text-[16px] font-medium tracking-tight transition-all outline-none ${
+            className={`w-full h-[52px] sm:h-[56px] px-4 pr-12 rounded-2xl border text-[16px] font-semibold tracking-tight transition-all outline-none ${
               isDark
                 ? 'bg-[#070D18] border-[#18263E] text-white placeholder-[#5A6E85] focus:border-[#00C853] focus:ring-2 focus:ring-[#00C853]/25'
                 : 'bg-white border-[#E2E8F0] text-slate-900 placeholder-slate-400 focus:border-[#00C853] focus:ring-2 focus:ring-[#00C853]/20'
@@ -383,7 +383,7 @@ export function PurchaseCard({
             type="button"
             onClick={handleQuickContact}
             title="Autofill sample contact"
-            className={`absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-colors active:scale-95 ${
+            className={`absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-colors active:scale-95 ${
               isDark
                 ? 'text-[#64748B] hover:text-white hover:bg-white/5'
                 : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'
@@ -405,7 +405,7 @@ export function PurchaseCard({
       <button
         type="button"
         onClick={onBuyNow}
-        className="w-full h-[52px] sm:h-[56px] bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white font-bold text-[16px] sm:text-[17px] tracking-tight rounded-xl transition-all transform active:scale-[0.98] shadow-[0_4px_18px_rgba(0,200,83,0.35),inset_0_1px_0_rgba(255,255,255,0.22)] flex items-center justify-center gap-2 cursor-pointer select-none"
+        className="w-full h-[54px] sm:h-[58px] bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white font-black text-[16.5px] sm:text-[18px] tracking-tight rounded-2xl transition-all transform active:scale-[0.98] shadow-[0_4px_22px_rgba(0,200,83,0.38),inset_0_1px_0_rgba(255,255,255,0.25)] flex items-center justify-center gap-2 cursor-pointer select-none"
       >
         <Zap className="w-4 h-4 fill-current" />
         <span>Buy Now</span>
