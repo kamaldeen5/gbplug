@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Check, ChevronDown, UserSquare2 } from 'lucide-react';
+import { Check, ChevronDown, UserSquare2, Zap, AlertTriangle } from 'lucide-react';
 import { NETWORKS, NETWORK_BUNDLES, Network, BundleOption } from '../data/bundles';
-import { MTNLogo, TelecelLogo, AirtelTigoLogo } from './NetworkLogos';
+import { MTNLogo, TelecelLogo, AirtelTigoLogo, WhatsAppIcon } from './NetworkLogos';
 
 interface PurchaseCardProps {
   isDark: boolean;
@@ -27,7 +27,22 @@ export function PurchaseCard({
   onBuyNow,
 }: PurchaseCardProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [inStock, setInStock] = useState(true);
+  const [stockMessage, setStockMessage] = useState('In Stock - Instant Delivery');
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Check live stock status on mount
+  useEffect(() => {
+    fetch('/api/stock')
+      .then((res) => res.json())
+      .then((data) => {
+        if (typeof data.inStock === 'boolean') {
+          setInStock(data.inStock);
+          if (data.message) setStockMessage(data.message);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -82,6 +97,19 @@ export function PurchaseCard({
           : 'bg-white border-[#E2E8F0] shadow-[0_20px_50px_rgba(0,0,0,0.06),0_1px_3px_rgba(0,0,0,0.05)]'
       }`}
     >
+      {/* Stock Status Indicator */}
+      <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-700/15">
+        <div className="flex items-center gap-1.5 text-xs font-semibold">
+          <span className={`w-2 h-2 rounded-full ${inStock ? 'bg-[#00C853] animate-pulse shadow-[0_0_8px_#00C853]' : 'bg-amber-500'}`} />
+          <span className={inStock ? 'text-[#00C853]' : 'text-amber-400'}>
+            {inStock ? 'Instant Delivery Active' : 'Restocking Shortly'}
+          </span>
+        </div>
+        <span className={`text-[11px] font-medium ${isDark ? 'text-[#64748B]' : 'text-slate-400'}`}>
+          Auto-MoMo Gateway
+        </span>
+      </div>
+
       {/* 1. Choose Network */}
       <div className="mb-6">
         <label
@@ -284,14 +312,40 @@ export function PurchaseCard({
         </div>
       </div>
 
-      {/* Buy Now CTA Button */}
-      <button
-        type="button"
-        onClick={onBuyNow}
-        className="w-full h-[54px] sm:h-[56px] bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white font-bold text-[16px] sm:text-[17px] tracking-tight rounded-xl transition-all transform active:scale-[0.98] shadow-[0_4px_18px_rgba(0,200,83,0.35),inset_0_1px_0_rgba(255,255,255,0.22)] flex items-center justify-center gap-2 cursor-pointer select-none"
-      >
-        Buy Now
-      </button>
+      {/* Buy Now CTA Button / Out of Stock Banner */}
+      {inStock ? (
+        <button
+          type="button"
+          onClick={onBuyNow}
+          className="w-full h-[54px] sm:h-[56px] bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white font-bold text-[16px] sm:text-[17px] tracking-tight rounded-xl transition-all transform active:scale-[0.98] shadow-[0_4px_18px_rgba(0,200,83,0.35),inset_0_1px_0_rgba(255,255,255,0.22)] flex items-center justify-center gap-2 cursor-pointer select-none"
+        >
+          <Zap className="w-4 h-4 fill-current" />
+          <span>Buy Now</span>
+        </button>
+      ) : (
+        <div className="space-y-2">
+          <button
+            type="button"
+            disabled
+            className="w-full h-[54px] sm:h-[56px] bg-amber-500/15 border border-amber-500/30 text-amber-400 font-bold text-[15px] tracking-tight rounded-xl flex items-center justify-center gap-2 cursor-not-allowed opacity-90"
+          >
+            <AlertTriangle className="w-4 h-4" />
+            <span>Temporarily Restocking — Back in 5 Mins</span>
+          </button>
+
+          <a
+            href="https://wa.me/233241234567?text=Hello%20GB%20Plug,%20please%20notify%20me%20when%20data%20is%20back%20in%20stock."
+            target="_blank"
+            rel="noreferrer"
+            className={`w-full h-10 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 border transition-all ${
+              isDark ? 'border-[#18263E] text-slate-300 hover:bg-white/5' : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <WhatsAppIcon className="w-3.5 h-3.5 text-[#00C853] fill-current" />
+            <span>Notify Me When In Stock</span>
+          </a>
+        </div>
+      )}
     </div>
   );
 }
