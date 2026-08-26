@@ -164,11 +164,11 @@ export function PurchaseCard({
           {selectedBundle ? (
             <div className="flex items-center justify-between w-full pr-2">
               <span
-                className={`font-semibold tracking-tight truncate mr-2 ${
+                className={`font-bold tracking-tight truncate mr-2 ${
                   isDark ? 'text-white' : 'text-[#0F172A]'
                 }`}
               >
-                {selectedBundle.name}
+                {selectedBundle.name} Data Bundle
               </span>
               <span className="text-[#00C853] font-bold text-[14px] sm:text-[15px] tracking-tight shrink-0">
                 GH₵ {selectedBundle.price.toFixed(2)}
@@ -205,7 +205,7 @@ export function PurchaseCard({
                     setSelectedBundle(bundle);
                     setIsDropdownOpen(false);
                   }}
-                  className={`w-full flex items-center justify-between px-4 py-3.5 text-sm transition-colors text-left active:bg-[#00C853]/20 cursor-pointer ${
+                  className={`w-full flex items-center justify-between px-3.5 sm:px-4 py-3 text-sm transition-colors text-left active:bg-[#00C853]/20 cursor-pointer ${
                     isSelected
                       ? isDark
                         ? 'bg-[#00C853]/15 text-[#00C853] font-bold'
@@ -215,9 +215,9 @@ export function PurchaseCard({
                       : 'text-slate-700 hover:bg-slate-50'
                   }`}
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
                     <span
-                      className={`font-semibold tracking-tight ${
+                      className={`font-bold tracking-tight text-[14px] sm:text-[15px] ${
                         isSelected
                           ? 'text-[#00C853]'
                           : isDark
@@ -228,14 +228,16 @@ export function PurchaseCard({
                       {bundle.name}
                     </span>
                     {bundle.popular && (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#00C853]/20 text-[#00C853]">
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase tracking-wider bg-[#00C853]/15 text-[#00C853] border border-[#00C853]/25 shrink-0">
                         Popular
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-[12px] font-medium text-slate-400">{bundle.validity}</span>
-                    <span className="font-bold text-[#00C853] tracking-tight">GH₵ {bundle.price.toFixed(2)}</span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[11px] font-medium text-slate-400 hidden sm:inline">{bundle.validity}</span>
+                    <span className="font-bold text-[#00C853] tracking-tight text-[13px] sm:text-[14px]">
+                      GH₵ {bundle.price.toFixed(2)}
+                    </span>
                   </div>
                 </button>
               );
