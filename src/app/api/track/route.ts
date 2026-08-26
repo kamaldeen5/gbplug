@@ -118,27 +118,73 @@ export async function GET(req: NextRequest) {
     const query = (searchParams.get('query') || '').trim();
 
     if (!query) {
-      return NextResponse.json({ success: false, error: 'Phone number is required' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Phone number or Order ID is required.' }, { status: 400 });
     }
 
-    const cleanDigits = query.replace(/\D/g, '');
+    const dataSikaKey = process.env.DATA_API_KEY || process.env.DSK_API_KEY;
+    if (!dataSikaKey) {
+      return NextResponse.json({ success: false, error: 'DataSika API key not configured.' }, { status: 500 });
+    }
 
-    // Phone number only — must be at least 9 digits
+    // 1. Direct DataSika Order ID Lookup (e.g., API-..., FLX-...)
+    if (query.toUpperCase().startsWith('API-') || query.toUpperCase().startsWith('FLX-')) {
+      const statusRes = await fetch(
+        `${DATASIKA_BASE_URL}/api-order-status?order_id=${encodeURIComponent(query.toUpperCase())}`,
+        {
+          headers: { Authorization: `Bearer ${dataSikaKey}` },
+          cache: 'no-store',
+        }
+      );
+
+      if (statusRes.ok) {
+        const ds = await statusRes.json();
+        const { id: networkId, name: networkName } = detectNetwork(ds.recipient || '');
+        const dsStatus = (ds.status || '').toLowerCase();
+
+        return NextResponse.json({
+          success: true,
+          orders: [
+            {
+              id: ds.order_id,
+              reference: ds.order_id,
+              network: networkId,
+              networkName: ds.network ? `${ds.network} Ghana` : networkName,
+              bundle: ds.bundle_gb ? `${ds.bundle_gb} GB Data Bundle` : 'Data Bundle',
+              data: ds.bundle_gb ? `${ds.bundle_gb} GB` : 'Data Bundle',
+              phone: ds.recipient || '',
+              amount: Number(ds.amount_charged) || 0,
+              status: dsStatus,
+              timeline: {
+                orderPlacedAt: ds.created_at || null,
+                processingAt: ds.created_at || null,
+                deliveredAt: dsStatus === 'delivered' ? (ds.updated_at || ds.created_at) : null,
+              },
+            },
+          ],
+        });
+      } else {
+        return NextResponse.json({
+          success: false,
+          error: `Order ID ${query} was not found on DataSika. Check the ID and try again.`,
+        });
+      }
+    }
+
+    // 2. Phone Number Lookup
+    const cleanDigits = query.replace(/\D/g, '');
     if (cleanDigits.length < 9) {
       return NextResponse.json(
-        { success: false, error: 'Please enter a valid 10-digit phone number.' },
+        { success: false, error: 'Please enter a valid 10-digit phone number or Order ID (e.g. API-...).' },
         { status: 400 }
       );
     }
 
     const secretKey = process.env.SIKAPAY_SECRET_KEY;
-    const dataSikaKey = process.env.DATA_API_KEY || process.env.DSK_API_KEY;
-
     if (!secretKey) {
       return NextResponse.json({ success: false, error: 'Payment gateway not configured.' }, { status: 500 });
     }
 
-    // Fetch live transaction list from SikaPay
+    // Fetch live transactions from SikaPay to identify paid references for this number
     const res = await fetch(`${SIKAPAY_BASE_URL}/transaction`, {
       method: 'GET',
       headers: { Authorization: `Bearer ${secretKey}` },
@@ -146,15 +192,14 @@ export async function GET(req: NextRequest) {
     });
 
     const data = await res.json();
-
     if (!data.status || !Array.isArray(data.data)) {
       return NextResponse.json(
-        { success: false, error: 'Could not reach payment gateway. Try again shortly.' },
+        { success: false, error: 'Could not reach gateway. Try again shortly.' },
         { status: 502 }
       );
     }
 
-    // Filter strictly by phone number AND successful payment (ignore unpaid/abandoned checkout sessions)
+    // Strictly match completed, paid transactions for this phone
     const matches = (data.data as any[]).filter((t) => {
       const isPaid = (t.status || '').toLowerCase() === 'success';
       if (!isPaid) return false;
@@ -168,11 +213,11 @@ export async function GET(req: NextRequest) {
     if (matches.length === 0) {
       return NextResponse.json({
         success: false,
-        error: `No paid orders found for ${query}. Make sure you enter the recipient number or the number you used to pay.`,
+        error: `No orders found on DataSika for ${query}. Make sure you enter the recipient number or the number you used to pay.`,
       });
     }
 
-    // Newest first, cap at 5
+    // Sort newest first, take up to 5
     const sorted = [...matches]
       .sort((a, b) => {
         const at = new Date(a.paid_at || a.created_at || 0).getTime();
@@ -181,7 +226,7 @@ export async function GET(req: NextRequest) {
       })
       .slice(0, 5);
 
-    // Resolve live status and timeline from DataSika for each order concurrently
+    // Query DataSika for each order to pull live gateway details and timeline
     const orders = await Promise.all(
       sorted.map((t) => fetchLiveOrderDetails(t, cleanDigits, dataSikaKey))
     );
