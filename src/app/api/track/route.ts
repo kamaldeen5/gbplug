@@ -3,22 +3,113 @@ import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 const SIKAPAY_BASE_URL = 'https://api.sikapaygh.com/api/v1';
+const DATASIKA_BASE_URL = 'https://nrsfvhztpzwkadwciizp.supabase.co/functions/v1';
 
-function detectNetwork(phone: string): { id: string; name: string } {
+function detectNetwork(phone: string): { id: 'mtn' | 'telecel' | 'airteltigo'; name: string } {
   const p = phone.replace(/\D/g, '');
   if (/^(024|054|055|059|025)/.test(p)) return { id: 'mtn', name: 'MTN Ghana' };
   if (/^(020|050)/.test(p)) return { id: 'telecel', name: 'Telecel Ghana' };
   return { id: 'airteltigo', name: 'AirtelTigo' };
 }
 
-function sikaStatusToDelivery(
-  sikaStatus: string
-): 'delivered' | 'pending' | 'processing' | 'failed' | 'refunded' {
-  const s = (sikaStatus || '').toLowerCase();
-  if (s === 'success') return 'processing';   // Payment confirmed — data dispatch in progress
-  if (s === 'failed' || s === 'abandoned') return 'failed';
-  if (s === 'refunded') return 'refunded';
-  return 'pending';
+async function fetchLiveOrderDetails(
+  t: any,
+  cleanDigits: string,
+  dataSikaKey?: string
+) {
+  const isPaid = t.status?.toLowerCase() === 'success';
+  const recipientPhone =
+    (t.metadata?.recipient_phone || '').replace(/\D/g, '') ||
+    (t.customer?.phone || '').replace(/\D/g, '').slice(-10) ||
+    cleanDigits;
+
+  const { id: networkId, name: networkName } = detectNetwork(recipientPhone);
+  const bundleName = t.metadata?.bundle_name || '';
+  const productId = t.metadata?.product_id;
+
+  let orderId = t.reference;
+  let status: 'delivered' | 'pending' | 'processing' | 'failed' | 'refunded' = isPaid
+    ? 'processing'
+    : 'pending';
+
+  let orderPlacedAt = t.created_at || null;
+  let processingAt: string | null = t.paid_at || null;
+  let deliveredAt: string | null = null;
+
+  // If customer paid, query DataSika for the live gateway record & real status
+  if (isPaid && dataSikaKey && productId && recipientPhone) {
+    try {
+      // 1. Idempotently resolve DataSika order record
+      const dsRes = await fetch(`${DATASIKA_BASE_URL}/api-buy-data`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${dataSikaKey}`,
+          'Idempotency-Key': `sikapay-${t.reference}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          product_id: productId,
+          recipient: recipientPhone.slice(-10),
+        }),
+      });
+
+      const dsData = await dsRes.json();
+
+      if (dsData.order_id) {
+        orderId = dsData.order_id;
+
+        // 2. Query DataSika live order status endpoint for accurate timestamps & state
+        const statusRes = await fetch(
+          `${DATASIKA_BASE_URL}/api-order-status?order_id=${encodeURIComponent(dsData.order_id)}`,
+          {
+            headers: { Authorization: `Bearer ${dataSikaKey}` },
+            cache: 'no-store',
+          }
+        );
+
+        if (statusRes.ok) {
+          const statusData = await statusRes.json();
+          const dsStatus = (statusData.status || '').toLowerCase();
+
+          if (dsStatus === 'delivered') {
+            status = 'delivered';
+            deliveredAt = statusData.updated_at || statusData.created_at || null;
+          } else if (dsStatus === 'failed') {
+            status = 'failed';
+            deliveredAt = statusData.updated_at || null;
+          } else if (dsStatus === 'refunded') {
+            status = 'refunded';
+            deliveredAt = statusData.updated_at || null;
+          } else {
+            status = 'processing';
+          }
+
+          if (statusData.created_at) {
+            processingAt = statusData.created_at;
+          }
+        }
+      }
+    } catch (err) {
+      console.error('DataSika live status query error:', err);
+    }
+  }
+
+  return {
+    id: orderId,
+    reference: t.reference,
+    network: networkId,
+    networkName,
+    bundle: bundleName ? `${bundleName} Data Bundle` : 'Data Bundle',
+    data: bundleName,
+    phone: recipientPhone,
+    amount: Number(t.amount) || 0,
+    status,
+    timeline: {
+      orderPlacedAt,
+      processingAt,
+      deliveredAt,
+    },
+  };
 }
 
 export async function GET(req: NextRequest) {
@@ -41,6 +132,8 @@ export async function GET(req: NextRequest) {
     }
 
     const secretKey = process.env.SIKAPAY_SECRET_KEY;
+    const dataSikaKey = process.env.DATA_API_KEY || process.env.DSK_API_KEY;
+
     if (!secretKey) {
       return NextResponse.json({ success: false, error: 'Payment gateway not configured.' }, { status: 500 });
     }
@@ -64,7 +157,7 @@ export async function GET(req: NextRequest) {
     // Filter strictly by phone number
     const matches = (data.data as any[]).filter((t) => {
       const inEmail = (t.customer?.email || '').includes(cleanDigits);
-      const inMeta  = (t.metadata?.recipient_phone || '').replace(/\D/g, '').includes(cleanDigits);
+      const inMeta = (t.metadata?.recipient_phone || '').replace(/\D/g, '').includes(cleanDigits);
       const inPhone = (t.customer?.phone || '').replace(/\D/g, '').includes(cleanDigits);
       return inEmail || inMeta || inPhone;
     });
@@ -85,23 +178,10 @@ export async function GET(req: NextRequest) {
       })
       .slice(0, 5);
 
-    const orders = sorted.map((t) => {
-      const recipientPhone =
-        (t.metadata?.recipient_phone || '').replace(/\D/g, '') || cleanDigits;
-      const { id: networkId, name: networkName } = detectNetwork(recipientPhone);
-      const bundleName = t.metadata?.bundle_name || '';
-
-      return {
-        id: t.reference,
-        network: networkId,
-        networkName,
-        bundle: bundleName ? `${bundleName} Data Bundle` : 'Data Bundle',
-        data: bundleName,
-        phone: recipientPhone,
-        amount: Number(t.amount) || 0,
-        status: sikaStatusToDelivery(t.status),
-      };
-    });
+    // Resolve live status and timeline from DataSika for each order concurrently
+    const orders = await Promise.all(
+      sorted.map((t) => fetchLiveOrderDetails(t, cleanDigits, dataSikaKey))
+    );
 
     return NextResponse.json({ success: true, orders });
   } catch (error: any) {
@@ -109,5 +189,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
+
 
 

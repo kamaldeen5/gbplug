@@ -18,6 +18,7 @@ import { MTNLogo, TelecelLogo, AirtelTigoLogo, WhatsAppIcon } from '@/components
 
 interface OrderRecord {
   id: string;
+  reference: string;
   network: 'mtn' | 'telecel' | 'airteltigo';
   networkName: string;
   bundle: string;
@@ -25,7 +26,22 @@ interface OrderRecord {
   phone: string;
   amount: number;
   status: 'delivered' | 'pending' | 'processing' | 'failed' | 'refunded';
-  timestamp: string;
+  timeline?: {
+    orderPlacedAt: string | null;
+    processingAt: string | null;
+    deliveredAt: string | null;
+  };
+}
+
+function formatTimelineDate(dateStr?: string | null): string {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  const day = d.getDate();
+  const month = d.toLocaleDateString('en-GB', { month: 'short' });
+  const hours = d.getHours().toString().padStart(2, '0');
+  const minutes = d.getMinutes().toString().padStart(2, '0');
+  return `${day} ${month}, ${hours}:${minutes}`;
 }
 
 function OrderCard({ order, isDark, searchQuery, onRefresh }: {
@@ -34,6 +50,11 @@ function OrderCard({ order, isDark, searchQuery, onRefresh }: {
   searchQuery: string;
   onRefresh: () => void;
 }) {
+  const isDelivered = order.status === 'delivered';
+  const isFailed = order.status === 'failed' || order.status === 'refunded';
+  const isProcessingActive = order.status === 'processing' || order.status === 'pending';
+  const isProcessingDone = isDelivered || isFailed;
+
   return (
     <div
       className={`rounded-2xl p-5 transition-all border animate-fade-in ${
@@ -47,19 +68,19 @@ function OrderCard({ order, isDark, searchQuery, onRefresh }: {
         <div>
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <span className={`text-[11px] font-mono font-bold ${isDark ? 'text-[#8E9CAE]' : 'text-slate-400'}`}>
-              {order.id}
+              ORDER {order.id}
             </span>
-            {order.status === 'delivered' && (
+            {isDelivered && (
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#00C853]/15 text-[#00C853] flex items-center gap-1 border border-[#00C853]/30">
                 <CheckCircle2 className="w-2.5 h-2.5" /> Delivered
               </span>
             )}
-            {(order.status === 'pending' || order.status === 'processing') && (
+            {isProcessingActive && (
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
                 Processing
               </span>
             )}
-            {(order.status === 'failed' || order.status === 'refunded') && (
+            {isFailed && (
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/15 text-red-400 border border-red-500/30">
                 {order.status === 'refunded' ? 'Refunded' : 'Failed'}
               </span>
@@ -93,21 +114,106 @@ function OrderCard({ order, isDark, searchQuery, onRefresh }: {
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div className="w-full h-1.5 bg-[#00C853]/20 rounded-full overflow-hidden mb-3">
-        <div
-          className={`h-full rounded-full transition-all duration-500 ${
-            order.status === 'delivered'
-              ? 'w-full bg-[#00C853] shadow-[0_0_8px_rgba(0,200,83,0.5)]'
-              : order.status === 'failed' || order.status === 'refunded'
-              ? 'w-1/4 bg-red-400'
-              : 'w-2/3 bg-amber-400 animate-pulse'
-          }`}
-        />
+      {/* Status Timeline */}
+      <div className={`p-4 rounded-xl border mb-4 ${isDark ? 'bg-[#070D18]/90 border-[#18263E]' : 'bg-slate-50 border-slate-200/80'}`}>
+        <h4 className={`text-[11px] font-extrabold uppercase tracking-wider mb-4 ${isDark ? 'text-[#8E9CAE]' : 'text-slate-500'}`}>
+          Status Timeline
+        </h4>
+
+        <div className="relative pl-6 space-y-4 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-700/40">
+          {/* Step 1: Order Placed */}
+          <div className="relative">
+            <span className="absolute -left-6 top-0.5 w-4 h-4 rounded-full bg-[#00C853] flex items-center justify-center ring-4 ring-[#070D18]">
+              <CheckCircle2 className="w-3 h-3 text-black stroke-[3]" />
+            </span>
+            <p className={`text-sm font-bold leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              Order Placed
+            </p>
+            {order.timeline?.orderPlacedAt && (
+              <p className={`text-xs mt-0.5 font-medium ${isDark ? 'text-[#8E9CAE]' : 'text-slate-500'}`}>
+                {formatTimelineDate(order.timeline.orderPlacedAt)}
+              </p>
+            )}
+          </div>
+
+          {/* Step 2: Processing */}
+          <div className="relative">
+            <span
+              className={`absolute -left-6 top-0.5 w-4 h-4 rounded-full flex items-center justify-center ring-4 ring-[#070D18] ${
+                isProcessingDone
+                  ? 'bg-[#00C853]'
+                  : isProcessingActive
+                  ? 'bg-amber-400'
+                  : 'bg-slate-700'
+              }`}
+            >
+              {isProcessingDone ? (
+                <CheckCircle2 className="w-3 h-3 text-black stroke-[3]" />
+              ) : isProcessingActive ? (
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-900 animate-ping" />
+              ) : (
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+              )}
+            </span>
+            <p
+              className={`text-sm font-bold leading-tight ${
+                isProcessingDone
+                  ? (isDark ? 'text-white' : 'text-slate-900')
+                  : isProcessingActive
+                  ? 'text-amber-400'
+                  : (isDark ? 'text-slate-500' : 'text-slate-400')
+              }`}
+            >
+              Processing
+            </p>
+            {order.timeline?.processingAt && (
+              <p className={`text-xs mt-0.5 font-medium ${isDark ? 'text-[#8E9CAE]' : 'text-slate-500'}`}>
+                {formatTimelineDate(order.timeline.processingAt)}
+              </p>
+            )}
+          </div>
+
+          {/* Step 3: Delivered */}
+          <div className="relative">
+            <span
+              className={`absolute -left-6 top-0.5 w-4 h-4 rounded-full flex items-center justify-center ring-4 ring-[#070D18] ${
+                isDelivered
+                  ? 'bg-[#00C853]'
+                  : isFailed
+                  ? 'bg-red-500'
+                  : 'bg-slate-700'
+              }`}
+            >
+              {isDelivered ? (
+                <CheckCircle2 className="w-3 h-3 text-black stroke-[3]" />
+              ) : isFailed ? (
+                <AlertCircle className="w-3 h-3 text-white" />
+              ) : (
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+              )}
+            </span>
+            <p
+              className={`text-sm font-bold leading-tight ${
+                isDelivered
+                  ? 'text-[#00C853]'
+                  : isFailed
+                  ? 'text-red-400'
+                  : (isDark ? 'text-slate-500' : 'text-slate-400')
+              }`}
+            >
+              {isFailed ? (order.status === 'refunded' ? 'Refunded' : 'Delivery Failed') : 'Delivered'}
+            </p>
+            {order.timeline?.deliveredAt && (
+              <p className={`text-xs mt-0.5 font-medium ${isDark ? 'text-[#8E9CAE]' : 'text-slate-500'}`}>
+                {formatTimelineDate(order.timeline.deliveredAt)}
+              </p>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Wait notice */}
-      {(order.status === 'pending' || order.status === 'processing') && (
+      {isProcessingActive && (
         <p className={`text-center text-[11px] mb-3 ${isDark ? 'text-[#64748B]' : 'text-slate-400'}`}>
           ⏳ Orders can take up to <strong>1 hour</strong> to arrive — please be patient.
         </p>
