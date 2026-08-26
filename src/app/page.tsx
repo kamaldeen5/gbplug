@@ -104,14 +104,19 @@ export default function Home() {
               setPhoneNumber={setPhoneNumber}
               onBuyNow={handleBuyNow}
             />
-
-            {/* Mobile Trust Badges (below card on small mobile phones only) */}
-            <div className="block md:hidden mt-6">
-              <TrustBadges isDark={isDark} />
-            </div>
           </div>
         </div>
       </main>
+
+      {/* Footer Section with Trust Badges (Scroll down to view) */}
+      <footer className="w-full border-t border-slate-700/10 dark:border-slate-800/40 py-8 px-4 mt-8 sm:mt-12 transition-colors">
+        <div className="max-w-7xl mx-auto flex flex-col items-center gap-6">
+          <TrustBadges isDark={isDark} className="max-w-md w-full" />
+          <p className="text-xs text-slate-500 text-center font-medium">
+            © {new Date().getFullYear()} GB Plug. Fast, secure, and automated data delivery across all networks in Ghana.
+          </p>
+        </div>
+      </footer>
 
       {/* PWA Install Prompt Banner */}
       <PWAInstallPrompt isDark={isDark} />
