@@ -11,6 +11,7 @@ import {
   Zap,
   Loader2,
   AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { MTNLogo, TelecelLogo, AirtelTigoLogo, WhatsAppIcon } from '@/components/NetworkLogos';
@@ -83,128 +84,50 @@ function TrackOrderContent() {
     setErrorMsg(null);
     setFoundOrder(null);
 
-    const cleanPhoneDigits = clean.replace(/\D/g, '');
+    try {
+      // Query server live tracking endpoint (checks SikaPay live transactions + DataSika live gateway)
+      const res = await fetch(`/api/track?query=${encodeURIComponent(clean)}`);
+      const data = await res.json();
 
-    // 1. Check if input is a direct DataSika Order ID (starts with API-)
-    if (clean.toUpperCase().startsWith('API-')) {
-      try {
-        const res = await fetch(`/api/order-status?order_id=${encodeURIComponent(clean)}`);
-        const data = await res.json();
-
-        if (res.ok && data.order_id) {
-          const net = (data.network || 'MTN').toLowerCase();
-          const normalizedNet: 'mtn' | 'telecel' | 'airteltigo' =
-            net.includes('telecel') || net.includes('voda')
-              ? 'telecel'
-              : net.includes('airtel') || net.includes('tigo')
-              ? 'airteltigo'
-              : 'mtn';
-
-          setFoundOrder({
-            id: data.order_id,
-            network: normalizedNet,
-            networkName: data.network || 'MTN Ghana',
-            bundle: `${data.bundle_gb || ''} GB Data Bundle`.trim(),
-            data: `${data.bundle_gb || ''} GB`.trim(),
-            phone: data.recipient || clean,
-            amount: Number(data.amount_charged) || 0,
-            status: (data.status || 'delivered').toLowerCase() as any,
-            timestamp: 'Live Gateway Status',
-          });
-          setLoading(false);
-          return;
-        }
-      } catch (err) {
-        console.error('DataSika API lookup error:', err);
-      }
-    }
-
-    // 2. Check if input is a SikaPay Reference (starts with SKPY_ or GBP-)
-    if (clean.toUpperCase().startsWith('SKPY_') || clean.toUpperCase().startsWith('GBP-')) {
-      try {
-        const res = await fetch(`/api/payment/verify/${encodeURIComponent(clean)}`);
-        const data = await res.json();
-
-        if (data.success && data.payment) {
-          const paymentData = data.payment;
-          const orderData = data.order;
-
-          // If DataSika order exists, check its status
-          let realStatus: 'delivered' | 'pending' | 'processing' | 'failed' | 'refunded' =
-            paymentData.status === 'success' ? (orderData?.status?.toLowerCase() || 'delivered') : 'pending';
-
-          if (orderData?.order_id) {
-            try {
-              const statusRes = await fetch(`/api/order-status?order_id=${encodeURIComponent(orderData.order_id)}`);
-              const statusData = await statusRes.json();
-              if (statusData.status) {
-                realStatus = statusData.status.toLowerCase();
-              }
-            } catch (e) {}
-          }
-
-          const recipientPhone = paymentData.customer?.phone || paymentData.metadata?.recipient_phone || clean;
-          const bundleName = paymentData.metadata?.bundle_name || 'Data Bundle';
-
-          setFoundOrder({
-            id: orderData?.order_id || clean,
-            network: 'mtn',
-            networkName: 'Mobile Network',
-            bundle: bundleName,
-            data: bundleName,
-            phone: recipientPhone,
-            amount: Number(paymentData.amount) || 0,
-            status: realStatus,
-            timestamp: paymentData.paid_at ? new Date(paymentData.paid_at).toLocaleTimeString() : 'Recent Payment',
-          });
-          setLoading(false);
-          return;
-        }
-      } catch (err) {
-        console.error('SikaPay verify error:', err);
-      }
-    }
-
-    // 3. Search local order storage (e.g. by Phone Number or Order ID)
-    const stored = JSON.parse(localStorage.getItem('gbplug_orders') || '[]');
-    const historyMatch = stored.find(
-      (o: any) =>
-        (cleanPhoneDigits.length >= 9 && o.recipient?.replace(/\D/g, '') === cleanPhoneDigits) ||
-        o.order_id?.toLowerCase() === clean.toLowerCase()
-    );
-
-    if (historyMatch) {
-      let liveStatus = (historyMatch.status || 'delivered').toLowerCase();
-
-      // Check live status if it's a real DataSika ID
-      if (historyMatch.order_id?.startsWith('API-')) {
-        try {
-          const res = await fetch(`/api/order-status?order_id=${encodeURIComponent(historyMatch.order_id)}`);
-          const data = await res.json();
-          if (data.status) {
-            liveStatus = data.status.toLowerCase();
-          }
-        } catch (e) {}
+      if (data.success && data.order) {
+        setFoundOrder(data.order);
+        setLoading(false);
+        return;
       }
 
-      setFoundOrder({
-        id: historyMatch.order_id,
-        network: historyMatch.networkId || 'mtn',
-        networkName: historyMatch.network || 'MTN Ghana',
-        bundle: `${historyMatch.bundle || historyMatch.data} Data Bundle`,
-        data: historyMatch.data,
-        phone: historyMatch.recipient,
-        amount: historyMatch.price,
-        status: liveStatus as any,
-        timestamp: new Date(historyMatch.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      });
+      // Check local storage fallback
+      const stored = JSON.parse(localStorage.getItem('gbplug_orders') || '[]');
+      const cleanDigits = clean.replace(/\D/g, '');
+      const historyMatch = stored.find(
+        (o: any) =>
+          (cleanDigits.length >= 9 && o.recipient?.replace(/\D/g, '') === cleanDigits) ||
+          o.order_id?.toLowerCase() === clean.toLowerCase()
+      );
+
+      if (historyMatch) {
+        setFoundOrder({
+          id: historyMatch.order_id,
+          network: historyMatch.networkId || 'mtn',
+          networkName: historyMatch.network || 'MTN Ghana',
+          bundle: `${historyMatch.bundle || historyMatch.data} Data Bundle`,
+          data: historyMatch.data,
+          phone: historyMatch.recipient,
+          amount: historyMatch.price,
+          status: (historyMatch.status || 'delivered').toLowerCase() as any,
+          timestamp: 'Recent purchase',
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Not found
+      setErrorMsg(`No active order found for "${clean}". Please verify the 10-digit number or Reference ID.`);
       setLoading(false);
-      return;
+    } catch (err: any) {
+      console.error('Track error:', err);
+      setErrorMsg('Unable to retrieve order details right now. Please try again.');
+      setLoading(false);
     }
-
-    // 4. No real order found
-    setLoading(false);
-    setErrorMsg(`No active order found for "${clean}". Please verify the phone number or Order Reference ID.`);
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -249,7 +172,7 @@ function TrackOrderContent() {
               isDark ? 'text-[#94A3B8]' : 'text-[#64748B]'
             }`}
           >
-            Real-time delivery verification directly from the network gateway.
+            Live status verified directly with payment and network gateways.
           </p>
         </div>
 
@@ -267,7 +190,7 @@ function TrackOrderContent() {
               isDark ? 'text-white' : 'text-[#0F172A]'
             }`}
           >
-            Enter Phone Number or Order Reference ID
+            Enter Phone Number or Reference ID
           </label>
 
           <div className="flex flex-col sm:flex-row gap-3">
@@ -276,7 +199,7 @@ function TrackOrderContent() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="e.g. 024 123 4567 or API-XXXXX or GBP-XXXXX"
+                placeholder="e.g. 0542778141 or SKPY_MT9RXRUX_1D2B4652568E"
                 className={`w-full h-[52px] sm:h-[54px] px-4 pl-11 rounded-xl border text-[16px] font-medium tracking-tight transition-all outline-none ${
                   isDark
                     ? 'bg-[#070D18] border-[#18263E] text-white placeholder-[#5A6E85] focus:border-[#00C853] focus:ring-2 focus:ring-[#00C853]/25'
@@ -306,7 +229,7 @@ function TrackOrderContent() {
           {/* Real Recent Orders Chips */}
           {recentOrders.length > 0 && (
             <div className="mt-4 flex items-center gap-2 flex-wrap text-xs">
-              <span className={isDark ? 'text-[#64748B]' : 'text-slate-400'}>Your recent orders:</span>
+              <span className={isDark ? 'text-[#64748B]' : 'text-slate-400'}>Recent on this device:</span>
               {recentOrders.slice(0, 3).map((o, idx) => (
                 <button
                   key={idx}
@@ -333,7 +256,7 @@ function TrackOrderContent() {
           <div className="py-12 text-center">
             <Loader2 className="w-10 h-10 text-[#00C853] animate-spin mx-auto mb-3" />
             <p className={`text-sm ${isDark ? 'text-[#8E9CAE]' : 'text-slate-500'}`}>
-              Connecting to live network gateway...
+              Searching live SikaPay transactions & network gateway...
             </p>
           </div>
         )}
@@ -348,7 +271,7 @@ function TrackOrderContent() {
             <div className="w-12 h-12 rounded-full bg-amber-500/15 text-amber-500 flex items-center justify-center mx-auto mb-3">
               <AlertCircle className="w-6 h-6 stroke-[2.2]" />
             </div>
-            <h3 className="font-bold text-base tracking-tight mb-1">Order Not Found</h3>
+            <h3 className="font-bold text-base tracking-tight mb-1">No Orders Found</h3>
             <p className={`text-xs max-w-md mx-auto mb-5 ${isDark ? 'text-[#8E9CAE]' : 'text-slate-500'}`}>
               {errorMsg}
             </p>
@@ -357,7 +280,7 @@ function TrackOrderContent() {
                 href="/"
                 className="px-5 py-2.5 bg-[#00C853] hover:bg-[#00B74A] text-white font-bold text-xs rounded-xl shadow-md transition-all"
               >
-                Buy a Data Bundle
+                Buy Data Bundle
               </Link>
               <a
                 href={`https://wa.me/233241234567?text=Hello%20GB%20Plug,%20I%20need%20help%20tracking%20my%20order%20for%20${searchQuery}`}
@@ -399,7 +322,7 @@ function TrackOrderContent() {
                   {(foundOrder.status === 'pending' || foundOrder.status === 'processing') && (
                     <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-400 flex items-center gap-1 border border-amber-500/30">
                       <Clock className="w-3 h-3 animate-spin" />
-                      Dispatching Data
+                      Paid & Dispatching
                     </span>
                   )}
                   {(foundOrder.status === 'failed' || foundOrder.status === 'refunded') && (
@@ -467,7 +390,7 @@ function TrackOrderContent() {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>Gateway Dispatched</span>
+                  <span>Gateway Confirmed</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   {foundOrder.status === 'delivered' ? (
@@ -498,13 +421,14 @@ function TrackOrderContent() {
 
             {/* Actions */}
             <div className="pt-4 border-t border-slate-700/20 flex flex-col sm:flex-row gap-3">
-              <Link
-                href="/"
+              <button
+                type="button"
+                onClick={() => executeSearch(searchQuery)}
                 className="flex-1 h-12 bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white font-bold text-sm tracking-tight rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
-                <Zap className="w-4 h-4" />
-                <span>Buy Another Bundle</span>
-              </Link>
+                <RefreshCw className="w-4 h-4" />
+                <span>Refresh Status</span>
+              </button>
 
               <a
                 href={`https://wa.me/233241234567?text=Hello%20GB%20Plug,%20I%20am%20inquiring%20about%20Order%20${foundOrder.id}`}
