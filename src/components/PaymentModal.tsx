@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { X, CheckCircle2, ShieldCheck, Loader2, AlertCircle, PackageSearch, Smartphone, ExternalLink } from 'lucide-react';
 import { Network, BundleOption } from '../data/bundles';
+import { WhatsAppIcon } from './NetworkLogos';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -27,6 +28,7 @@ export function PaymentModal({
   const [status, setStatus] = useState<ModalStatus>('review');
   const [orderId, setOrderId] = useState<string | null>(null);
   const [authUrl, setAuthUrl] = useState<string | null>(null);
+  const [isQueued, setIsQueued] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -56,6 +58,8 @@ export function PaymentModal({
           if (pollingRef.current) clearInterval(pollingRef.current);
           const newOrderId = data.order?.order_id || reference;
           setOrderId(newOrderId);
+          setIsQueued(!!data.dispatchError || data.order?.status?.toLowerCase() === 'pending');
+
           try {
             const history = JSON.parse(localStorage.getItem('gbplug_orders') || '[]');
             history.unshift({
@@ -66,7 +70,7 @@ export function PaymentModal({
               data: bundle.data,
               price: bundle.price,
               recipient: cleanPhone,
-              status: 'delivered',
+              status: data.dispatchError ? 'processing' : 'delivered',
               timestamp: new Date().toISOString(),
             });
             localStorage.setItem('gbplug_orders', JSON.stringify(history.slice(0, 20)));
@@ -140,6 +144,7 @@ export function PaymentModal({
     setStatus('review');
     setOrderId(null);
     setAuthUrl(null);
+    setIsQueued(false);
     setErrorMessage(null);
     onClose();
   };
@@ -175,7 +180,7 @@ export function PaymentModal({
             }`}>
               {[
                 { label: 'Network', value: network.displayName },
-                { label: 'Bundle', value: bundle.name },
+                { label: 'Bundle', value: `${bundle.name} Data Bundle` },
                 { label: 'Recipient', value: phoneNumber, mono: true },
                 { label: 'Validity', value: bundle.validity, green: true },
               ].map(({ label, value, mono, green }) => (
@@ -247,16 +252,19 @@ export function PaymentModal({
           </div>
         )}
 
-        {/* ── SUCCESS ── */}
+        {/* ── SUCCESS / QUEUED (CLEAN FEEDBACK) ── */}
         {status === 'success' && (
           <div className="py-4 text-center">
             <div className="w-14 h-14 rounded-full bg-[#00C853]/15 text-[#00C853] flex items-center justify-center mx-auto mb-4 shadow-[0_0_20px_rgba(0,200,83,0.25)]">
               <CheckCircle2 className="w-8 h-8 stroke-[2.2]" />
             </div>
-            <h4 className="font-extrabold text-lg tracking-tight mb-1">Data Delivered!</h4>
+            <h4 className="font-extrabold text-lg tracking-tight mb-1">
+              {isQueued ? 'Order Received & Processing!' : 'Payment Received!'}
+            </h4>
             <p className={`text-xs mb-3 ${isDark ? 'text-[#8E9CAE]' : 'text-slate-500'}`}>
-              <span className="font-bold text-[#00C853]">{bundle.data}</span> has been credited to{' '}
-              <span className={`font-bold ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>{phoneNumber}</span>
+              Your <span className="font-bold text-[#00C853]">{bundle.data}</span> bundle is being credited to{' '}
+              <span className={`font-bold ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>{phoneNumber}</span>.
+              {isQueued && ' Automated delivery completes in 1–3 minutes.'}
             </p>
 
             {orderId && (
@@ -280,6 +288,19 @@ export function PaymentModal({
                   Track Live Status
                 </Link>
               )}
+
+              <a
+                href={`https://wa.me/233241234567?text=Hello%20GB%20Plug,%20I%20just%20paid%20for%20Order%20${orderId || ''}%20(${bundle.data}%20to%20${cleanPhone})`}
+                target="_blank"
+                rel="noreferrer"
+                className={`w-full h-10 rounded-xl text-xs font-semibold tracking-tight transition-all flex items-center justify-center gap-1.5 border ${
+                  isDark ? 'border-[#18263E] text-[#8E9CAE] hover:text-white' : 'border-slate-200 text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <WhatsAppIcon className="w-3.5 h-3.5 text-[#00C853] fill-current" />
+                <span>Need support with this order?</span>
+              </a>
+
               <button
                 onClick={handleDone}
                 className="w-full h-11 bg-[#00C853] hover:bg-[#00B74A] text-white font-bold text-xs tracking-tight rounded-xl shadow-[0_4px_14px_rgba(0,200,83,0.3)] transition-all cursor-pointer"
