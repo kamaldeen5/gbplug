@@ -13,6 +13,7 @@ export interface InitializePaymentParams {
   bundleName: string;
   productId: string;
   callbackUrl?: string;
+  serviceType?: string;
 }
 
 export interface InitializePaymentResponse {
@@ -51,6 +52,7 @@ export async function initializePayment({
   bundleName,
   productId,
   callbackUrl,
+  serviceType,
 }: InitializePaymentParams): Promise<InitializePaymentResponse> {
   const secretKey = getSecretKey();
   const cleanPhone = phone.replace(/\D/g, '');
@@ -72,6 +74,7 @@ export async function initializePayment({
         product_id: productId,
         bundle_name: bundleName,
         recipient_phone: cleanPhone,
+        service_type: serviceType || 'data_bundles',
       },
     }),
   });

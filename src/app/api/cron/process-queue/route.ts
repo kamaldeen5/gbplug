@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { buyDataBundle } from '@/lib/datasika';
+import { buyDataBundle, buyFlexaBundle } from '@/lib/datasika';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,17 +36,24 @@ export async function GET(req: NextRequest) {
       const recipient = tx.metadata?.recipient_phone || tx.customer?.phone?.replace(/\D/g, '').slice(-10);
       const productId = tx.metadata?.product_id;
       const reference = tx.reference;
+      const isFlexa = tx.metadata?.service_type === 'mtn_flexa';
 
       if (!productId || !recipient || recipient.length !== 10) {
         continue;
       }
 
       try {
-        const order = await buyDataBundle({
-          productId,
-          recipient,
-          idempotencyKey: `sikapay-${reference}`, // Guaranteed idempotent: won't double charge
-        });
+        const order = isFlexa
+          ? await buyFlexaBundle({
+              productId,
+              recipient,
+              idempotencyKey: `sikapay-${reference}`,
+            })
+          : await buyDataBundle({
+              productId,
+              recipient,
+              idempotencyKey: `sikapay-${reference}`, // Guaranteed idempotent: won't double charge
+            });
 
         results.push({
           reference,

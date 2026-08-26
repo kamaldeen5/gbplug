@@ -120,6 +120,64 @@ export async function buyDataBundle({
 }
 
 /**
+ * Purchase an MTN Flexa bundle for a recipient
+ */
+export interface BuyFlexaParams {
+  productId: string;
+  recipient: string;
+  idempotencyKey?: string;
+}
+
+export async function buyFlexaBundle({
+  productId,
+  recipient,
+  idempotencyKey,
+}: BuyFlexaParams): Promise<BuyDataResponse> {
+  const apiKey = getApiKey();
+  const cleanRecipient = recipient.replace(/\D/g, '');
+
+  if (cleanRecipient.length !== 10 || !cleanRecipient.startsWith('0')) {
+    throw new Error('Invalid recipient number. Must be a 10-digit Ghana number starting with 0.');
+  }
+
+  const key = idempotencyKey || `flexa-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+
+  try {
+    const res = await fetch(`${DATASIKA_BASE_URL}/api-buy-flexa`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Idempotency-Key': key,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        product_id: productId,
+        recipient: cleanRecipient,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      return data;
+    }
+
+    // If flexa is not enabled or temporarily unavailable, fallback to regular buyDataBundle
+    if (res.status === 403 || res.status === 503) {
+      console.warn(`MTN Flexa returned status ${res.status}, falling back to regular data bundle...`);
+      return await buyDataBundle({ productId, recipient: cleanRecipient, idempotencyKey: key });
+    }
+
+    const errorMsg = data.message || data.error || `Flexa purchase failed (${res.status})`;
+    throw new Error(errorMsg);
+  } catch (err: any) {
+    // If error, attempt regular buyDataBundle fallback to ensure customer never loses order
+    console.error('buyFlexaBundle error, trying fallback:', err.message);
+    return await buyDataBundle({ productId, recipient: cleanRecipient, idempotencyKey: key });
+  }
+}
+
+/**
  * Query real-time status of an order
  */
 export async function getOrderStatus(orderId: string): Promise<OrderStatusResponse> {
@@ -144,3 +202,4 @@ export async function getOrderStatus(orderId: string): Promise<OrderStatusRespon
 
   return data;
 }
+

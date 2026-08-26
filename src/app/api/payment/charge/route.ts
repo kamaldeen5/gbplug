@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { amount, phone, bundleName, productId, callbackUrl } = body;
+    const { amount, phone, bundleName, productId, callbackUrl, serviceType } = body;
 
     if (!amount || !phone || !bundleName || !productId) {
       return NextResponse.json(
@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
       bundleName,
       productId,
       callbackUrl,
+      serviceType: serviceType || 'data_bundles',
     });
 
     if (!result.status || !result.data) {

@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Check, ChevronDown, UserSquare2, Zap, AlertTriangle } from 'lucide-react';
-import { NETWORKS, NETWORK_BUNDLES, Network, BundleOption } from '../data/bundles';
+import { NETWORKS, NETWORK_BUNDLES, MTN_FLEXA_BUNDLES, Network, BundleOption } from '../data/bundles';
 import { MTNLogo, TelecelLogo, AirtelTigoLogo, WhatsAppIcon } from './NetworkLogos';
 
 interface PurchaseCardProps {
@@ -26,9 +26,10 @@ export function PurchaseCard({
   setPhoneNumber,
   onBuyNow,
 }: PurchaseCardProps) {
+  const [activeTab, setActiveTab] = useState<'regular' | 'flexa'>('regular');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [inStock, setInStock] = useState(true);
-  const [stockMessage, setStockMessage] = useState('In Stock - Instant Delivery');
+  const [stockMessage, setStockMessage] = useState('In Stock - Orders Delivered Daily');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Check live stock status on mount
@@ -70,19 +71,31 @@ export function PurchaseCard({
     if (raw.length >= 3) {
       const prefix = raw.slice(0, 3);
       const matched = NETWORKS.find((n) => n.phonePrefixes.includes(prefix));
-      if (matched && matched.id !== selectedNetwork.id) {
-        setSelectedNetwork(matched);
-        setSelectedBundle(null);
+      if (matched) {
+        if (activeTab === 'flexa' && matched.id !== 'mtn') {
+          // If non-MTN entered during Flexa, switch to regular bundles
+          setActiveTab('regular');
+        }
+        if (matched.id !== selectedNetwork.id) {
+          setSelectedNetwork(matched);
+          setSelectedBundle(null);
+        }
       }
     }
   };
 
   const handleSelectNetwork = (net: Network) => {
+    if (activeTab === 'flexa' && net.id !== 'mtn') {
+      setActiveTab('regular');
+    }
     setSelectedNetwork(net);
     setSelectedBundle(null);
   };
 
-  const currentBundles = NETWORK_BUNDLES[selectedNetwork.id] || [];
+  const currentBundles =
+    activeTab === 'flexa'
+      ? MTN_FLEXA_BUNDLES
+      : NETWORK_BUNDLES[selectedNetwork.id] || [];
 
   const handleQuickContact = () => {
     const prefix = selectedNetwork.phonePrefixes[0] || '024';
@@ -102,20 +115,96 @@ export function PurchaseCard({
         <div className="flex items-center gap-1.5 text-xs font-semibold">
           <span className={`w-2 h-2 rounded-full ${inStock ? 'bg-[#00C853] animate-pulse shadow-[0_0_8px_#00C853]' : 'bg-amber-500'}`} />
           <span className={inStock ? 'text-[#00C853]' : 'text-amber-400'}>
-            {inStock ? 'Orders Delivered Daily' : 'Restocking Shortly'}
+            {inStock ? (activeTab === 'flexa' ? 'MTN Flexa Gateway Active' : 'Orders Delivered Daily') : 'Restocking Shortly'}
           </span>
         </div>
       </div>
 
-      {/* 1. Choose Network */}
-      <div className="mb-6">
-        <label
-          className={`block text-[14px] font-bold tracking-tight mb-3 ${
-            isDark ? 'text-white' : 'text-[#0F172A]'
+      {/* Service Type Tab Switcher */}
+      <div
+        className={`p-1 rounded-xl mb-5 flex items-center border ${
+          isDark ? 'bg-[#070D18] border-[#18263E]' : 'bg-slate-100/90 border-slate-200'
+        }`}
+      >
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab('regular');
+            setSelectedBundle(null);
+          }}
+          className={`flex-1 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all text-center cursor-pointer ${
+            activeTab === 'regular'
+              ? isDark
+                ? 'bg-[#09121F] text-white shadow-md border border-[#1F2F4A]'
+                : 'bg-white text-slate-900 shadow-sm border border-slate-200/60'
+              : isDark
+              ? 'text-slate-400 hover:text-slate-200'
+              : 'text-slate-500 hover:text-slate-800'
           }`}
         >
-          1. Choose Network
-        </label>
+          Data Bundles
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab('flexa');
+            const mtnNet = NETWORKS.find((n) => n.id === 'mtn') || NETWORKS[0];
+            setSelectedNetwork(mtnNet);
+            setSelectedBundle(null);
+          }}
+          className={`flex-1 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer ${
+            activeTab === 'flexa'
+              ? isDark
+                ? 'bg-[#09121F] text-[#00C853] shadow-md border border-[#00C853]/40'
+                : 'bg-white text-[#00A844] shadow-sm border border-[#00C853]/40'
+              : isDark
+              ? 'text-slate-400 hover:text-slate-200'
+              : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <Zap className="w-3.5 h-3.5 fill-current" />
+          <span>MTN Flexa</span>
+          <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase tracking-wider bg-[#00C853]/15 text-[#00C853]">
+            Instant
+          </span>
+        </button>
+      </div>
+
+      {/* Flexa Feature Callout */}
+      {activeTab === 'flexa' && (
+        <div
+          className={`mb-5 p-3 rounded-xl border text-xs leading-relaxed animate-fade-in ${
+            isDark
+              ? 'bg-[#070D18]/90 border-[#18263E] text-slate-300'
+              : 'bg-emerald-50/60 border-emerald-200 text-slate-700'
+          }`}
+        >
+          <div className="flex items-center gap-1.5 font-bold text-[#00C853] mb-1">
+            <Zap className="w-3.5 h-3.5 fill-current" />
+            <span>Near-Instant MTN Delivery</span>
+          </div>
+          <p className={isDark ? 'text-slate-400 text-[11px]' : 'text-slate-600 text-[11px]'}>
+            Powered by a dedicated supplier for fast delivery on MTN. New numbers complete a standard one-time network check.
+          </p>
+        </div>
+      )}
+
+      {/* 1. Choose Network */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <label
+            className={`block text-[14px] font-bold tracking-tight ${
+              isDark ? 'text-white' : 'text-[#0F172A]'
+            }`}
+          >
+            1. Choose Network
+          </label>
+          {activeTab === 'flexa' && (
+            <span className="text-[11px] font-bold text-[#00C853] bg-[#00C853]/10 px-2 py-0.5 rounded-full border border-[#00C853]/20">
+              MTN Only
+            </span>
+          )}
+        </div>
 
         <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
           {NETWORKS.map((network) => {
@@ -193,7 +282,7 @@ export function PurchaseCard({
                   isDark ? 'text-white' : 'text-[#0F172A]'
                 }`}
               >
-                {selectedBundle.name} Data Bundle
+                {selectedBundle.name} {activeTab === 'flexa' ? 'MTN Flexa' : 'Data Bundle'}
               </span>
               <span className="text-[#00C853] font-bold text-[14px] sm:text-[15px] tracking-tight shrink-0">
                 GH₵ {selectedBundle.price.toFixed(2)}
@@ -201,7 +290,7 @@ export function PurchaseCard({
             </div>
           ) : (
             <span className={isDark ? 'text-[#64748B]' : 'text-slate-400'}>
-              Select a data bundle
+              {activeTab === 'flexa' ? 'Select an MTN Flexa bundle' : 'Select a data bundle'}
             </span>
           )}
           <ChevronDown

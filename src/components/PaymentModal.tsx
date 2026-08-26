@@ -50,7 +50,8 @@ export function PaymentModal({
       attempts++;
 
       try {
-        const url = `/api/payment/verify/${encodeURIComponent(reference)}?productId=${encodeURIComponent(bundle.productId)}&recipient=${encodeURIComponent(cleanPhone)}`;
+        const serviceTypeParam = bundle.serviceType ? `&serviceType=${encodeURIComponent(bundle.serviceType)}` : '';
+        const url = `/api/payment/verify/${encodeURIComponent(reference)}?productId=${encodeURIComponent(bundle.productId)}&recipient=${encodeURIComponent(cleanPhone)}${serviceTypeParam}`;
         const res = await fetch(url);
         const data = await res.json();
 
@@ -110,9 +111,10 @@ export function PaymentModal({
         body: JSON.stringify({
           amount: bundle.price,
           phone: cleanPhone,
-          bundleName: bundle.name,
+          bundleName: bundle.serviceType === 'mtn_flexa' ? `${bundle.name} (MTN Flexa)` : bundle.name,
           productId: bundle.productId,
           callbackUrl,
+          serviceType: bundle.serviceType || 'data_bundles',
         }),
       });
 

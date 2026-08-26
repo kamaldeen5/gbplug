@@ -1,3 +1,5 @@
+export type ServiceType = 'data_bundles' | 'mtn_flexa';
+
 export interface Network {
   id: 'mtn' | 'telecel' | 'airteltigo';
   name: string;
@@ -16,6 +18,7 @@ export interface BundleOption {
   price: number; // Retail price with 12.5% profit margin
   validity: string;
   popular?: boolean;
+  serviceType?: ServiceType;
 }
 
 export const PROFIT_MARGIN_PERCENT = 12.5;
@@ -79,3 +82,21 @@ export const NETWORK_BUNDLES: Record<string, BundleOption[]> = {
     { id: 'at-50', productId: '6e2237df-aaf6-4aa1-93b8-0b5ccad3eed8', name: '50 GB', data: '50 GB', costPrice: 184.5, price: 207.56, validity: 'No Expiry' },
   ],
 };
+
+export const MTN_FLEXA_BUNDLES: BundleOption[] = [
+  { id: 'flexa-1', productId: '17490299-29e5-4e73-bcae-85be8ed68972', name: '1 GB', data: '1 GB', costPrice: 4.0, price: 4.50, validity: 'No Expiry', serviceType: 'mtn_flexa' },
+  { id: 'flexa-2', productId: '15f90b99-ae56-41d1-bc86-0770ba7d8d74', name: '2 GB', data: '2 GB', costPrice: 8.5, price: 9.56, validity: 'No Expiry', serviceType: 'mtn_flexa' },
+  { id: 'flexa-3', productId: 'cb0f6cf3-efa5-4cc1-a1a9-27ac095130a0', name: '3 GB', data: '3 GB', costPrice: 12.5, price: 14.06, validity: 'No Expiry', serviceType: 'mtn_flexa' },
+  { id: 'flexa-4', productId: 'd5898b8c-9979-4a09-bc52-f08430157498', name: '4 GB', data: '4 GB', costPrice: 16.7, price: 18.79, validity: 'No Expiry', serviceType: 'mtn_flexa' },
+  { id: 'flexa-5', productId: 'ca208754-ed35-4f7a-af14-f103691947c8', name: '5 GB', data: '5 GB', costPrice: 21.0, price: 23.63, validity: 'No Expiry', popular: true, serviceType: 'mtn_flexa' },
+  { id: 'flexa-6', productId: 'f6a726a5-f3cb-43fb-afa1-bd273337057d', name: '6 GB', data: '6 GB', costPrice: 24.0, price: 27.00, validity: 'No Expiry', serviceType: 'mtn_flexa' },
+  { id: 'flexa-8', productId: 'c6625d9d-722b-4f33-bf20-9a7eba9a3d6a', name: '8 GB', data: '8 GB', costPrice: 33.0, price: 37.13, validity: 'No Expiry', serviceType: 'mtn_flexa' },
+  { id: 'flexa-10', productId: '16527bc5-9832-476d-913f-1f1abc7e79e8', name: '10 GB', data: '10 GB', costPrice: 39.8, price: 44.78, validity: 'No Expiry', popular: true, serviceType: 'mtn_flexa' },
+  { id: 'flexa-15', productId: '3c78af77-a372-4bf8-9a5b-23dc7c45a134', name: '15 GB', data: '15 GB', costPrice: 59.0, price: 66.38, validity: 'No Expiry', serviceType: 'mtn_flexa' },
+  { id: 'flexa-20', productId: 'b6cdc71b-7701-46fa-b773-9fd92a241c1f', name: '20 GB', data: '20 GB', costPrice: 78.0, price: 87.75, validity: 'No Expiry', serviceType: 'mtn_flexa' },
+  { id: 'flexa-25', productId: '61cf3850-edb2-48c7-8ccd-15a6a7ce7737', name: '25 GB', data: '25 GB', costPrice: 98.0, price: 110.25, validity: 'No Expiry', serviceType: 'mtn_flexa' },
+  { id: 'flexa-30', productId: '90dde8e8-320c-4580-98ec-cabdc77a00ee', name: '30 GB', data: '30 GB', costPrice: 119.0, price: 133.88, validity: 'No Expiry', serviceType: 'mtn_flexa' },
+  { id: 'flexa-40', productId: 'a6709756-6b41-4adf-b4d1-516f5598bd44', name: '40 GB', data: '40 GB', costPrice: 160.0, price: 180.00, validity: 'No Expiry', serviceType: 'mtn_flexa' },
+  { id: 'flexa-50', productId: 'c63cbabb-6c29-4667-bedd-f63f5d31feeb', name: '50 GB', data: '50 GB', costPrice: 195.0, price: 219.38, validity: 'No Expiry', serviceType: 'mtn_flexa' },
+];
+
