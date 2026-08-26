@@ -10,7 +10,7 @@ export function Hero({ isDark }: HeroProps) {
       <h1 className="text-[36px] sm:text-[44px] lg:text-[52px] xl:text-[56px] font-extrabold sm:font-black leading-[1.06] tracking-[-0.035em]">
         <span className={isDark ? 'text-white' : 'text-[#0F172A]'}>Buy Data</span>
         <br />
-        <span className="text-[#00C853]">Instantly.</span>
+        <span className="text-[#00C853]">Online.</span>
         <br />
         <span className={isDark ? 'text-white' : 'text-[#0F172A]'}>Stay Connected.</span>
       </h1>

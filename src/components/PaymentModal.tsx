@@ -197,7 +197,7 @@ export function PaymentModal({
 
             <div className="flex items-center gap-2 mb-5 text-xs font-semibold text-[#00C853]">
               <ShieldCheck className="w-4 h-4 shrink-0" />
-              <span>Instant automated data delivery to {phoneNumber}</span>
+              <span>Data delivered to your SIM after payment</span>
             </div>
 
             <button

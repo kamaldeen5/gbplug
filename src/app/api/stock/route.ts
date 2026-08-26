@@ -16,7 +16,7 @@ export async function GET() {
       message: isManuallyPaused
         ? 'Temporarily restocking. Back shortly!'
         : isDataBundlesAvailable
-        ? 'In Stock - Instant 3-Second Delivery'
+        ? 'Orders Fulfilled Same Day'
         : 'Service temporarily undergoing routine provider maintenance.',
     });
   } catch (error: any) {

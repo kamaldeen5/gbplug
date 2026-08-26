@@ -102,12 +102,9 @@ export function PurchaseCard({
         <div className="flex items-center gap-1.5 text-xs font-semibold">
           <span className={`w-2 h-2 rounded-full ${inStock ? 'bg-[#00C853] animate-pulse shadow-[0_0_8px_#00C853]' : 'bg-amber-500'}`} />
           <span className={inStock ? 'text-[#00C853]' : 'text-amber-400'}>
-            {inStock ? 'Instant Delivery Active' : 'Restocking Shortly'}
+            {inStock ? 'Orders Delivered Daily' : 'Restocking Shortly'}
           </span>
         </div>
-        <span className={`text-[11px] font-medium ${isDark ? 'text-[#64748B]' : 'text-slate-400'}`}>
-          Auto-MoMo Gateway
-        </span>
       </div>
 
       {/* 1. Choose Network */}

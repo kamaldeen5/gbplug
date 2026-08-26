@@ -10,7 +10,7 @@ export function TrustBadges({ isDark, className = '' }: TrustBadgesProps) {
   const badges = [
     {
       icon: Zap,
-      label: 'Instant\nDelivery',
+      label: 'Fast\nDelivery',
     },
     {
       icon: ShieldCheck,

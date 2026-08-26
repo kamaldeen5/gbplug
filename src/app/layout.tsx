@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'GB Plug - Buy Cheap Data Ghana | Instant Delivery',
-  description: 'Ghana’s #1 automated data bundle plug. Buy affordable non-expiry data for MTN, Telecel, and AirtelTigo instantly with Mobile Money.',
+  title: 'GB Plug - Buy Cheap Data Ghana | Fast Delivery',
+  description: 'Ghana’s #1 data bundle plug. Buy affordable non-expiry data for MTN, Telecel, and AirtelTigo with Mobile Money.',
   manifest: '/manifest.json',
   icons: {
     icon: '/icon.png',
