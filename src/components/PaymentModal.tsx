@@ -101,10 +101,6 @@ export function PaymentModal({
     setErrorMessage(null);
 
     try {
-      const callbackUrl = typeof window !== 'undefined'
-        ? `${window.location.origin}/track-order`
-        : 'https://gbplug.com/track-order';
-
       const res = await fetch('/api/payment/charge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -113,7 +109,6 @@ export function PaymentModal({
           phone: cleanPhone,
           bundleName: bundle.name,
           productId: bundle.productId,
-          callbackUrl,
           serviceType: bundle.serviceType || 'data_bundles',
         }),
       });
@@ -129,8 +124,8 @@ export function PaymentModal({
         startPolling(data.reference);
         setStatus('prompt_sent');
 
-        // Automatically open the payment page in the window
-        window.location.href = data.authorization_url;
+        // Open payment in new tab — keep this page alive so the success modal can show
+        window.open(data.authorization_url, '_blank', 'noopener,noreferrer');
       } else {
         throw new Error('No checkout URL received from gateway');
       }
@@ -254,60 +249,70 @@ export function PaymentModal({
           </div>
         )}
 
-        {/* ── SUCCESS / QUEUED (CLEAN FEEDBACK) ── */}
+        {/* ── SUCCESS ── */}
         {status === 'success' && (
-          <div className="py-4 text-center">
-            <div className="w-14 h-14 rounded-full bg-[#00C853]/15 text-[#00C853] flex items-center justify-center mx-auto mb-4 shadow-[0_0_20px_rgba(0,200,83,0.25)]">
-              <CheckCircle2 className="w-8 h-8 stroke-[2.2]" />
+          <div className="py-2 text-center">
+            {/* Animated success ring */}
+            <div className="relative w-20 h-20 mx-auto mb-5">
+              <div className="absolute inset-0 rounded-full bg-[#00C853]/10 animate-ping" style={{ animationDuration: '2s' }} />
+              <div className="relative w-20 h-20 rounded-full bg-[#00C853]/15 border-2 border-[#00C853]/30 flex items-center justify-center shadow-[0_0_32px_rgba(0,200,83,0.3)]">
+                <CheckCircle2 className="w-10 h-10 text-[#00C853] stroke-[2]" />
+              </div>
             </div>
-            <h4 className="font-extrabold text-lg tracking-tight mb-1">
-              {isQueued ? 'Order Received & Processing!' : 'Payment Received!'}
+
+            <h4 className="font-extrabold text-xl tracking-tight mb-1">
+              {isQueued ? 'Order Confirmed!' : 'Payment Successful!'}
             </h4>
-            <p className={`text-xs mb-3 ${isDark ? 'text-[#8E9CAE]' : 'text-slate-500'}`}>
-              Your <span className="font-bold text-[#00C853]">{bundle.data}</span> bundle is being credited to{' '}
-              <span className={`font-bold ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>{phoneNumber}</span>.
-              {isQueued && ' Automated delivery completes in 1–3 minutes.'}
+            <p className={`text-sm mb-5 leading-relaxed ${isDark ? 'text-[#8E9CAE]' : 'text-slate-500'}`}>
+              {isQueued
+                ? <>Your <span className="font-bold text-[#00C853]">{bundle.data}</span> bundle is queued and will arrive on <span className={`font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>{phoneNumber}</span> within minutes.</>
+                : <>Your <span className="font-bold text-[#00C853]">{bundle.data}</span> bundle is on its way to <span className={`font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>{phoneNumber}</span>.</>
+              }
             </p>
 
+            {/* Order reference card */}
             {orderId && (
-              <div className={`p-2.5 rounded-xl border text-xs font-mono mb-4 ${
-                isDark ? 'bg-[#070D18] border-[#18263E] text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'
+              <div className={`rounded-xl p-3.5 mb-5 text-left ${
+                isDark ? 'bg-[#070D18] border border-[#18263E]' : 'bg-slate-50 border border-slate-200'
               }`}>
-                Order Ref: <span className="font-bold text-[#00C853]">{orderId}</span>
+                <p className={`text-[10px] uppercase tracking-widest font-bold mb-1 ${isDark ? 'text-[#4A5A6A]' : 'text-slate-400'}`}>Order Reference</p>
+                <p className={`font-mono text-sm font-bold tracking-wide ${isDark ? 'text-white' : 'text-slate-800'}`}>{orderId}</p>
+                <p className={`text-[11px] mt-1 ${isDark ? 'text-[#8E9CAE]' : 'text-slate-500'}`}>Save this to track your order</p>
               </div>
             )}
 
-            <div className="space-y-2">
-              {orderId && (
-                <Link
-                  href={`/track-order?order_id=${encodeURIComponent(orderId)}`}
-                  onClick={handleDone}
-                  className={`w-full h-11 rounded-xl text-xs font-bold tracking-tight transition-all flex items-center justify-center gap-2 border ${
-                    isDark ? 'border-[#18263E] bg-[#070D18] hover:bg-white/5 text-white' : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-800'
-                  }`}
-                >
-                  <PackageSearch className="w-4 h-4 text-[#00C853]" />
-                  Track Live Status
-                </Link>
-              )}
+            <div className="space-y-2.5">
+              {/* Primary CTA — Track Order */}
+              <Link
+                href={orderId ? `/track-order?order_id=${encodeURIComponent(orderId)}` : '/track-order'}
+                onClick={handleDone}
+                className="w-full h-12 bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white font-bold tracking-tight rounded-xl shadow-[0_4px_16px_rgba(0,200,83,0.35),inset_0_1px_0_rgba(255,255,255,0.2)] transition-all flex items-center justify-center gap-2"
+              >
+                <PackageSearch className="w-4 h-4" />
+                Track My Order
+              </Link>
 
+              {/* Secondary — WhatsApp support */}
               <a
-                href={`https://wa.me/233241234567?text=Hello%20GB%20Plug,%20I%20just%20paid%20for%20Order%20${orderId || ''}%20(${bundle.data}%20to%20${cleanPhone})`}
+                href={`https://wa.me/233241234567?text=Hello%20GB%20Plug!%20I%20just%20paid%20for%20${encodeURIComponent(bundle.data)}%20to%20${cleanPhone}.%20Order%3A%20${orderId || 'N/A'}`}
                 target="_blank"
                 rel="noreferrer"
-                className={`w-full h-10 rounded-xl text-xs font-semibold tracking-tight transition-all flex items-center justify-center gap-1.5 border ${
-                  isDark ? 'border-[#18263E] text-[#8E9CAE] hover:text-white' : 'border-slate-200 text-slate-600 hover:text-slate-900'
+                className={`w-full h-11 rounded-xl text-xs font-semibold tracking-tight transition-all flex items-center justify-center gap-2 border ${
+                  isDark ? 'border-[#18263E] text-[#8E9CAE] hover:text-white hover:bg-white/5' : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                 }`}
               >
-                <WhatsAppIcon className="w-3.5 h-3.5 text-[#00C853] fill-current" />
-                <span>Need support with this order?</span>
+                <WhatsAppIcon className="w-4 h-4 text-[#00C853] fill-current" />
+                Need help with this order?
               </a>
 
+              {/* Dismiss */}
               <button
                 onClick={handleDone}
-                className="w-full h-11 bg-[#00C853] hover:bg-[#00B74A] text-white font-bold text-xs tracking-tight rounded-xl shadow-[0_4px_14px_rgba(0,200,83,0.3)] transition-all cursor-pointer"
+                className={`w-full text-xs font-medium py-2 transition-colors ${
+                  isDark ? 'text-[#4A5A6A] hover:text-[#8E9CAE]' : 'text-slate-400 hover:text-slate-600'
+                }`}
               >
-                Done
+                Close
               </button>
             </div>
           </div>
