@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Check, ChevronDown, UserSquare2, Zap, AlertTriangle } from 'lucide-react';
-import { NETWORKS, NETWORK_BUNDLES, MTN_FLEXA_BUNDLES, Network, BundleOption } from '../data/bundles';
-import { MTNLogo, TelecelLogo, AirtelTigoLogo, WhatsAppIcon } from './NetworkLogos';
+import { Check, ChevronDown, UserSquare2, Zap } from 'lucide-react';
+import { NETWORKS, NETWORK_BUNDLES, Network, BundleOption } from '../data/bundles';
+import { MTNLogo, TelecelLogo, AirtelTigoLogo } from './NetworkLogos';
 
 interface PurchaseCardProps {
   isDark: boolean;
@@ -26,10 +26,8 @@ export function PurchaseCard({
   setPhoneNumber,
   onBuyNow,
 }: PurchaseCardProps) {
-  const [activeTab, setActiveTab] = useState<'regular' | 'flexa'>('regular');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [inStock, setInStock] = useState(true);
-  const [stockMessage, setStockMessage] = useState('In Stock - Orders Delivered Daily');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Check live stock status on mount
@@ -39,7 +37,6 @@ export function PurchaseCard({
       .then((data) => {
         if (typeof data.inStock === 'boolean') {
           setInStock(data.inStock);
-          if (data.message) setStockMessage(data.message);
         }
       })
       .catch(() => {});
@@ -71,31 +68,19 @@ export function PurchaseCard({
     if (raw.length >= 3) {
       const prefix = raw.slice(0, 3);
       const matched = NETWORKS.find((n) => n.phonePrefixes.includes(prefix));
-      if (matched) {
-        if (activeTab === 'flexa' && matched.id !== 'mtn') {
-          // If non-MTN entered during Flexa, switch to regular bundles
-          setActiveTab('regular');
-        }
-        if (matched.id !== selectedNetwork.id) {
-          setSelectedNetwork(matched);
-          setSelectedBundle(null);
-        }
+      if (matched && matched.id !== selectedNetwork.id) {
+        setSelectedNetwork(matched);
+        setSelectedBundle(null);
       }
     }
   };
 
   const handleSelectNetwork = (net: Network) => {
-    if (activeTab === 'flexa' && net.id !== 'mtn') {
-      setActiveTab('regular');
-    }
     setSelectedNetwork(net);
     setSelectedBundle(null);
   };
 
-  const currentBundles =
-    activeTab === 'flexa'
-      ? MTN_FLEXA_BUNDLES
-      : NETWORK_BUNDLES[selectedNetwork.id] || [];
+  const currentBundles = NETWORK_BUNDLES[selectedNetwork.id] || [];
 
   const handleQuickContact = () => {
     const prefix = selectedNetwork.phonePrefixes[0] || '024';
@@ -110,75 +95,6 @@ export function PurchaseCard({
           : 'bg-white border-[#E2E8F0] shadow-[0_20px_50px_rgba(0,0,0,0.06),0_1px_3px_rgba(0,0,0,0.05)]'
       }`}
     >
-      {/* Service Type Tab Switcher */}
-      <div
-        className={`p-1.5 rounded-2xl mb-4 sm:mb-6 flex items-center border ${
-          isDark ? 'bg-[#070D18] border-[#18263E]' : 'bg-slate-100/90 border-slate-200'
-        }`}
-      >
-        <button
-          type="button"
-          onClick={() => {
-            setActiveTab('regular');
-            setSelectedBundle(null);
-          }}
-          className={`flex-1 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-extrabold tracking-tight transition-all text-center cursor-pointer ${
-            activeTab === 'regular'
-              ? isDark
-                ? 'bg-[#09121F] text-white shadow-md border border-[#1F2F4A]'
-                : 'bg-white text-slate-900 shadow-sm border border-slate-200/60'
-              : isDark
-              ? 'text-slate-400 hover:text-slate-200'
-              : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          Data Bundles
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setActiveTab('flexa');
-            const mtnNet = NETWORKS.find((n) => n.id === 'mtn') || NETWORKS[0];
-            setSelectedNetwork(mtnNet);
-            setSelectedBundle(null);
-          }}
-          className={`flex-1 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-extrabold tracking-tight transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer ${
-            activeTab === 'flexa'
-              ? isDark
-                ? 'bg-[#09121F] text-[#00C853] shadow-md border border-[#00C853]/40'
-                : 'bg-white text-[#00A844] shadow-sm border border-[#00C853]/40'
-              : isDark
-              ? 'text-slate-400 hover:text-slate-200'
-              : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <Zap className="w-3.5 h-3.5 fill-current" />
-          <span>MTN Flexa</span>
-          <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase tracking-wider bg-[#00C853]/15 text-[#00C853]">
-            Instant
-          </span>
-        </button>
-      </div>
-
-      {/* Flexa Feature Callout */}
-      {activeTab === 'flexa' && (
-        <div
-          className={`mb-4 sm:mb-6 p-3 sm:p-3.5 rounded-2xl border text-xs leading-relaxed animate-fade-in ${
-            isDark
-              ? 'bg-[#070D18]/90 border-[#18263E] text-slate-300'
-              : 'bg-emerald-50/60 border-emerald-200 text-slate-700'
-          }`}
-        >
-          <div className="flex items-center gap-1.5 font-bold text-[#00C853] mb-1">
-            <Zap className="w-3.5 h-3.5 fill-current" />
-            <span className="text-xs">MTN Flexa Delivery</span>
-          </div>
-          <p className={isDark ? 'text-slate-300 text-[11.5px] sm:text-[12px]' : 'text-slate-700 text-[11.5px] sm:text-[12px]'}>
-            Most MTN Flexa orders arrive almost instantly. In rare cases, delivery can take up to 24 hours. New numbers complete a standard one-time network check.
-          </p>
-        </div>
-      )}
-
       {/* 1. Choose Network */}
       <div className="mb-4 sm:mb-6">
         <div className="flex items-center justify-between mb-2 sm:mb-2.5">
@@ -189,27 +105,18 @@ export function PurchaseCard({
           >
             1. Choose Network
           </label>
-          {activeTab === 'flexa' && (
-            <span className="text-[10.5px] sm:text-[11px] font-bold text-[#00C853] bg-[#00C853]/10 px-2 py-0.5 rounded-full border border-[#00C853]/20">
-              MTN Only
-            </span>
-          )}
         </div>
 
         <div className="grid grid-cols-3 gap-2.5 sm:gap-3.5">
           {NETWORKS.map((network) => {
-            const isFlexaDisabled = activeTab === 'flexa' && network.id !== 'mtn';
             const isSelected = selectedNetwork.id === network.id;
             return (
               <button
                 key={network.id}
                 type="button"
-                disabled={isFlexaDisabled}
                 onClick={() => handleSelectNetwork(network)}
                 className={`relative flex flex-col items-center justify-between py-2.5 sm:py-3.5 px-1 rounded-2xl transition-all h-[88px] sm:h-[104px] select-none ${
-                  isFlexaDisabled
-                    ? 'opacity-30 cursor-not-allowed border border-slate-700/20 grayscale'
-                    : isSelected
+                  isSelected
                     ? 'border-2 border-[#00C853] bg-[#00C853]/[0.04] shadow-[0_0_18px_rgba(0,200,83,0.18)] cursor-pointer active:scale-[0.97]'
                     : isDark
                     ? 'border border-[#17263E] bg-[#070D18] hover:border-[#263E63] cursor-pointer active:scale-[0.97]'
@@ -233,9 +140,7 @@ export function PurchaseCard({
                 {/* Network Label */}
                 <span
                   className={`text-[12px] sm:text-[12.5px] font-bold truncate max-w-full px-0.5 tracking-tight ${
-                    isFlexaDisabled
-                      ? 'text-slate-500'
-                      : isSelected
+                    isSelected
                       ? isDark
                         ? 'text-white'
                         : 'text-[#0F172A]'
@@ -278,7 +183,7 @@ export function PurchaseCard({
                   isDark ? 'text-white' : 'text-[#0F172A]'
                 }`}
               >
-                {selectedBundle.name} {activeTab === 'flexa' ? 'MTN Flexa' : 'Data Bundle'}
+                {selectedBundle.name} Data Bundle
               </span>
               <span className="text-[#00C853] font-black text-[15px] sm:text-[16px] tracking-tight shrink-0">
                 GH₵ {selectedBundle.price.toFixed(2)}
@@ -286,7 +191,7 @@ export function PurchaseCard({
             </div>
           ) : (
             <span className={`text-[14.5px] sm:text-[15px] ${isDark ? 'text-[#64748B]' : 'text-slate-400'}`}>
-              {activeTab === 'flexa' ? 'Select an MTN Flexa bundle' : 'Select a data bundle'}
+              Select a data bundle
             </span>
           )}
           <ChevronDown
@@ -356,6 +261,21 @@ export function PurchaseCard({
         )}
       </div>
 
+      {/* MTN Order Notice Callout */}
+      {selectedNetwork.id === 'mtn' && (
+        <div
+          className={`mb-4 sm:mb-6 p-3 sm:p-3.5 rounded-2xl border text-xs leading-relaxed ${
+            isDark
+              ? 'bg-[#070D18]/90 border-[#18263E] text-slate-300'
+              : 'bg-emerald-50/60 border-emerald-200 text-slate-700'
+          }`}
+        >
+          <p className={isDark ? 'text-slate-300 text-[11.5px] sm:text-[12px]' : 'text-slate-700 text-[11.5px] sm:text-[12px]'}>
+            Most MTN orders arrive almost instantly. In rare cases, delivery can take up to 24 hours. New numbers complete a standard one-time network check.
+          </p>
+        </div>
+      )}
+
       {/* 3. Enter Phone Number */}
       <div className="mb-4 sm:mb-6">
         <label
@@ -370,7 +290,7 @@ export function PurchaseCard({
           <input
             type="tel"
             inputMode="numeric"
-            placeholder={activeTab === 'flexa' ? 'e.g. 024 123 4567 (MTN only)' : 'e.g. 024 123 4567'}
+            placeholder="e.g. 024 123 4567"
             value={phoneNumber}
             onChange={handlePhoneChange}
             className={`w-full h-[52px] sm:h-[56px] px-4 pr-12 rounded-2xl border text-[16px] font-semibold tracking-tight transition-all outline-none ${
@@ -392,13 +312,6 @@ export function PurchaseCard({
             <UserSquare2 className="w-5 h-5 stroke-[1.8]" />
           </button>
         </div>
-
-        {/* Warning if non-MTN phone entered during Flexa tab */}
-        {activeTab === 'flexa' && phoneNumber.replace(/\D/g, '').length >= 3 && !['024', '054', '055', '059', '025'].some(p => phoneNumber.replace(/\D/g, '').startsWith(p)) && (
-          <p className="text-amber-400 text-[11.5px] sm:text-xs mt-1.5 font-medium flex items-center gap-1">
-            <span>⚠️ MTN Flexa is for MTN numbers only (024, 054, 055, 059, 025). Switch to Data Bundles for other networks.</span>
-          </p>
-        )}
       </div>
 
       {/* Buy Now CTA Button */}

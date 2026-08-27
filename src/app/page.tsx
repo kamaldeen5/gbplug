@@ -45,11 +45,11 @@ export default function Home() {
       return;
     }
 
-    // Strict MTN-only check for Flexa
-    if (selectedBundle.serviceType === 'mtn_flexa') {
+    // Strict MTN-only check for MTN bundles
+    if (selectedBundle.serviceType === 'mtn_flexa' || selectedNetwork.id === 'mtn') {
       const isMtn = ['024', '054', '055', '059', '025'].some((p) => cleanPhone.startsWith(p));
       if (!isMtn) {
-        setErrorMsg('MTN Flexa is only for MTN numbers (024, 054, 055, 059, 025). Switch to Data Bundles for other networks.');
+        setErrorMsg('MTN bundles are only for MTN numbers (024, 054, 055, 059, 025). Please check your recipient number or select another network.');
         setTimeout(() => setErrorMsg(null), 4000);
         return;
       }

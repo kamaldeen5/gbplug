@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { buyDataBundle } from '@/lib/datasika';
+import { buyDataBundle, buyFlexaBundle } from '@/lib/datasika';
 import { registerOrderEntry } from '@/lib/order-registry';
 
 export const dynamic = 'force-dynamic';
@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { productId, recipient, idempotencyKey } = body;
+    const { productId, recipient, idempotencyKey, serviceType } = body;
 
     if (!productId) {
       return NextResponse.json(
@@ -31,11 +31,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = await buyDataBundle({
-      productId,
-      recipient: cleanRecipient,
-      idempotencyKey,
-    });
+    const isFlexa = serviceType === 'mtn_flexa';
+    const result = isFlexa
+      ? await buyFlexaBundle({
+          productId,
+          recipient: cleanRecipient,
+          idempotencyKey,
+        })
+      : await buyDataBundle({
+          productId,
+          recipient: cleanRecipient,
+          idempotencyKey,
+        });
 
     // Register in order registry so tracking by phone always finds this order
     if (result.order_id) {

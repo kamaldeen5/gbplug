@@ -111,7 +111,7 @@ export function PaymentModal({
         body: JSON.stringify({
           amount: bundle.price,
           phone: cleanPhone,
-          bundleName: bundle.serviceType === 'mtn_flexa' ? `${bundle.name} (MTN Flexa)` : bundle.name,
+          bundleName: bundle.name,
           productId: bundle.productId,
           callbackUrl,
           serviceType: bundle.serviceType || 'data_bundles',
