@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { initializePayment } from '@/lib/sikapay';
+import { initializePayment } from '@/lib/moolre';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,10 +43,9 @@ export async function POST(req: NextRequest) {
       success: true,
       reference: result.data.reference,
       authorization_url: result.data.authorization_url,
-      access_code: result.data.access_code,
     });
   } catch (error: any) {
-    console.error('SikaPay initialize error:', error);
+    console.error('Moolre initialize error:', error);
     return NextResponse.json(
       { success: false, error: error.message || 'Payment initiation failed' },
       { status: 500 }

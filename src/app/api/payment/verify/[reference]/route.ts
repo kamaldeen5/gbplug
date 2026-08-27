@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyPayment } from '@/lib/sikapay';
+import { verifyPayment } from '@/lib/moolre';
 import { buyDataBundle, buyFlexaBundle } from '@/lib/datasika';
+import { registerOrderEntry } from '@/lib/order-registry';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,24 +26,29 @@ export async function GET(
     // If payment is confirmed successful, trigger DataSika dispatch
     if (paymentStatus === 'success') {
       const url = new URL(req.url);
-      const productId = url.searchParams.get('productId') || result.data.metadata?.product_id;
-      const recipient = url.searchParams.get('recipient') || result.data.metadata?.recipient_phone;
-      const serviceType = url.searchParams.get('serviceType') || result.data.metadata?.service_type;
+      const productId = url.searchParams.get('productId') || result.data.raw?.metadata?.product_id;
+      const recipient = url.searchParams.get('recipient') || result.data.raw?.metadata?.recipient_phone;
+      const serviceType = url.searchParams.get('serviceType') || result.data.raw?.metadata?.service_type;
 
       if (productId && recipient) {
         try {
           const isFlexa = serviceType === 'mtn_flexa';
+          const cleanRecipient = recipient.replace(/\D/g, '');
           const order = isFlexa
             ? await buyFlexaBundle({
                 productId,
-                recipient: recipient.replace(/\D/g, ''),
-                idempotencyKey: `sikapay-${reference}`,
+                recipient: cleanRecipient,
+                idempotencyKey: `moolre-${reference}`,
               })
             : await buyDataBundle({
                 productId,
-                recipient: recipient.replace(/\D/g, ''),
-                idempotencyKey: `sikapay-${reference}`,
+                recipient: cleanRecipient,
+                idempotencyKey: `moolre-${reference}`,
               });
+
+          if (order.order_id) {
+            registerOrderEntry({ orderId: order.order_id, recipient: cleanRecipient });
+          }
 
           return NextResponse.json({
             success: true,
