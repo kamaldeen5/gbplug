@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { registerOrderEntry, getOrdersByPhone } from '@/lib/order-registry';
+import { registerOrderEntry, getOrdersByPhone, getPendingOrders } from '@/lib/order-registry';
+import { buyDataBundle, buyFlexaBundle } from '@/lib/datasika';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,6 +84,31 @@ export async function GET(req: NextRequest) {
         { success: false, error: 'Please enter your 10-digit recipient phone number.' },
         { status: 400 }
       );
+    }
+
+    // Auto-retry any pending paid orders for this number if wallet was topped up
+    const pendingList = getPendingOrders().filter((p) => p.recipient.endsWith(cleanDigits.slice(-10)));
+    for (const pending of pendingList) {
+      try {
+        const isFlexa = pending.serviceType === 'mtn_flexa';
+        const order = isFlexa
+          ? await buyFlexaBundle({
+              productId: pending.productId,
+              recipient: pending.recipient,
+              idempotencyKey: `moolre-${pending.reference}`,
+            })
+          : await buyDataBundle({
+              productId: pending.productId,
+              recipient: pending.recipient,
+              idempotencyKey: `moolre-${pending.reference}`,
+            });
+
+        if (order.order_id) {
+          registerOrderEntry({ orderId: order.order_id, recipient: pending.recipient, createdAt: pending.createdAt });
+        }
+      } catch (e) {
+        // Still pending/wallet not yet funded
+      }
     }
 
     const entries = getOrdersByPhone(cleanDigits);

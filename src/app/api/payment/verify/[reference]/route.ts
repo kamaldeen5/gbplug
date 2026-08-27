@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyPayment } from '@/lib/moolre';
 import { buyDataBundle, buyFlexaBundle } from '@/lib/datasika';
-import { registerOrderEntry } from '@/lib/order-registry';
+import { registerOrderEntry, queuePendingOrder } from '@/lib/order-registry';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,9 +31,9 @@ export async function GET(
       const serviceType = url.searchParams.get('serviceType') || result.data.raw?.metadata?.service_type;
 
       if (productId && recipient) {
+        const cleanRecipient = recipient.replace(/\D/g, '');
         try {
           const isFlexa = serviceType === 'mtn_flexa';
-          const cleanRecipient = recipient.replace(/\D/g, '');
           const order = isFlexa
             ? await buyFlexaBundle({
                 productId,
@@ -58,6 +58,15 @@ export async function GET(
           });
         } catch (dispatchErr: any) {
           console.error('DataSika dispatch error after payment success:', dispatchErr);
+          // Queue for automated retry as soon as wallet balance is topped up
+          queuePendingOrder({
+            reference,
+            productId,
+            recipient: cleanRecipient,
+            serviceType,
+            createdAt: new Date().toISOString(),
+          });
+
           return NextResponse.json({
             success: true,
             paymentStatus: 'success',
