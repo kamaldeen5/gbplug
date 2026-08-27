@@ -5,6 +5,19 @@ import { buyDataBundle, buyFlexaBundle } from '@/lib/datasika';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
+  // Allow Vercel cron runner (sends Authorization: Bearer <CRON_SECRET>)
+  // or direct calls with ?secret=<CRON_SECRET> for manual triggers
+  const cronSecret = process.env.CRON_SECRET;
+  if (cronSecret) {
+    const authHeader = req.headers.get('authorization');
+    const querySecret = new URL(req.url).searchParams.get('secret');
+    const isVercelCron = authHeader === `Bearer ${cronSecret}`;
+    const isManualTrigger = querySecret === cronSecret;
+    if (!isVercelCron && !isManualTrigger) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+  }
+
   try {
     const pendingOrders = getPendingOrders();
     const results = [];
