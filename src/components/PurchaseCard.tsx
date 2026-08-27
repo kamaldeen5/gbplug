@@ -95,6 +95,21 @@ export function PurchaseCard({
           : 'bg-white border-[#E2E8F0] shadow-[0_20px_50px_rgba(0,0,0,0.06),0_1px_3px_rgba(0,0,0,0.05)]'
       }`}
     >
+      {/* MTN Order Notice Callout (Placed above Choose Network) */}
+      {selectedNetwork.id === 'mtn' && (
+        <div
+          className={`mb-4 sm:mb-5 p-3 sm:p-3.5 rounded-2xl border text-xs leading-relaxed ${
+            isDark
+              ? 'bg-[#070D18]/90 border-[#18263E] text-slate-300'
+              : 'bg-emerald-50/60 border-emerald-200 text-slate-700'
+          }`}
+        >
+          <p className={isDark ? 'text-slate-300 text-[11.5px] sm:text-[12px]' : 'text-slate-700 text-[11.5px] sm:text-[12px]'}>
+            Most MTN orders arrive almost instantly. In rare cases, delivery can take up to 24 hours. New numbers complete a standard one-time network check.
+          </p>
+        </div>
+      )}
+
       {/* 1. Choose Network */}
       <div className="mb-4 sm:mb-6">
         <div className="flex items-center justify-between mb-2 sm:mb-2.5">
@@ -260,21 +275,6 @@ export function PurchaseCard({
           </div>
         )}
       </div>
-
-      {/* MTN Order Notice Callout */}
-      {selectedNetwork.id === 'mtn' && (
-        <div
-          className={`mb-4 sm:mb-6 p-3 sm:p-3.5 rounded-2xl border text-xs leading-relaxed ${
-            isDark
-              ? 'bg-[#070D18]/90 border-[#18263E] text-slate-300'
-              : 'bg-emerald-50/60 border-emerald-200 text-slate-700'
-          }`}
-        >
-          <p className={isDark ? 'text-slate-300 text-[11.5px] sm:text-[12px]' : 'text-slate-700 text-[11.5px] sm:text-[12px]'}>
-            Most MTN orders arrive almost instantly. In rare cases, delivery can take up to 24 hours. New numbers complete a standard one-time network check.
-          </p>
-        </div>
-      )}
 
       {/* 3. Enter Phone Number */}
       <div className="mb-4 sm:mb-6">
