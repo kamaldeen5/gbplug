@@ -119,6 +119,17 @@ export async function buyDataBundle({
   return data;
 }
 
+export const FLEXA_TO_REGULAR_MAP: Record<string, string> = {
+  'e5825a25-f365-4926-b78e-8a5b7d2a1c40': '17490299-29e5-4e73-bcae-85be8ed68972', // 1GB
+  'b285a7da-adea-4bdd-be49-8dd54ad2663f': '15f90b99-ae56-41d1-bc86-0770ba7d8d74', // 2GB
+  '211647ff-747a-4c00-99d1-f793ced9755c': 'cb0f6cf3-efa5-4cc1-a1a9-27ac095130a0', // 3GB
+  'd56621a9-875a-496d-b216-cc21cb5bae02': 'd5898b8c-9979-4a09-bc52-f08430157498', // 4GB
+  '440262fb-f6fe-4c43-89f3-b6c470f24fea': 'ca208754-ed35-4f7a-af14-f103691947c8', // 5GB
+  '45caa58f-397c-41d2-a4f1-48ad8d6e1b23': 'c6625d9d-722b-4f33-bf20-9a7eba9a3d6a', // 8GB
+  '56456480-f69d-4cb2-8d0f-fd90e5a3e7b7': '16527bc5-9832-476d-913f-1f1abc7e79e8', // 10GB
+  'c5418c3a-83fb-461b-ba61-59c1583d5699': '3c78af77-a372-4bf8-9a5b-23dc7c45a134', // 15GB
+};
+
 /**
  * Purchase an MTN Flexa bundle for a recipient
  */
@@ -162,18 +173,20 @@ export async function buyFlexaBundle({
       return data;
     }
 
-    // If flexa is not enabled or temporarily unavailable, fallback to regular buyDataBundle
-    if (res.status === 403 || res.status === 503) {
-      console.warn(`MTN Flexa returned status ${res.status}, falling back to regular data bundle...`);
-      return await buyDataBundle({ productId, recipient: cleanRecipient, idempotencyKey: key });
+    // If flexa is not approved on key (403), or unavailable (503), map to regular product ID and dispatch
+    if (res.status === 403 || res.status === 503 || res.status === 400) {
+      console.warn(`MTN Flexa returned status ${res.status}, mapping to regular MTN bundle...`);
+      const regularProductId = FLEXA_TO_REGULAR_MAP[productId] || productId;
+      return await buyDataBundle({ productId: regularProductId, recipient: cleanRecipient, idempotencyKey: key });
     }
 
     const errorMsg = data.message || data.error || `Flexa purchase failed (${res.status})`;
     throw new Error(errorMsg);
   } catch (err: any) {
-    // If error, attempt regular buyDataBundle fallback to ensure customer never loses order
-    console.error('buyFlexaBundle error, trying fallback:', err.message);
-    return await buyDataBundle({ productId, recipient: cleanRecipient, idempotencyKey: key });
+    // If error, attempt regular buyDataBundle fallback with mapped product ID
+    console.error('buyFlexaBundle error, trying mapped fallback:', err.message);
+    const regularProductId = FLEXA_TO_REGULAR_MAP[productId] || productId;
+    return await buyDataBundle({ productId: regularProductId, recipient: cleanRecipient, idempotencyKey: key });
   }
 }
 
