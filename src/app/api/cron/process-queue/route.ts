@@ -5,42 +5,32 @@ import { buyDataBundle, buyFlexaBundle } from '@/lib/datasika';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
-  // Allow Vercel cron runner (sends Authorization: Bearer <CRON_SECRET>)
-  // or direct calls with ?secret=<CRON_SECRET> for manual triggers
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const authHeader = req.headers.get('authorization');
-    const querySecret = new URL(req.url).searchParams.get('secret');
-    const isVercelCron = authHeader === `Bearer ${cronSecret}`;
-    const isManualTrigger = querySecret === cronSecret;
-    if (!isVercelCron && !isManualTrigger) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-  }
-
   try {
+    const dataSikaKey = process.env.DATA_API_KEY || process.env.DSK_API_KEY;
     const pendingOrders = getPendingOrders();
-    const results = [];
+    const results: any[] = [];
 
+    // 1. Process explicit pending queue
     for (const pending of pendingOrders) {
       try {
         const isFlexa = pending.serviceType === 'mtn_flexa';
+        const cleanRecipient = pending.recipient.replace(/\D/g, '');
         const order = isFlexa
           ? await buyFlexaBundle({
               productId: pending.productId,
-              recipient: pending.recipient,
+              recipient: cleanRecipient,
               idempotencyKey: `moolre-${pending.reference}`,
             })
           : await buyDataBundle({
               productId: pending.productId,
-              recipient: pending.recipient,
+              recipient: cleanRecipient,
               idempotencyKey: `moolre-${pending.reference}`,
             });
 
         if (order.order_id) {
           registerOrderEntry({
             orderId: order.order_id,
-            recipient: pending.recipient,
+            recipient: cleanRecipient,
             createdAt: pending.createdAt,
           });
           results.push({ reference: pending.reference, orderId: order.order_id, status: 'dispatched' });
