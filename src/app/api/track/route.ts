@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { registerOrderEntry, getOrdersByPhone, getPendingOrders } from '@/lib/order-registry';
-import { buyDataBundle, buyFlexaBundle } from '@/lib/datasika';
+import { registerOrderEntry, getOrdersByPhone } from '@/lib/order-registry';
 import { NETWORK_BUNDLES } from '@/data/bundles';
 
 export const dynamic = 'force-dynamic';
@@ -41,56 +40,6 @@ async function fetchDsOrder(orderId: string, dataSikaKey: string) {
   );
   if (!res.ok) return null;
   return res.json() as Promise<any>;
-}
-
-async function handleSilentRetryIfFailed(ds: any, dataSikaKey: string): Promise<any> {
-  if (!ds) return ds;
-  const statusLower = (ds.status || '').toLowerCase();
-
-  // If order is failed in DataSika (e.g. from previous 0 balance), silently retry dispatch
-  if (statusLower === 'failed' && ds.recipient && ds.bundle_gb) {
-    const match = findProductId(ds.network || '', Number(ds.bundle_gb));
-    if (match) {
-      try {
-        const isFlexa = match.serviceType === 'mtn_flexa';
-        const cleanRec = ds.recipient.replace(/\D/g, '');
-        const retryKey = `retry-${ds.order_id}-${Math.floor(Date.now() / 60000)}`;
-
-        const newOrder = isFlexa
-          ? await buyFlexaBundle({
-              productId: match.productId,
-              recipient: cleanRec,
-              idempotencyKey: retryKey,
-            })
-          : await buyDataBundle({
-              productId: match.productId,
-              recipient: cleanRec,
-              idempotencyKey: retryKey,
-            });
-
-        if (newOrder?.order_id) {
-          registerOrderEntry({
-            orderId: newOrder.order_id,
-            recipient: cleanRec,
-            createdAt: new Date().toISOString(),
-          });
-
-          const freshStatus = await fetchDsOrder(newOrder.order_id, dataSikaKey);
-          if (freshStatus) {
-            return freshStatus;
-          }
-          return {
-            ...ds,
-            order_id: newOrder.order_id,
-            status: newOrder.status || 'processing',
-          };
-        }
-      } catch (err) {
-        // Silently suppress if wallet is still pending top-up
-      }
-    }
-  }
-  return ds;
 }
 
 function findExactRetailPrice(network: string, bundleGb: number): number {
@@ -178,7 +127,7 @@ export async function GET(req: NextRequest) {
 
     // Path A: direct order ID lookup (API-... or FLX-...)
     if (query.toUpperCase().startsWith('API-') || query.toUpperCase().startsWith('FLX-')) {
-      let ds = await fetchDsOrder(query.toUpperCase(), dataSikaKey);
+      const ds = await fetchDsOrder(query.toUpperCase(), dataSikaKey);
       if (!ds) {
         return NextResponse.json({
           success: false,
@@ -186,7 +135,6 @@ export async function GET(req: NextRequest) {
         });
       }
 
-      ds = await handleSilentRetryIfFailed(ds, dataSikaKey);
       registerOrderEntry({ orderId: ds.order_id, recipient: ds.recipient, createdAt: ds.created_at });
       return NextResponse.json({ success: true, orders: [dsOrderToUi(ds)] });
     }
@@ -198,31 +146,6 @@ export async function GET(req: NextRequest) {
         { success: false, error: 'Please enter your 10-digit recipient phone number.' },
         { status: 400 }
       );
-    }
-
-    // Auto-retry any pending paid orders for this number if wallet was topped up
-    const pendingList = getPendingOrders().filter((p) => p.recipient.endsWith(cleanDigits.slice(-10)));
-    for (const pending of pendingList) {
-      try {
-        const isFlexa = pending.serviceType === 'mtn_flexa';
-        const order = isFlexa
-          ? await buyFlexaBundle({
-              productId: pending.productId,
-              recipient: pending.recipient,
-              idempotencyKey: `moolre-${pending.reference}`,
-            })
-          : await buyDataBundle({
-              productId: pending.productId,
-              recipient: pending.recipient,
-              idempotencyKey: `moolre-${pending.reference}`,
-            });
-
-        if (order.order_id) {
-          registerOrderEntry({ orderId: order.order_id, recipient: pending.recipient, createdAt: pending.createdAt });
-        }
-      } catch (e) {
-        // Still pending/wallet not yet funded
-      }
     }
 
     const entries = getOrdersByPhone(cleanDigits);
@@ -251,11 +174,10 @@ export async function GET(req: NextRequest) {
       .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
       .slice(0, 10);
 
-    // Fetch live status from DataSika for each order in parallel + silent auto-retry if failed
+    // Fetch live status from DataSika for each order in parallel (100% read-only)
     const settled = await Promise.allSettled(
       sorted.map(async (e) => {
-        const raw = await fetchDsOrder(e.orderId, dataSikaKey);
-        return handleSilentRetryIfFailed(raw, dataSikaKey);
+        return fetchDsOrder(e.orderId, dataSikaKey);
       })
     );
 
