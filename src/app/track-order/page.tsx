@@ -396,7 +396,7 @@ function TrackOrderContent() {
                 type="tel"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="e.g. 0542778141"
+                placeholder="e.g. 024XXXXXXX or Order ID"
                 inputMode="numeric"
                 className={`w-full h-[52px] sm:h-[54px] px-4 pl-11 rounded-xl border text-[16px] font-medium tracking-tight transition-all outline-none ${
                   isDark
