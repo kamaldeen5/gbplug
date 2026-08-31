@@ -51,9 +51,7 @@ function OrderCard({ order, isDark, searchQuery, onRefresh }: {
   onRefresh: () => void;
 }) {
   const isDelivered = order.status === 'delivered';
-  const isFailed = order.status === 'failed' || order.status === 'refunded';
-  const isProcessingActive = order.status === 'processing' || order.status === 'pending';
-  const isProcessingDone = isDelivered || isFailed;
+  const isProcessingActive = !isDelivered;
 
   return (
     <div
@@ -70,19 +68,14 @@ function OrderCard({ order, isDark, searchQuery, onRefresh }: {
             <span className={`text-[11px] font-mono font-bold ${isDark ? 'text-[#8E9CAE]' : 'text-slate-400'}`}>
               ORDER {order.id}
             </span>
-            {isDelivered && (
+            {isDelivered ? (
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#00C853]/15 text-[#00C853] flex items-center gap-1 border border-[#00C853]/30">
                 <CheckCircle2 className="w-2.5 h-2.5" /> Delivered
               </span>
-            )}
-            {isProcessingActive && (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+            ) : (
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
                 Processing
-              </span>
-            )}
-            {isFailed && (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/15 text-red-400 border border-red-500/30">
-                {order.status === 'refunded' ? 'Refunded' : 'Failed'}
               </span>
             )}
           </div>
@@ -140,28 +133,22 @@ function OrderCard({ order, isDark, searchQuery, onRefresh }: {
           <div className="relative">
             <span
               className={`absolute -left-6 top-0.5 w-4 h-4 rounded-full flex items-center justify-center ring-4 ring-[#070D18] ${
-                isProcessingDone
+                isDelivered
                   ? 'bg-[#00C853]'
-                  : isProcessingActive
-                  ? 'bg-amber-400'
-                  : 'bg-slate-700'
+                  : 'bg-amber-400'
               }`}
             >
-              {isProcessingDone ? (
+              {isDelivered ? (
                 <CheckCircle2 className="w-3 h-3 text-black stroke-[3]" />
-              ) : isProcessingActive ? (
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-900 animate-ping" />
               ) : (
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-900 animate-ping" />
               )}
             </span>
             <p
               className={`text-sm font-bold leading-tight ${
-                isProcessingDone
+                isDelivered
                   ? (isDark ? 'text-white' : 'text-slate-900')
-                  : isProcessingActive
-                  ? 'text-amber-400'
-                  : (isDark ? 'text-slate-500' : 'text-slate-400')
+                  : 'text-amber-400'
               }`}
             >
               Processing
@@ -179,15 +166,11 @@ function OrderCard({ order, isDark, searchQuery, onRefresh }: {
               className={`absolute -left-6 top-0.5 w-4 h-4 rounded-full flex items-center justify-center ring-4 ring-[#070D18] ${
                 isDelivered
                   ? 'bg-[#00C853]'
-                  : isFailed
-                  ? 'bg-red-500'
                   : 'bg-slate-700'
               }`}
             >
               {isDelivered ? (
                 <CheckCircle2 className="w-3 h-3 text-black stroke-[3]" />
-              ) : isFailed ? (
-                <AlertCircle className="w-3 h-3 text-white" />
               ) : (
                 <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
               )}
@@ -196,12 +179,10 @@ function OrderCard({ order, isDark, searchQuery, onRefresh }: {
               className={`text-sm font-bold leading-tight ${
                 isDelivered
                   ? 'text-[#00C853]'
-                  : isFailed
-                  ? 'text-red-400'
                   : (isDark ? 'text-slate-500' : 'text-slate-400')
               }`}
             >
-              {isFailed ? (order.status === 'refunded' ? 'Refunded' : 'Delivery Failed') : 'Delivered'}
+              Delivered
             </p>
             {order.timeline?.deliveredAt && (
               <p className={`text-xs mt-0.5 font-medium ${isDark ? 'text-[#8E9CAE]' : 'text-slate-500'}`}>
@@ -214,8 +195,8 @@ function OrderCard({ order, isDark, searchQuery, onRefresh }: {
 
       {/* Wait notice */}
       {isProcessingActive && (
-        <p className={`text-center text-[11px] mb-3 ${isDark ? 'text-[#64748B]' : 'text-slate-400'}`}>
-          ⏳ Orders can take up to <strong>1 hour</strong> to arrive — please be patient.
+        <p className={`text-center text-[11px] mb-3 ${isDark ? 'text-[#8E9CAE]' : 'text-slate-500'}`}>
+          ⏳ Network delivery in progress. Orders deliver in a few minutes.
         </p>
       )}
 

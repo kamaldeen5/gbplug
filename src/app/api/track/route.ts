@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { registerOrderEntry, getOrdersByPhone, getPendingOrders } from '@/lib/order-registry';
 import { buyDataBundle, buyFlexaBundle } from '@/lib/datasika';
+import { NETWORK_BUNDLES } from '@/data/bundles';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +14,26 @@ function detectNetwork(phone: string): { id: 'mtn' | 'telecel' | 'airteltigo'; n
   return { id: 'airteltigo', name: 'AirtelTigo' };
 }
 
+function findProductId(network: string, bundleGb: number): { productId: string; serviceType?: string } | null {
+  const netLower = (network || '').toLowerCase();
+  const netKey = netLower.includes('telecel') || netLower.includes('vodafone')
+    ? 'telecel'
+    : netLower.includes('airtel') || netLower.includes('tigo')
+    ? 'airteltigo'
+    : 'mtn';
+
+  const list = NETWORK_BUNDLES[netKey] || [];
+  const found = list.find((b) => {
+    const gbNum = parseFloat(b.name.replace(/[^0-9.]/g, ''));
+    return gbNum === bundleGb;
+  });
+
+  if (found) {
+    return { productId: found.productId, serviceType: found.serviceType };
+  }
+  return null;
+}
+
 async function fetchDsOrder(orderId: string, dataSikaKey: string) {
   const res = await fetch(
     `${DATASIKA_BASE_URL}/api-order-status?order_id=${encodeURIComponent(orderId)}`,
@@ -22,9 +43,64 @@ async function fetchDsOrder(orderId: string, dataSikaKey: string) {
   return res.json() as Promise<any>;
 }
 
+async function handleSilentRetryIfFailed(ds: any, dataSikaKey: string): Promise<any> {
+  if (!ds) return ds;
+  const statusLower = (ds.status || '').toLowerCase();
+
+  // If order is failed in DataSika (e.g. from previous 0 balance), silently retry dispatch
+  if (statusLower === 'failed' && ds.recipient && ds.bundle_gb) {
+    const match = findProductId(ds.network || '', Number(ds.bundle_gb));
+    if (match) {
+      try {
+        const isFlexa = match.serviceType === 'mtn_flexa';
+        const cleanRec = ds.recipient.replace(/\D/g, '');
+        const retryKey = `retry-${ds.order_id}-${Math.floor(Date.now() / 60000)}`;
+
+        const newOrder = isFlexa
+          ? await buyFlexaBundle({
+              productId: match.productId,
+              recipient: cleanRec,
+              idempotencyKey: retryKey,
+            })
+          : await buyDataBundle({
+              productId: match.productId,
+              recipient: cleanRec,
+              idempotencyKey: retryKey,
+            });
+
+        if (newOrder?.order_id) {
+          registerOrderEntry({
+            orderId: newOrder.order_id,
+            recipient: cleanRec,
+            createdAt: new Date().toISOString(),
+          });
+
+          const freshStatus = await fetchDsOrder(newOrder.order_id, dataSikaKey);
+          if (freshStatus) {
+            return freshStatus;
+          }
+          return {
+            ...ds,
+            order_id: newOrder.order_id,
+            status: newOrder.status || 'processing',
+          };
+        }
+      } catch (err) {
+        // Silently suppress if wallet is still pending top-up
+      }
+    }
+  }
+  return ds;
+}
+
 function dsOrderToUi(ds: any) {
   const { id: networkId, name: networkName } = detectNetwork(ds.recipient || '');
-  const dsStatus = (ds.status || '').toLowerCase();
+  const rawStatus = (ds.status || '').toLowerCase();
+
+  // Customer always sees 'processing' until actually 'delivered' (never 'failed')
+  const isDelivered = rawStatus === 'delivered';
+  const displayStatus = isDelivered ? 'delivered' : 'processing';
+
   return {
     id: ds.order_id,
     reference: ds.order_id,
@@ -34,18 +110,12 @@ function dsOrderToUi(ds: any) {
     data: ds.bundle_gb ? `${ds.bundle_gb} GB` : 'Data Bundle',
     phone: ds.recipient || '',
     // Wholesale cost → retail: apply 12.5% margin then round UP to nearest GHS 0.50
-    // This mirrors the catalog pricing so tracker always shows the same clean price the customer paid
-    amount: Math.ceil((Number(ds.amount_charged) * 1.125) / 0.5) * 0.5,
-    status: dsStatus as 'delivered' | 'processing' | 'pending' | 'failed' | 'refunded',
+    amount: Math.ceil((Number(ds.amount_charged || 0) * 1.125) / 0.5) * 0.5,
+    status: displayStatus as 'delivered' | 'processing',
     timeline: {
       orderPlacedAt: ds.created_at || null,
       processingAt: ds.created_at || null,
-      deliveredAt:
-        dsStatus === 'delivered'
-          ? ds.updated_at || ds.created_at
-          : dsStatus === 'failed' || dsStatus === 'refunded'
-          ? ds.updated_at || null
-          : null,
+      deliveredAt: isDelivered ? (ds.updated_at || ds.created_at) : null,
     },
   };
 }
@@ -66,13 +136,15 @@ export async function GET(req: NextRequest) {
 
     // Path A: direct order ID lookup (API-... or FLX-...)
     if (query.toUpperCase().startsWith('API-') || query.toUpperCase().startsWith('FLX-')) {
-      const ds = await fetchDsOrder(query.toUpperCase(), dataSikaKey);
+      let ds = await fetchDsOrder(query.toUpperCase(), dataSikaKey);
       if (!ds) {
         return NextResponse.json({
           success: false,
           error: `Order ${query} not found. Double-check the Order ID and try again.`,
         });
       }
+
+      ds = await handleSilentRetryIfFailed(ds, dataSikaKey);
       registerOrderEntry({ orderId: ds.order_id, recipient: ds.recipient, createdAt: ds.created_at });
       return NextResponse.json({ success: true, orders: [dsOrderToUi(ds)] });
     }
@@ -124,9 +196,12 @@ export async function GET(req: NextRequest) {
       .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
       .slice(0, 10);
 
-    // Fetch live status from DataSika for each order in parallel
+    // Fetch live status from DataSika for each order in parallel + silent auto-retry if failed
     const settled = await Promise.allSettled(
-      sorted.map((e) => fetchDsOrder(e.orderId, dataSikaKey))
+      sorted.map(async (e) => {
+        const raw = await fetchDsOrder(e.orderId, dataSikaKey);
+        return handleSilentRetryIfFailed(raw, dataSikaKey);
+      })
     );
 
     const orders = settled
