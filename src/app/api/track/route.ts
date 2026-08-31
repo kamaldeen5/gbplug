@@ -226,6 +226,19 @@ export async function GET(req: NextRequest) {
     }
 
     const entries = getOrdersByPhone(cleanDigits);
+
+    // Merge any known order IDs saved in the client browser's localStorage
+    const extraOrderIds = (searchParams.get('orderIds') || '')
+      .split(',')
+      .map((s) => s.trim().toUpperCase())
+      .filter((s) => s.startsWith('API-') || s.startsWith('FLX-'));
+
+    for (const oid of extraOrderIds) {
+      if (!entries.find((e) => e.orderId === oid)) {
+        entries.push({ orderId: oid, recipient: cleanDigits, createdAt: new Date().toISOString() });
+      }
+    }
+
     if (entries.length === 0) {
       return NextResponse.json({
         success: false,

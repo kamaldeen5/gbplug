@@ -252,12 +252,30 @@ function TrackOrderContent() {
     }
   }, [isDark]);
 
-  // Auto-search if phone is in URL
+  // Auto-search from URL params or localStorage recent order
   useEffect(() => {
-    const paramPhone = searchParams.get('phone');
-    if (paramPhone) {
+    const paramOrderId = searchParams.get('order_id') || searchParams.get('orderId');
+    const paramPhone = searchParams.get('phone') || searchParams.get('query');
+
+    if (paramOrderId) {
+      setSearchQuery(paramOrderId);
+      executeSearch(paramOrderId);
+    } else if (paramPhone) {
       setSearchQuery(paramPhone);
       executeSearch(paramPhone);
+    } else {
+      // Auto-load most recent order from device localStorage
+      try {
+        const history = JSON.parse(localStorage.getItem('gbplug_orders') || '[]');
+        if (Array.isArray(history) && history.length > 0) {
+          const latest = history[0];
+          const queryTarget = latest.recipient || latest.order_id;
+          if (queryTarget) {
+            setSearchQuery(queryTarget);
+            executeSearch(queryTarget);
+          }
+        }
+      } catch (e) {}
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -275,8 +293,20 @@ function TrackOrderContent() {
     setErrorMsg(null);
     setFoundOrders([]);
 
+    // Collect all order IDs stored in this device's localStorage
+    let localOrderIds: string[] = [];
     try {
-      const res = await fetch(`/api/track?query=${encodeURIComponent(clean)}`);
+      const history = JSON.parse(localStorage.getItem('gbplug_orders') || '[]');
+      if (Array.isArray(history)) {
+        localOrderIds = history
+          .map((h: any) => h.order_id || h.orderId)
+          .filter((id: string) => typeof id === 'string' && (id.startsWith('API-') || id.startsWith('FLX-')));
+      }
+    } catch (e) {}
+
+    try {
+      const orderIdsParam = localOrderIds.length > 0 ? `&orderIds=${encodeURIComponent(localOrderIds.join(','))}` : '';
+      const res = await fetch(`/api/track?query=${encodeURIComponent(clean)}${orderIdsParam}`);
       const data = await res.json();
 
       if (data.success && Array.isArray(data.orders) && data.orders.length > 0) {
