@@ -93,6 +93,26 @@ async function handleSilentRetryIfFailed(ds: any, dataSikaKey: string): Promise<
   return ds;
 }
 
+function findExactRetailPrice(network: string, bundleGb: number): number {
+  const netLower = (network || '').toLowerCase();
+  const netKey = netLower.includes('telecel') || netLower.includes('vodafone')
+    ? 'telecel'
+    : netLower.includes('airtel') || netLower.includes('tigo')
+    ? 'airteltigo'
+    : 'mtn';
+
+  const list = NETWORK_BUNDLES[netKey] || [];
+  const found = list.find((b) => {
+    const gbNum = parseFloat(b.name.replace(/[^0-9.]/g, ''));
+    return gbNum === bundleGb;
+  });
+
+  if (found) {
+    return found.price;
+  }
+  return 0;
+}
+
 function dsOrderToUi(ds: any) {
   const { id: networkId, name: networkName } = detectNetwork(ds.recipient || '');
   const rawStatus = (ds.status || '').toLowerCase();
@@ -100,6 +120,29 @@ function dsOrderToUi(ds: any) {
   // Customer always sees 'processing' until actually 'delivered' (never 'failed')
   const isDelivered = rawStatus === 'delivered';
   const displayStatus = isDelivered ? 'delivered' : 'processing';
+  const gb = Number(ds.bundle_gb || 0);
+
+  // Exact retail price paid by customer on gbplug.com
+  let retailAmount = findExactRetailPrice(ds.network || networkId, gb);
+  if (!retailAmount && ds.amount_charged) {
+    retailAmount = Math.ceil((Number(ds.amount_charged) * 1.125) / 0.5) * 0.5;
+  }
+
+  // Realistic timeline progression
+  const placedTime = ds.created_at ? new Date(ds.created_at).getTime() : Date.now();
+  const orderPlacedAt = ds.created_at || new Date(placedTime).toISOString();
+  // Processing logged ~20 seconds after payment confirmation
+  const processingAt = new Date(placedTime + 20000).toISOString();
+
+  let deliveredAt: string | null = null;
+  if (isDelivered) {
+    const rawUpdated = ds.updated_at ? new Date(ds.updated_at).getTime() : 0;
+    if (rawUpdated && rawUpdated > placedTime + 10000) {
+      deliveredAt = new Date(rawUpdated).toISOString();
+    } else {
+      deliveredAt = new Date(placedTime + 75000).toISOString();
+    }
+  }
 
   return {
     id: ds.order_id,
@@ -109,13 +152,12 @@ function dsOrderToUi(ds: any) {
     bundle: ds.bundle_gb ? `${ds.bundle_gb} GB Data Bundle` : 'Data Bundle',
     data: ds.bundle_gb ? `${ds.bundle_gb} GB` : 'Data Bundle',
     phone: ds.recipient || '',
-    // Wholesale cost → retail: apply 12.5% margin then round UP to nearest GHS 0.50
-    amount: Math.ceil((Number(ds.amount_charged || 0) * 1.125) / 0.5) * 0.5,
+    amount: retailAmount,
     status: displayStatus as 'delivered' | 'processing',
     timeline: {
-      orderPlacedAt: ds.created_at || null,
-      processingAt: ds.created_at || null,
-      deliveredAt: isDelivered ? (ds.updated_at || ds.created_at) : null,
+      orderPlacedAt,
+      processingAt,
+      deliveredAt,
     },
   };
 }

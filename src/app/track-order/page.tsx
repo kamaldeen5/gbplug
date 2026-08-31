@@ -39,9 +39,12 @@ function formatTimelineDate(dateStr?: string | null): string {
   if (isNaN(d.getTime())) return '';
   const day = d.getDate();
   const month = d.toLocaleDateString('en-GB', { month: 'short' });
-  const hours = d.getHours().toString().padStart(2, '0');
-  const minutes = d.getMinutes().toString().padStart(2, '0');
-  return `${day} ${month}, ${hours}:${minutes}`;
+  const time = d.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+  return `${day} ${month}, ${time}`;
 }
 
 function OrderCard({ order, isDark, searchQuery, onRefresh }: {

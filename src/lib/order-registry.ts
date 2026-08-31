@@ -1,4 +1,4 @@
-﻿// Global DataSika Order Registry & Automated Pending Fulfillment Queue
+// Global DataSika Order Registry & Automated Pending Fulfillment Queue
 // Persists across requests within the same Vercel function instance.
 
 export interface OrderEntry {
@@ -17,19 +17,13 @@ export interface PendingOrder {
   createdAt: string;
 }
 
-const SEED_ORDERS: OrderEntry[] = [
-  { orderId: 'API-21778B1443', recipient: '0544530442', createdAt: '2026-08-26T07:58:26.766295+00:00' },
-  { orderId: 'API-9CC42EDC0C',  recipient: '0544530442', createdAt: '2026-08-26T07:59:04.40945+00:00' },
-  { orderId: 'API-15524B0554', recipient: '0542778141', createdAt: '2026-08-26T08:09:19.546762+00:00' },
-];
-
 const g = global as unknown as {
   __gbplug_order_registry__?: OrderEntry[];
   __gbplug_pending_queue__?: PendingOrder[];
 };
 
 if (!g.__gbplug_order_registry__) {
-  g.__gbplug_order_registry__ = [...SEED_ORDERS];
+  g.__gbplug_order_registry__ = [];
 }
 
 if (!g.__gbplug_pending_queue__) {
@@ -65,6 +59,6 @@ export function getPendingOrders(): PendingOrder[] {
 
 export function getOrdersByPhone(phone: string): OrderEntry[] {
   const clean = phone.replace(/\D/g, '').slice(-10);
-  return (g.__gbplug_order_registry__ || SEED_ORDERS)
+  return (g.__gbplug_order_registry__ || [])
     .filter((o) => o.recipient.replace(/\D/g, '').endsWith(clean));
 }
