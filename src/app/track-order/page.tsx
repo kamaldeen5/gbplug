@@ -14,6 +14,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { Header } from '@/components/Header';
+import { Footer } from '@/components/Footer';
 import { MTNLogo, TelecelLogo, AirtelTigoLogo, WhatsAppIcon } from '@/components/NetworkLogos';
 
 interface OrderRecord {
@@ -489,6 +490,8 @@ function TrackOrderContent() {
           </div>
         )}
       </main>
+
+      <Footer isDark={isDark} />
     </div>
   );
 }

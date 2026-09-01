@@ -89,6 +89,18 @@ export function SideMenu({ isOpen, onClose, isDark }: SideMenuProps) {
               <p><span className="font-bold text-[#3B82F6]">AT:</span> *124# or *125#</p>
             </div>
           </div>
+
+          <div className="pt-4 border-t border-slate-700/20 space-y-2 text-xs">
+            <Link href="/terms" onClick={onClose} className={`block hover:text-[#00C853] ${isDark ? 'text-[#8E9CAE]' : 'text-slate-600'}`}>
+              Terms of Service
+            </Link>
+            <Link href="/privacy" onClick={onClose} className={`block hover:text-[#00C853] ${isDark ? 'text-[#8E9CAE]' : 'text-slate-600'}`}>
+              Privacy Policy
+            </Link>
+            <Link href="/refund-policy" onClick={onClose} className={`block hover:text-[#00C853] ${isDark ? 'text-[#8E9CAE]' : 'text-slate-600'}`}>
+              Refund &amp; Cancellation Policy
+            </Link>
+          </div>
         </div>
 
         {/* Footer */}
