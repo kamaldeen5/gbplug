@@ -34,7 +34,7 @@ export default config({
         }),
         author: fields.text({
           label: 'Author Name',
-          defaultValue: 'Kamal Deen',
+          defaultValue: 'GB Plug Editorial Desk',
         }),
         category: fields.select({
           label: 'Category',

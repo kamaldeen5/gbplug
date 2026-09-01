@@ -117,13 +117,13 @@ export function ArticleReader({ post }: ArticleReaderProps) {
               <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs ${
                 isDark
                   ? 'bg-gradient-to-br from-[#1E293B] to-[#0F172A] text-[#00C853] border border-[#334155]'
-                  : 'bg-slate-100 text-slate-800 border border-slate-300'
+                  : 'bg-emerald-50 text-[#00C853] border border-emerald-200'
               }`}>
-                KD
+                GB
               </div>
               <div>
                 <div className={`font-bold tracking-tight text-xs sm:text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                  {post.author || 'Kamal Deen'}
+                  {post.author || 'GB Plug Editorial Desk'}
                 </div>
                 <div className={`text-[11px] ${isDark ? 'text-[#64748B]' : 'text-slate-500'}`}>
                   Published on {formatDate(post.publishedDate)}
@@ -220,16 +220,16 @@ export function ArticleReader({ post }: ArticleReaderProps) {
           <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
             isDark
               ? 'bg-[#15233A] text-[#00C853] border border-[#233554]'
-              : 'bg-slate-100 text-slate-800 border border-slate-300'
+              : 'bg-emerald-50 text-[#00C853] border border-emerald-200'
           }`}>
-            KD
+            GB
           </div>
           <div className="space-y-0.5">
             <div className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-              Kamal Deen
+              GB Plug Editorial Desk
             </div>
             <p className={`text-xs leading-relaxed ${isDark ? 'text-[#8E9CAE]' : 'text-slate-600'}`}>
-              Founder of GB Plug. Writes on telecommunications, mobile money, and data networks in Ghana.
+              Official guides, bundle price trackers, and network tips from the GB Plug team.
             </p>
           </div>
         </div>
