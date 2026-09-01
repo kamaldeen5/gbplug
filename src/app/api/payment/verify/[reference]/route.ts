@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyPayment } from '@/lib/moolre';
-import { buyDataBundle, buyFlexaBundle } from '@/lib/datasika';
-import { registerOrderEntry, queuePendingOrder } from '@/lib/order-registry';
+import { fulfillOrderOnce } from '@/lib/fulfillment';
+import { queuePendingOrder } from '@/lib/order-registry';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +23,7 @@ export async function GET(
 
     const paymentStatus = result.data.status?.toLowerCase();
 
-    // If payment is confirmed successful, trigger DataSika dispatch
+    // If payment is confirmed successful, trigger single idempotent dispatch
     if (paymentStatus === 'success') {
       const url = new URL(req.url);
       const productId = url.searchParams.get('productId') || result.data.raw?.metadata?.product_id;
@@ -33,22 +33,12 @@ export async function GET(
       if (productId && recipient) {
         const cleanRecipient = recipient.replace(/\D/g, '');
         try {
-          const isFlexa = serviceType === 'mtn_flexa';
-          const order = isFlexa
-            ? await buyFlexaBundle({
-                productId,
-                recipient: cleanRecipient,
-                idempotencyKey: `moolre-${reference}`,
-              })
-            : await buyDataBundle({
-                productId,
-                recipient: cleanRecipient,
-                idempotencyKey: `moolre-${reference}`,
-              });
-
-          if (order.order_id) {
-            registerOrderEntry({ orderId: order.order_id, recipient: cleanRecipient });
-          }
+          const order = await fulfillOrderOnce({
+            reference,
+            productId,
+            recipient: cleanRecipient,
+            serviceType,
+          });
 
           return NextResponse.json({
             success: true,

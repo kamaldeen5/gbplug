@@ -1,6 +1,5 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
-import { buyDataBundle, buyFlexaBundle } from '@/lib/datasika';
-import { registerOrderEntry } from '@/lib/order-registry';
+import { NextRequest, NextResponse } from 'next/server';
+import { fulfillOrderOnce } from '@/lib/fulfillment';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,27 +26,17 @@ export async function POST(req: NextRequest) {
 
     if (isSuccess && productId && recipientPhone && externalRef) {
       try {
-        const isFlexa = serviceType === 'mtn_flexa';
         const cleanRecipient = recipientPhone.toString().replace(/\D/g, '');
+        const order = await fulfillOrderOnce({
+          reference: externalRef,
+          productId,
+          recipient: cleanRecipient,
+          serviceType,
+        });
 
-        const order = isFlexa
-          ? await buyFlexaBundle({
-              productId,
-              recipient: cleanRecipient,
-              idempotencyKey: `moolre-webhook-${externalRef}`,
-            })
-          : await buyDataBundle({
-              productId,
-              recipient: cleanRecipient,
-              idempotencyKey: `moolre-webhook-${externalRef}`,
-            });
-
-        console.log(`DataSika order dispatched via Moolre webhook for ${externalRef}:`, order.order_id);
-        if (order.order_id) {
-          registerOrderEntry({ orderId: order.order_id, recipient: cleanRecipient });
-        }
+        console.log(`[Webhook] Order successfully processed for ${externalRef}:`, order.order_id);
       } catch (err: any) {
-        console.error(`DataSika dispatch failed in Moolre webhook for ${externalRef}:`, err.message);
+        console.error(`[Webhook] DataSika dispatch failed for ${externalRef}:`, err.message);
       }
     }
 
