@@ -1,13 +1,11 @@
 import { config, fields, collection } from '@keystatic/core';
 
-// Support GitHub / Cloud storage in production when configured, default to local storage
-const isGitHubConfigured = Boolean(
-  process.env.KEYSTATIC_GITHUB_CLIENT_ID ||
-  process.env.NEXT_PUBLIC_KEYSTATIC_GITHUB_CLIENT_ID
-);
+const isGitHub =
+  typeof process !== 'undefined' &&
+  Boolean(process.env.KEYSTATIC_GITHUB_CLIENT_ID);
 
 export default config({
-  storage: isGitHubConfigured
+  storage: isGitHub
     ? {
         kind: 'github',
         repo: {
@@ -18,6 +16,11 @@ export default config({
     : {
         kind: 'local',
       },
+  ui: {
+    brand: {
+      name: 'GB Plug CMS',
+    },
+  },
   collections: {
     posts: collection({
       label: 'Blog Posts',
