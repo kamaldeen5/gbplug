@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Calendar, Zap, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Zap, Share2, Check } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { DocumentRenderer } from '@keystatic/core/renderer';
@@ -20,8 +20,26 @@ interface ArticleReaderProps {
   };
 }
 
+const CATEGORY_NAMES: Record<string, string> = {
+  mtn: 'MTN Data',
+  telecel: 'Telecel Ghana',
+  airteltigo: 'AirtelTigo',
+  tips: 'Data Saving Tips',
+  tech: 'Tech & Internet',
+};
+
+function formatDate(dateStr: string) {
+  try {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+  } catch {
+    return dateStr;
+  }
+}
+
 export function ArticleReader({ post }: ArticleReaderProps) {
   const [isDark, setIsDark] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (isDark) {
@@ -33,38 +51,53 @@ export function ArticleReader({ post }: ArticleReaderProps) {
     }
   }, [isDark]);
 
+  const handleShare = () => {
+    if (typeof window !== 'undefined') {
+      if (navigator.share) {
+        navigator.share({
+          title: post.title,
+          text: post.summary,
+          url: window.location.href,
+        }).catch(() => {});
+      } else {
+        navigator.clipboard.writeText(window.location.href);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    }
+  };
+
+  const categoryName = CATEGORY_NAMES[post.category] || 'Guides';
+
   return (
     <div className={`min-h-screen transition-colors duration-200 flex flex-col justify-between ${
       isDark ? 'bg-[#070D18] text-white' : 'bg-[#F8FAFC] text-slate-900'
     }`}>
       <Header isDark={isDark} onToggleTheme={() => setIsDark(!isDark)} />
 
-      <main className="w-full max-w-4xl mx-auto px-4 sm:px-8 py-8 sm:py-12 flex-1">
+      <main className="w-full max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-10 flex-1">
         {/* Back Link */}
-        <div className="mb-8">
+        <div className="mb-6">
           <Link
             href="/blog"
-            className={`inline-flex items-center gap-2 text-xs sm:text-sm font-semibold transition-colors ${
+            className={`inline-flex items-center gap-1.5 text-xs font-semibold tracking-tight transition-colors ${
               isDark ? 'text-[#8E9CAE] hover:text-white' : 'text-slate-500 hover:text-slate-900'
             }`}
           >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back to All Guides</span>
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>All Articles</span>
           </Link>
         </div>
 
         {/* Article Header */}
-        <header className="mb-10">
-          <div className="flex items-center gap-3 text-xs text-[#00C853] font-bold uppercase tracking-wider mb-3">
-            <span>Ghana Data Guide</span>
-            <span>•</span>
-            <span className={`font-medium normal-case flex items-center gap-1 ${isDark ? 'text-[#8E9CAE]' : 'text-slate-500'}`}>
-              <Calendar className="w-3.5 h-3.5" />
-              {post.publishedDate}
+        <header className="mb-8">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#00C853] bg-[#00C853]/10 px-2.5 py-0.5 rounded-full border border-[#00C853]/20">
+              {categoryName}
             </span>
           </div>
 
-          <h1 className={`text-2xl sm:text-4xl font-extrabold tracking-tight leading-tight mb-4 ${
+          <h1 className={`text-2xl sm:text-3.5xl font-extrabold tracking-tight leading-[1.25] mb-4 ${
             isDark ? 'text-white' : 'text-slate-900'
           }`}>
             {post.title}
@@ -76,25 +109,101 @@ export function ArticleReader({ post }: ArticleReaderProps) {
             {post.summary}
           </p>
 
-          <div className={`flex items-center justify-between py-3 border-y text-xs ${
-            isDark ? 'border-[#18263E] text-[#8E9CAE]' : 'border-slate-200 text-slate-500'
+          {/* Author Byline */}
+          <div className={`flex items-center justify-between py-3.5 border-y text-xs ${
+            isDark ? 'border-[#18263E]' : 'border-slate-200'
           }`}>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-[#00C853]/20 text-[#00C853] font-bold flex items-center justify-center text-[10px]">
-                GB
+            <div className="flex items-center gap-3">
+              <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs ${
+                isDark
+                  ? 'bg-gradient-to-br from-[#1E293B] to-[#0F172A] text-[#00C853] border border-[#334155]'
+                  : 'bg-slate-100 text-slate-800 border border-slate-300'
+              }`}>
+                KD
               </div>
-              <span className={`font-semibold ${isDark ? 'text-white' : 'text-slate-800'}`}>{post.author}</span>
+              <div>
+                <div className={`font-bold tracking-tight text-xs sm:text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                  {post.author || 'Kamal Deen'}
+                </div>
+                <div className={`text-[11px] ${isDark ? 'text-[#64748B]' : 'text-slate-500'}`}>
+                  Published on {formatDate(post.publishedDate)}
+                </div>
+              </div>
             </div>
-            <span className="text-[11px] text-slate-400">Verified Guide</span>
+
+            <button
+              onClick={handleShare}
+              className={`p-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                isDark
+                  ? 'bg-[#0B1322] border-[#18263E] text-slate-300 hover:text-white hover:bg-white/5'
+                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              {copied ? <Check className="w-3.5 h-3.5 text-[#00C853]" /> : <Share2 className="w-3.5 h-3.5" />}
+              <span className="hidden sm:inline">{copied ? 'Link Copied' : 'Share'}</span>
+            </button>
           </div>
         </header>
 
         {/* Article Body Content */}
-        <article className={`prose max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-h2:text-xl sm:prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-p:leading-relaxed prose-p:text-sm sm:prose-p:text-base prose-li:text-sm sm:prose-li:text-base prose-strong:font-bold prose-a:text-[#00C853] prose-a:underline prose-code:text-[#00C853] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded ${
-          isDark
-            ? 'prose-invert prose-headings:text-white prose-p:text-slate-300 prose-li:text-slate-300 prose-strong:text-white prose-code:bg-[#09121F]'
-            : 'prose-headings:text-slate-900 prose-p:text-slate-700 prose-li:text-slate-700 prose-strong:text-slate-900 prose-code:bg-slate-100'
+        <article className={`article-content max-w-none text-[15px] sm:text-[16.5px] leading-[1.8] ${
+          isDark ? 'text-slate-300' : 'text-slate-700'
         }`}>
+          <style jsx global>{`
+            .article-content h2 {
+              font-size: 1.35rem;
+              font-weight: 800;
+              letter-spacing: -0.02em;
+              margin-top: 2rem;
+              margin-bottom: 0.75rem;
+              color: ${isDark ? '#FFFFFF' : '#0F172A'};
+            }
+            .article-content h3 {
+              font-size: 1.15rem;
+              font-weight: 700;
+              letter-spacing: -0.01em;
+              margin-top: 1.5rem;
+              margin-bottom: 0.5rem;
+              color: ${isDark ? '#F1F5F9' : '#1E293B'};
+            }
+            .article-content p {
+              margin-bottom: 1.25rem;
+              line-height: 1.8;
+            }
+            .article-content ul, .article-content ol {
+              margin-top: 0.75rem;
+              margin-bottom: 1.25rem;
+              padding-left: 1.25rem;
+            }
+            .article-content ul {
+              list-style-type: disc;
+            }
+            .article-content ol {
+              list-style-type: decimal;
+            }
+            .article-content li {
+              margin-bottom: 0.5rem;
+              line-height: 1.7;
+            }
+            .article-content strong {
+              font-weight: 700;
+              color: ${isDark ? '#FFFFFF' : '#0F172A'};
+            }
+            .article-content a {
+              color: #00C853;
+              font-weight: 600;
+              text-decoration: underline;
+              text-underline-offset: 2px;
+            }
+            .article-content code {
+              background-color: ${isDark ? '#0F172A' : '#E2E8F0'};
+              color: ${isDark ? '#00E676' : '#00873D'};
+              padding: 0.15rem 0.4rem;
+              border-radius: 0.375rem;
+              font-size: 0.875em;
+              font-family: ui-monospace, monospace;
+            }
+          `}</style>
           {post.content && (
             <DocumentRenderer
               document={post.content}
@@ -102,30 +211,50 @@ export function ArticleReader({ post }: ArticleReaderProps) {
           )}
         </article>
 
-        {/* Inline Conversion / Buy Data CTA */}
-        <div className={`mt-12 p-6 sm:p-8 rounded-2xl border shadow-xl flex flex-col sm:flex-row items-center justify-between gap-6 ${
+        {/* Author Profile Bio Card */}
+        <div className={`mt-10 p-5 rounded-2xl border flex items-center gap-4 ${
           isDark
-            ? 'bg-gradient-to-br from-[#09121F] to-[#0D1E36] border-[#18263E]'
-            : 'bg-gradient-to-br from-emerald-50/50 to-white border-slate-200'
+            ? 'bg-[#09121F] border-[#15233A]'
+            : 'bg-white border-slate-200'
         }`}>
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-1.5 text-xs font-bold text-[#00C853]">
-              <ShieldCheck className="w-4 h-4" />
-              <span>Instant Automated Fulfillment</span>
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
+            isDark
+              ? 'bg-[#15233A] text-[#00C853] border border-[#233554]'
+              : 'bg-slate-100 text-slate-800 border border-slate-300'
+          }`}>
+            KD
+          </div>
+          <div className="space-y-0.5">
+            <div className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              Kamal Deen
             </div>
-            <h3 className={`text-lg sm:text-xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-              Get cheap non-expiry data sent straight to your SIM
+            <p className={`text-xs leading-relaxed ${isDark ? 'text-[#8E9CAE]' : 'text-slate-600'}`}>
+              Founder of GB Plug. Writes on telecommunications, mobile money, and data networks in Ghana.
+            </p>
+          </div>
+        </div>
+
+        {/* Inline Buy Data CTA */}
+        <div className={`mt-6 p-6 rounded-2xl border flex flex-col sm:flex-row items-center justify-between gap-5 ${
+          isDark
+            ? 'bg-gradient-to-r from-[#09121F] to-[#0D1B2A] border-[#15233A]'
+            : 'bg-gradient-to-r from-slate-50 to-emerald-50/40 border-slate-200'
+        }`}>
+          <div>
+            <div className="text-[11px] font-bold uppercase tracking-wider text-[#00C853]">Instant Delivery</div>
+            <h3 className={`text-base sm:text-lg font-bold tracking-tight mt-0.5 mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              Buy cheap data bundles for MTN, Telecel, and AT
             </h3>
-            <p className={`text-xs sm:text-sm ${isDark ? 'text-[#8E9CAE]' : 'text-slate-600'}`}>
-              Buy MTN Flexa, Telecel, or AT bundles in Ghana with instant MoMo delivery.
+            <p className={`text-xs ${isDark ? 'text-[#8E9CAE]' : 'text-slate-600'}`}>
+              Top up instantly with Mobile Money on GB Plug.
             </p>
           </div>
           <Link
             href="/"
-            className="h-12 px-6 bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white font-bold text-sm rounded-xl shadow-lg flex items-center gap-2 cursor-pointer shrink-0"
+            className="h-10 px-5 bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white font-bold text-xs tracking-tight rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer shrink-0"
           >
-            <Zap className="w-4 h-4" />
-            <span>Top Up Data Now</span>
+            <Zap className="w-3.5 h-3.5" />
+            <span>Buy Data</span>
           </Link>
         </div>
       </main>
