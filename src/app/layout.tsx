@@ -2,8 +2,65 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'GB Plug - Buy Cheap Data Ghana | Fast Delivery',
-  description: 'Ghana’s #1 data bundle plug. Buy affordable non-expiry data for MTN, Telecel, and AirtelTigo with Mobile Money.',
+  metadataBase: new URL('https://gbplug.com'),
+  title: {
+    default: 'GB Plug | Buy Cheap MTN, Telecel & AT Data Bundles in Ghana',
+    template: '%s | GB Plug Ghana',
+  },
+  description:
+    'Ghana’s #1 data plug. Get affordable, high-speed data bundles for MTN, Telecel, and AT from GH₵ 5. Instant SIM delivery 24/7 with Mobile Money on GB Plug.',
+  applicationName: 'GB Plug',
+  authors: [{ name: 'GB Plug Ghana', url: 'https://gbplug.com' }],
+  keywords: [
+    'buy cheap data ghana',
+    'mtn flexa data bundle',
+    'buy mtn data online',
+    'telecel ghana data',
+    'airteltigo data bundles',
+    'cheap data plug ghana',
+    'instant data top up ghana',
+    'momo data bundles',
+    'gbplug',
+    'gb plug',
+  ],
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: 'GB Plug | Buy Cheap MTN, Telecel & AT Data Bundles in Ghana',
+    description:
+      'Ghana’s #1 data plug. Get affordable, high-speed data bundles for MTN, Telecel, and AT from GH₵ 5. Instant SIM delivery 24/7 with Mobile Money on GB Plug.',
+    url: 'https://gbplug.com',
+    siteName: 'GB Plug Ghana',
+    locale: 'en_GH',
+    type: 'website',
+    images: [
+      {
+        url: '/icon.png',
+        width: 512,
+        height: 512,
+        alt: 'GB Plug - Fast Automated Data Bundles Ghana',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary',
+    title: 'GB Plug | Buy Cheap MTN, Telecel & AT Data Bundles in Ghana',
+    description:
+      'Ghana’s #1 data plug. Get affordable, high-speed data bundles for MTN, Telecel, and AT from GH₵ 5. Instant SIM delivery 24/7 with Mobile Money.',
+    images: ['/icon.png'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
   manifest: '/manifest.json',
   icons: {
     icon: '/icon.png',
@@ -15,9 +72,6 @@ export const metadata: Metadata = {
     statusBarStyle: 'black-translucent',
     title: 'GB Plug',
   },
-  applicationName: 'GB Plug',
-  authors: [{ name: 'GB Plug Ghana' }],
-  keywords: ['data bundle ghana', 'cheap data', 'buy mtn data', 'buy telecel data', 'airteltigo data', 'ghana data plug'],
 };
 
 export const viewport: Viewport = {
