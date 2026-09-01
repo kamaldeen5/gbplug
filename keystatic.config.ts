@@ -1,20 +1,16 @@
 import { config, fields, collection } from '@keystatic/core';
 
-const isGitHub =
-  typeof process !== 'undefined' &&
-  Boolean(process.env.KEYSTATIC_GITHUB_CLIENT_ID);
+const isDev = process.env.NODE_ENV === 'development';
 
 export default config({
-  storage: isGitHub
-    ? {
+  storage: isDev
+    ? { kind: 'local' }
+    : {
         kind: 'github',
         repo: {
           owner: 'kamaldeen5',
           name: 'gbplug',
         },
-      }
-    : {
-        kind: 'local',
       },
   ui: {
     brand: {
