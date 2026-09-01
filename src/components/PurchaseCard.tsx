@@ -89,7 +89,7 @@ export function PurchaseCard({
 
   return (
     <div
-      className={`w-full rounded-[22px] sm:rounded-3xl p-4 sm:p-7 transition-all duration-200 border ${
+      className={`w-full rounded-[22px] sm:rounded-3xl md:rounded-[28px] p-4 sm:p-7 md:p-8 lg:p-9 transition-all duration-200 border ${
         isDark
           ? 'bg-[#09121F] border-[#15233A] shadow-[0_25px_60px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.05)]'
           : 'bg-white border-[#E2E8F0] shadow-[0_20px_50px_rgba(0,0,0,0.06),0_1px_3px_rgba(0,0,0,0.05)]'
@@ -98,23 +98,23 @@ export function PurchaseCard({
       {/* MTN Order Notice Callout (Placed above Choose Network) */}
       {selectedNetwork.id === 'mtn' && (
         <div
-          className={`mb-4 sm:mb-5 p-3 sm:p-3.5 rounded-2xl border text-xs leading-relaxed ${
+          className={`mb-4 sm:mb-5 md:mb-6 p-3 sm:p-3.5 md:p-4 rounded-2xl border text-xs md:text-[13px] leading-relaxed ${
             isDark
               ? 'bg-[#070D18]/90 border-[#18263E] text-slate-300'
               : 'bg-emerald-50/60 border-emerald-200 text-slate-700'
           }`}
         >
-          <p className={isDark ? 'text-slate-300 text-[11.5px] sm:text-[12px]' : 'text-slate-700 text-[11.5px] sm:text-[12px]'}>
+          <p className={isDark ? 'text-slate-300 text-[11.5px] sm:text-[12px] md:text-[13px]' : 'text-slate-700 text-[11.5px] sm:text-[12px] md:text-[13px]'}>
             Most MTN orders arrive almost instantly. In rare cases, delivery can take up to 24 hours. New numbers complete a standard one-time network check.
           </p>
         </div>
       )}
 
       {/* 1. Choose Network */}
-      <div className="mb-4 sm:mb-6">
-        <div className="flex items-center justify-between mb-2 sm:mb-2.5">
+      <div className="mb-4 sm:mb-6 md:mb-7">
+        <div className="flex items-center justify-between mb-2 sm:mb-2.5 md:mb-3">
           <label
-            className={`block text-[14px] sm:text-[15px] font-black tracking-tight ${
+            className={`block text-[14px] sm:text-[15px] md:text-[16px] font-black tracking-tight ${
               isDark ? 'text-white' : 'text-[#0F172A]'
             }`}
           >
@@ -122,7 +122,7 @@ export function PurchaseCard({
           </label>
         </div>
 
-        <div className="grid grid-cols-3 gap-2.5 sm:gap-3.5">
+        <div className="grid grid-cols-3 gap-2.5 sm:gap-3.5 md:gap-4">
           {NETWORKS.map((network) => {
             const isSelected = selectedNetwork.id === network.id;
             return (
@@ -130,7 +130,7 @@ export function PurchaseCard({
                 key={network.id}
                 type="button"
                 onClick={() => handleSelectNetwork(network)}
-                className={`relative flex flex-col items-center justify-between py-2.5 sm:py-3.5 px-1 rounded-2xl transition-all h-[88px] sm:h-[104px] select-none ${
+                className={`relative flex flex-col items-center justify-between py-2.5 sm:py-3.5 md:py-4 px-1 rounded-2xl transition-all h-[88px] sm:h-[104px] md:h-[114px] lg:h-[120px] select-none ${
                   isSelected
                     ? 'border-2 border-[#00C853] bg-[#00C853]/[0.04] shadow-[0_0_18px_rgba(0,200,83,0.18)] cursor-pointer active:scale-[0.97]'
                     : isDark
@@ -146,7 +146,7 @@ export function PurchaseCard({
                 )}
 
                 {/* Network Logo */}
-                <div className="flex-1 flex items-center justify-center scale-95 sm:scale-100">
+                <div className="flex-1 flex items-center justify-center scale-95 sm:scale-100 md:scale-110">
                   {network.id === 'mtn' && <MTNLogo />}
                   {network.id === 'telecel' && <TelecelLogo />}
                   {network.id === 'airteltigo' && <AirtelTigoLogo />}
@@ -154,7 +154,7 @@ export function PurchaseCard({
 
                 {/* Network Label */}
                 <span
-                  className={`text-[12px] sm:text-[12.5px] font-bold truncate max-w-full px-0.5 tracking-tight ${
+                  className={`text-[12px] sm:text-[12.5px] md:text-[13.5px] font-bold truncate max-w-full px-0.5 tracking-tight ${
                     isSelected
                       ? isDark
                         ? 'text-white'
@@ -173,9 +173,9 @@ export function PurchaseCard({
       </div>
 
       {/* 2. Choose Bundle */}
-      <div className="mb-4 sm:mb-6 relative" ref={dropdownRef}>
+      <div className="mb-4 sm:mb-6 md:mb-7 relative" ref={dropdownRef}>
         <label
-          className={`block text-[14px] sm:text-[15px] font-black tracking-tight mb-2 sm:mb-2.5 ${
+          className={`block text-[14px] sm:text-[15px] md:text-[16px] font-black tracking-tight mb-2 sm:mb-2.5 md:mb-3 ${
             isDark ? 'text-white' : 'text-[#0F172A]'
           }`}
         >
@@ -185,7 +185,7 @@ export function PurchaseCard({
         <button
           type="button"
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className={`w-full h-[52px] sm:h-[56px] flex items-center justify-between px-4 rounded-2xl border text-[15px] sm:text-[16px] font-medium transition-all text-left active:scale-[0.99] cursor-pointer ${
+          className={`w-full h-[52px] sm:h-[56px] md:h-[60px] flex items-center justify-between px-4 md:px-5 rounded-2xl border text-[15px] sm:text-[16px] md:text-[17px] font-medium transition-all text-left active:scale-[0.99] cursor-pointer ${
             isDark
               ? 'bg-[#070D18] border-[#18263E] text-slate-100 hover:border-[#263C5E]'
               : 'bg-white border-[#E2E8F0] text-slate-800 hover:border-slate-300'
@@ -194,18 +194,18 @@ export function PurchaseCard({
           {selectedBundle ? (
             <div className="flex items-center justify-between w-full pr-2">
               <span
-                className={`font-bold tracking-tight truncate mr-2 text-[15px] sm:text-[16px] ${
+                className={`font-bold tracking-tight truncate mr-2 text-[15px] sm:text-[16px] md:text-[17px] ${
                   isDark ? 'text-white' : 'text-[#0F172A]'
                 }`}
               >
                 {selectedBundle.name} Data Bundle
               </span>
-              <span className="text-[#00C853] font-black text-[15px] sm:text-[16px] tracking-tight shrink-0">
+              <span className="text-[#00C853] font-black text-[15px] sm:text-[16px] md:text-[17px] tracking-tight shrink-0">
                 GH₵ {selectedBundle.price.toFixed(2)}
               </span>
             </div>
           ) : (
-            <span className={`text-[14.5px] sm:text-[15px] ${isDark ? 'text-[#64748B]' : 'text-slate-400'}`}>
+            <span className={`text-[14.5px] sm:text-[15px] md:text-[16px] ${isDark ? 'text-[#64748B]' : 'text-slate-400'}`}>
               Select a data bundle
             </span>
           )}
@@ -219,7 +219,7 @@ export function PurchaseCard({
         {/* Dropdown Menu */}
         {isDropdownOpen && (
           <div
-            className={`absolute left-0 right-0 top-full mt-2 max-h-64 overflow-y-auto rounded-2xl border z-30 shadow-2xl ${
+            className={`absolute left-0 right-0 top-full mt-2 max-h-72 overflow-y-auto rounded-2xl border z-30 shadow-2xl ${
               isDark
                 ? 'bg-[#09121F] border-[#1A2840] divide-y divide-[#152338]'
                 : 'bg-white border-[#E2E8F0] divide-y divide-slate-100'
@@ -235,7 +235,7 @@ export function PurchaseCard({
                     setSelectedBundle(bundle);
                     setIsDropdownOpen(false);
                   }}
-                  className={`w-full flex items-center justify-between px-4 py-3 text-sm transition-colors text-left active:bg-[#00C853]/20 cursor-pointer ${
+                  className={`w-full flex items-center justify-between px-4 md:px-5 py-3 md:py-3.5 text-sm transition-colors text-left active:bg-[#00C853]/20 cursor-pointer ${
                     isSelected
                       ? isDark
                         ? 'bg-[#00C853]/15 text-[#00C853] font-bold'
@@ -247,7 +247,7 @@ export function PurchaseCard({
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <span
-                      className={`font-bold tracking-tight text-[14.5px] sm:text-[15.5px] ${
+                      className={`font-bold tracking-tight text-[14.5px] sm:text-[15.5px] md:text-[16.5px] ${
                         isSelected
                           ? 'text-[#00C853]'
                           : isDark
@@ -264,8 +264,8 @@ export function PurchaseCard({
                     )}
                   </div>
                   <div className="flex items-center gap-2.5 shrink-0">
-                    <span className="text-[11px] font-medium text-slate-400 hidden sm:inline">{bundle.validity}</span>
-                    <span className="font-bold text-[#00C853] tracking-tight text-[14px] sm:text-[15px]">
+                    <span className="text-[11px] md:text-xs font-medium text-slate-400 hidden sm:inline">{bundle.validity}</span>
+                    <span className="font-bold text-[#00C853] tracking-tight text-[14px] sm:text-[15px] md:text-[16px]">
                       GH₵ {bundle.price.toFixed(2)}
                     </span>
                   </div>
@@ -277,9 +277,9 @@ export function PurchaseCard({
       </div>
 
       {/* 3. Enter Phone Number */}
-      <div className="mb-4 sm:mb-6">
+      <div className="mb-4 sm:mb-6 md:mb-7">
         <label
-          className={`block text-[14px] sm:text-[15px] font-black tracking-tight mb-2 sm:mb-2.5 ${
+          className={`block text-[14px] sm:text-[15px] md:text-[16px] font-black tracking-tight mb-2 sm:mb-2.5 md:mb-3 ${
             isDark ? 'text-white' : 'text-[#0F172A]'
           }`}
         >
@@ -293,7 +293,7 @@ export function PurchaseCard({
             placeholder="e.g. 024 123 4567"
             value={phoneNumber}
             onChange={handlePhoneChange}
-            className={`w-full h-[52px] sm:h-[56px] px-4 pr-12 rounded-2xl border text-[16px] font-semibold tracking-tight transition-all outline-none ${
+            className={`w-full h-[52px] sm:h-[56px] md:h-[60px] px-4 md:px-5 pr-12 rounded-2xl border text-[16px] md:text-[17px] font-semibold tracking-tight transition-all outline-none ${
               isDark
                 ? 'bg-[#070D18] border-[#18263E] text-white placeholder-[#5A6E85] focus:border-[#00C853] focus:ring-2 focus:ring-[#00C853]/25'
                 : 'bg-white border-[#E2E8F0] text-slate-900 placeholder-slate-400 focus:border-[#00C853] focus:ring-2 focus:ring-[#00C853]/20'
@@ -303,7 +303,7 @@ export function PurchaseCard({
             type="button"
             onClick={handleQuickContact}
             title="Autofill sample contact"
-            className={`absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-colors active:scale-95 ${
+            className={`absolute right-3 md:right-4 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-colors active:scale-95 ${
               isDark
                 ? 'text-[#64748B] hover:text-white hover:bg-white/5'
                 : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'
@@ -318,9 +318,9 @@ export function PurchaseCard({
       <button
         type="button"
         onClick={onBuyNow}
-        className="w-full h-[54px] sm:h-[58px] bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white font-black text-[16.5px] sm:text-[18px] tracking-tight rounded-2xl transition-all transform active:scale-[0.98] shadow-[0_4px_22px_rgba(0,200,83,0.38),inset_0_1px_0_rgba(255,255,255,0.25)] flex items-center justify-center gap-2 cursor-pointer select-none"
+        className="w-full h-[54px] sm:h-[58px] md:h-[62px] bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white font-black text-[16.5px] sm:text-[18px] md:text-[19px] tracking-tight rounded-2xl transition-all transform active:scale-[0.98] shadow-[0_4px_22px_rgba(0,200,83,0.38),inset_0_1px_0_rgba(255,255,255,0.25)] flex items-center justify-center gap-2 cursor-pointer select-none"
       >
-        <Zap className="w-4 h-4 fill-current" />
+        <Zap className="w-4 h-4 md:w-5 md:h-5 fill-current" />
         <span>Buy Now</span>
       </button>
     </div>

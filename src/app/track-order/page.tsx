@@ -346,12 +346,12 @@ function TrackOrderContent() {
       />
 
       {/* Main Track Order Content */}
-      <main className="w-full max-w-3xl mx-auto px-4 sm:px-8 py-6 sm:py-10 flex-1 flex flex-col justify-center">
+      <main className="w-full max-w-4xl mx-auto px-4 sm:px-6 md:px-8 py-6 sm:py-10 md:py-14 flex-1 flex flex-col justify-center">
         {/* Back Link */}
-        <div className="mb-6">
+        <div className="mb-6 md:mb-8">
           <Link
             href="/"
-            className={`inline-flex items-center gap-2 text-xs sm:text-sm font-semibold tracking-tight transition-colors ${
+            className={`inline-flex items-center gap-2 text-xs sm:text-sm md:text-[14.5px] font-semibold tracking-tight transition-colors ${
               isDark ? 'text-[#8E9CAE] hover:text-white' : 'text-slate-500 hover:text-slate-900'
             }`}
           >
@@ -361,12 +361,12 @@ function TrackOrderContent() {
         </div>
 
         {/* Hero Title */}
-        <div className="text-center sm:text-left mb-8">
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold sm:font-black tracking-[-0.035em] leading-tight">
+        <div className="text-center sm:text-left mb-8 md:mb-10">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-[54px] font-extrabold sm:font-black tracking-[-0.035em] leading-tight">
             <span>Track Your</span> <span className="text-[#00C853]">Order.</span>
           </h1>
           <p
-            className={`mt-2.5 text-sm sm:text-base font-normal ${
+            className={`mt-2.5 text-sm sm:text-base md:text-lg font-normal ${
               isDark ? 'text-[#94A3B8]' : 'text-[#64748B]'
             }`}
           >
@@ -377,21 +377,21 @@ function TrackOrderContent() {
         {/* Search Card */}
         <form
           onSubmit={handleSearchSubmit}
-          className={`rounded-2xl p-5 sm:p-6 transition-all border mb-8 ${
+          className={`rounded-2xl md:rounded-3xl p-5 sm:p-6 md:p-8 transition-all border mb-8 md:mb-10 ${
             isDark
               ? 'bg-[#09121F] border-[#15233A] shadow-[0_25px_60px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.05)]'
               : 'bg-white border-[#E2E8F0] shadow-xl shadow-slate-200/50'
           }`}
         >
           <label
-            className={`block text-[14px] font-bold tracking-tight mb-2.5 ${
+            className={`block text-[14px] md:text-[16px] font-bold tracking-tight mb-2.5 md:mb-3 ${
               isDark ? 'text-white' : 'text-[#0F172A]'
             }`}
           >
             Enter Your Phone Number
           </label>
 
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
             <div className="relative flex-1">
               <input
                 type="tel"
@@ -399,14 +399,14 @@ function TrackOrderContent() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="e.g. 024XXXXXXX or Order ID"
                 inputMode="numeric"
-                className={`w-full h-[52px] sm:h-[54px] px-4 pl-11 rounded-xl border text-[16px] font-medium tracking-tight transition-all outline-none ${
+                className={`w-full h-[52px] sm:h-[54px] md:h-[60px] px-4 md:px-5 pl-11 md:pl-12 rounded-xl md:rounded-2xl border text-[16px] md:text-[17px] font-medium tracking-tight transition-all outline-none ${
                   isDark
                     ? 'bg-[#070D18] border-[#18263E] text-white placeholder-[#5A6E85] focus:border-[#00C853] focus:ring-2 focus:ring-[#00C853]/25'
                     : 'bg-white border-[#E2E8F0] text-slate-900 placeholder-slate-400 focus:border-[#00C853] focus:ring-2 focus:ring-[#00C853]/20'
                 }`}
               />
               <Search
-                className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 ${
+                className={`absolute left-3.5 md:left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${
                   isDark ? 'text-[#64748B]' : 'text-slate-400'
                 }`}
               />
@@ -415,7 +415,7 @@ function TrackOrderContent() {
             <button
               type="submit"
               disabled={loading}
-              className="h-[52px] sm:h-[54px] px-8 bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white font-bold text-base tracking-tight rounded-xl shadow-[0_4px_16px_rgba(0,200,83,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer shrink-0 disabled:opacity-60"
+              className="h-[52px] sm:h-[54px] md:h-[60px] px-8 md:px-10 bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white font-bold text-base md:text-[17px] tracking-tight rounded-xl md:rounded-2xl shadow-[0_4px_16px_rgba(0,200,83,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer shrink-0 disabled:opacity-60"
             >
               {loading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />

@@ -100,39 +100,39 @@ export default function BlogIndexPage() {
     }`}>
       <Header isDark={isDark} onToggleTheme={() => setIsDark(!isDark)} />
 
-      <main className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10 flex-1">
+      <main className="w-full max-w-6xl mx-auto px-4 sm:px-6 md:px-8 py-6 sm:py-10 md:py-12 flex-1">
         {/* Back Link */}
-        <div className="mb-6">
+        <div className="mb-6 md:mb-8">
           <Link
             href="/"
-            className={`inline-flex items-center gap-1.5 text-xs font-semibold tracking-tight transition-colors ${
+            className={`inline-flex items-center gap-1.5 text-xs md:text-sm font-semibold tracking-tight transition-colors ${
               isDark ? 'text-[#8E9CAE] hover:text-white' : 'text-slate-500 hover:text-slate-900'
             }`}
           >
-            <ArrowLeft className="w-3.5 h-3.5" />
+            <ArrowLeft className="w-3.5 h-3.5 md:w-4 md:h-4" />
             <span>Back to Home</span>
           </Link>
         </div>
 
         {/* Hero Section */}
-        <div className="mb-8">
-          <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight mb-2">
+        <div className="mb-8 md:mb-10">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight mb-2 md:mb-3">
             Articles &amp; <span className="text-[#00C853]">Guides.</span>
           </h1>
-          <p className={`text-xs sm:text-sm max-w-xl ${isDark ? 'text-[#94A3B8]' : 'text-slate-600'}`}>
+          <p className={`text-xs sm:text-sm md:text-base max-w-2xl ${isDark ? 'text-[#94A3B8]' : 'text-slate-600'}`}>
             Practical guides on mobile internet, bundle prices, shortcodes, and saving data in Ghana.
           </p>
         </div>
 
         {/* Search & Category Filter Bar */}
-        <div className="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center mb-7">
+        <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-between items-stretch sm:items-center mb-8 md:mb-10">
           {/* Category Tabs */}
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-1.5 md:gap-2">
             {categories.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold tracking-tight transition-all cursor-pointer ${
+                className={`px-3 md:px-4 py-1.5 md:py-2 rounded-xl text-xs md:text-[13.5px] font-bold tracking-tight transition-all cursor-pointer ${
                   selectedCategory === cat.id
                     ? 'bg-[#00C853] text-white shadow-sm'
                     : isDark
@@ -146,38 +146,38 @@ export default function BlogIndexPage() {
           </div>
 
           {/* Search Input */}
-          <div className="relative min-w-[220px]">
+          <div className="relative min-w-[220px] md:min-w-[280px]">
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search articles..."
-              className={`w-full h-9 px-3 pl-8 rounded-xl border text-xs font-medium outline-none transition-all ${
+              className={`w-full h-9 md:h-11 px-3 md:px-4 pl-8 md:pl-10 rounded-xl border text-xs md:text-sm font-medium outline-none transition-all ${
                 isDark
                   ? 'bg-[#0B1322] border-[#18263E] text-white placeholder-slate-500 focus:border-[#00C853]'
                   : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 focus:border-[#00C853]'
               }`}
             />
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-400 absolute left-2.5 md:left-3.5 top-1/2 -translate-y-1/2" />
           </div>
         </div>
 
         {/* Blog Post Grid */}
         {filteredPosts.length === 0 ? (
           <div className={`p-10 text-center rounded-2xl border ${isDark ? 'bg-[#09121F] border-[#15233A]' : 'bg-white border-slate-200'}`}>
-            <p className={`text-xs ${isDark ? 'text-[#8E9CAE]' : 'text-slate-500'}`}>
+            <p className={`text-xs md:text-sm ${isDark ? 'text-[#8E9CAE]' : 'text-slate-500'}`}>
               No articles found matching your search.
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
             {filteredPosts.map((post) => {
               const catMeta = CATEGORY_LABELS[post.category] || CATEGORY_LABELS.tips;
               return (
                 <Link
                   key={post.slug}
                   href={`/blog/${post.slug}`}
-                  className={`group rounded-2xl p-5 border transition-all flex flex-col justify-between hover:scale-[1.01] ${
+                  className={`group rounded-2xl p-5 md:p-6 lg:p-7 border transition-all flex flex-col justify-between hover:scale-[1.01] ${
                     isDark
                       ? 'bg-[#09121F] border-[#15233A] hover:border-[#00C853]/40 shadow-lg'
                       : 'bg-white border-slate-200 hover:border-[#00C853]/40 shadow-xs'
@@ -185,24 +185,24 @@ export default function BlogIndexPage() {
                 >
                   <div>
                     {/* Category & Date */}
-                    <div className="flex items-center justify-between gap-2 mb-2.5">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${catMeta.color}`}>
+                    <div className="flex items-center justify-between gap-2 mb-2.5 md:mb-3">
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] md:text-[11px] font-bold border ${catMeta.color}`}>
                         {catMeta.label}
                       </span>
-                      <span className={`text-[11px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                      <span className={`text-[11px] md:text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
                         {formatDate(post.publishedDate)}
                       </span>
                     </div>
 
                     {/* Title */}
-                    <h2 className={`text-sm sm:text-base font-bold tracking-tight mb-2 group-hover:text-[#00C853] transition-colors line-clamp-2 ${
+                    <h2 className={`text-sm sm:text-base md:text-lg lg:text-[19px] font-bold tracking-tight mb-2 md:mb-3 group-hover:text-[#00C853] transition-colors line-clamp-2 ${
                       isDark ? 'text-white' : 'text-slate-900'
                     }`}>
                       {post.title}
                     </h2>
 
                     {/* Summary Excerpt */}
-                    <p className={`text-xs leading-relaxed line-clamp-3 mb-4 ${
+                    <p className={`text-xs md:text-sm leading-relaxed line-clamp-3 mb-4 md:mb-5 ${
                       isDark ? 'text-[#8E9CAE]' : 'text-slate-600'
                     }`}>
                       {post.summary}
@@ -210,11 +210,11 @@ export default function BlogIndexPage() {
                   </div>
 
                   {/* Card Footer */}
-                  <div className={`pt-3 border-t flex items-center justify-between text-xs font-semibold ${
+                  <div className={`pt-3 md:pt-4 border-t flex items-center justify-between text-xs md:text-sm font-semibold ${
                     isDark ? 'border-[#15233A] text-[#00C853]' : 'border-slate-100 text-[#00C853]'
                   }`}>
                     <span>Read Article</span>
-                    <ChevronRight className="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" />
+                    <ChevronRight className="w-3.5 h-3.5 md:w-4 md:h-4 transform group-hover:translate-x-1 transition-transform" />
                   </div>
                 </Link>
               );

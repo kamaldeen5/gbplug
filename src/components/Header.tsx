@@ -18,14 +18,13 @@ export function Header({
 }: HeaderProps) {
   const pathname = usePathname();
   const isTrackOrder = pathname === '/track-order';
-  const isBlog = pathname?.startsWith('/blog');
 
   const openWhatsApp = () => {
     window.open('https://wa.me/233241234567?text=Hello%20GB%20Plug,%20I%20need%20help%20with%20data%20bundle', '_blank');
   };
 
   return (
-    <header className="w-full max-w-7xl mx-auto flex items-center justify-between py-2.5 sm:py-5 px-3.5 sm:px-8 transition-colors duration-200">
+    <header className="w-full max-w-7xl mx-auto flex items-center justify-between py-2.5 sm:py-5 md:py-7 px-3.5 sm:px-8 md:px-10 transition-colors duration-200">
       {/* Left: GB Plug Logo */}
       <div className="flex items-center">
         <Link href="/" className="flex items-center">
@@ -34,11 +33,11 @@ export function Header({
       </div>
 
       {/* Right Controls */}
-      <div className="flex items-center gap-2.5 sm:gap-4">
+      <div className="flex items-center gap-2.5 sm:gap-4 md:gap-5">
         {/* Track Order Link */}
         <Link
           href="/track-order"
-          className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-[12.5px] sm:text-[13.5px] font-semibold tracking-tight transition-all ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 md:px-4 py-1.5 sm:py-2 md:py-2.5 rounded-xl text-[12.5px] sm:text-[13.5px] md:text-[14.5px] font-semibold tracking-tight transition-all ${
             isTrackOrder
               ? 'bg-[#00C853]/15 text-[#00C853] shadow-[0_0_12px_rgba(0,200,83,0.15)] border border-[#00C853]/30'
               : isDark
@@ -46,7 +45,7 @@ export function Header({
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
-          <PackageSearch className="w-4 h-4 text-[#00C853] stroke-[2.2] shrink-0" />
+          <PackageSearch className="w-4 h-4 md:w-4.5 md:h-4.5 text-[#00C853] stroke-[2.2] shrink-0" />
           <span className="whitespace-nowrap">Track Order</span>
         </Link>
 
@@ -65,9 +64,9 @@ export function Header({
         {/* Desktop WhatsApp Button with Text */}
         <button
           onClick={openWhatsApp}
-          className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white text-[13.5px] font-semibold tracking-tight shadow-[0_2px_8px_rgba(0,200,83,0.25),inset_0_1px_0_rgba(255,255,255,0.2)] transition-all transform active:scale-95 cursor-pointer shrink-0"
+          className="hidden sm:flex items-center gap-2 px-4 md:px-5 py-2 md:py-2.5 rounded-xl bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white text-[13.5px] md:text-[14.5px] font-semibold tracking-tight shadow-[0_2px_8px_rgba(0,200,83,0.25),inset_0_1px_0_rgba(255,255,255,0.2)] transition-all transform active:scale-95 cursor-pointer shrink-0"
         >
-          <WhatsAppIcon className="w-4 h-4 fill-current shrink-0" />
+          <WhatsAppIcon className="w-4 h-4 md:w-4.5 md:h-4.5 fill-current shrink-0" />
           <span>Chat on WhatsApp</span>
         </button>
       </div>
