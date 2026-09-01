@@ -28,16 +28,19 @@ export function Footer({ isDark }: FooterProps) {
           <span className="text-[11px]">© {currentYear} GB Plug</span>
         </div>
 
-        {/* Center: Essential Compliance Links */}
+        {/* Center: Essential Links */}
         <div className="flex items-center gap-5 font-medium">
+          <Link href="/blog" className="hover:text-[#00C853] transition-colors">
+            Blog &amp; Guides
+          </Link>
           <Link href="/terms" className="hover:text-[#00C853] transition-colors">
-            Terms of Service
+            Terms
           </Link>
           <Link href="/privacy" className="hover:text-[#00C853] transition-colors">
-            Privacy Policy
+            Privacy
           </Link>
           <Link href="/refund-policy" className="hover:text-[#00C853] transition-colors">
-            Refund Policy
+            Refunds
           </Link>
         </div>
 

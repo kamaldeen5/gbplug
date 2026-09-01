@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { PackageSearch } from 'lucide-react';
+import { PackageSearch, BookOpen } from 'lucide-react';
 import { GBPlugLogo, WhatsAppIcon } from './NetworkLogos';
 import { ThemeToggle } from './ThemeToggle';
 
@@ -18,6 +18,7 @@ export function Header({
 }: HeaderProps) {
   const pathname = usePathname();
   const isTrackOrder = pathname === '/track-order';
+  const isBlog = pathname?.startsWith('/blog');
 
   const openWhatsApp = () => {
     window.open('https://wa.me/233241234567?text=Hello%20GB%20Plug,%20I%20need%20help%20with%20data%20bundle', '_blank');
@@ -33,11 +34,26 @@ export function Header({
       </div>
 
       {/* Right Controls */}
-      <div className="flex items-center gap-2.5 sm:gap-4">
+      <div className="flex items-center gap-2 sm:gap-3">
+        {/* Blog Guides Link */}
+        <Link
+          href="/blog"
+          className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-[12.5px] sm:text-[13.5px] font-semibold tracking-tight transition-all ${
+            isBlog
+              ? 'bg-[#00C853]/15 text-[#00C853] shadow-[0_0_12px_rgba(0,200,83,0.15)] border border-[#00C853]/30'
+              : isDark
+              ? 'text-[#94A3B8] hover:text-white hover:bg-white/5'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+          }`}
+        >
+          <BookOpen className="w-4 h-4 text-[#00C853] stroke-[2.2] shrink-0" />
+          <span className="whitespace-nowrap">Blog</span>
+        </Link>
+
         {/* Track Order Link */}
         <Link
           href="/track-order"
-          className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-[12.5px] sm:text-[13.5px] font-semibold tracking-tight transition-all ${
+          className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-[12.5px] sm:text-[13.5px] font-semibold tracking-tight transition-all ${
             isTrackOrder
               ? 'bg-[#00C853]/15 text-[#00C853] shadow-[0_0_12px_rgba(0,200,83,0.15)] border border-[#00C853]/30'
               : isDark

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { X, HelpCircle, Phone, Zap, PackageSearch } from 'lucide-react';
+import { X, HelpCircle, Phone, Zap, PackageSearch, BookOpen } from 'lucide-react';
 import { GBPlugLogo } from './NetworkLogos';
 
 interface SideMenuProps {
@@ -65,6 +65,17 @@ export function SideMenu({ isOpen, onClose, isDark }: SideMenuProps) {
           >
             <PackageSearch className="w-4 h-4 text-[#00C853] shrink-0" />
             Track Order
+          </Link>
+
+          <Link
+            href="/blog"
+            onClick={onClose}
+            className={`flex items-center gap-3 w-full p-3 rounded-xl transition-colors tracking-tight font-semibold ${
+              isDark ? 'hover:bg-white/5 text-white' : 'hover:bg-slate-100 text-slate-900'
+            }`}
+          >
+            <BookOpen className="w-4 h-4 text-[#00C853] shrink-0" />
+            Guides &amp; Blog
           </Link>
 
           <a
