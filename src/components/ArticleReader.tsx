@@ -109,31 +109,17 @@ export function ArticleReader({ post }: ArticleReaderProps) {
             {post.summary}
           </p>
 
-          {/* Author Byline */}
-          <div className={`flex items-center justify-between py-3.5 border-y text-xs ${
-            isDark ? 'border-[#18263E]' : 'border-slate-200'
+          {/* Clean Article Date & Share Bar (No author box/badge) */}
+          <div className={`flex items-center justify-between py-3 border-y text-xs ${
+            isDark ? 'border-[#18263E] text-[#8E9CAE]' : 'border-slate-200 text-slate-500'
           }`}>
-            <div className="flex items-center gap-3">
-              <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs ${
-                isDark
-                  ? 'bg-gradient-to-br from-[#1E293B] to-[#0F172A] text-[#00C853] border border-[#334155]'
-                  : 'bg-emerald-50 text-[#00C853] border border-emerald-200'
-              }`}>
-                GB
-              </div>
-              <div>
-                <div className={`font-bold tracking-tight text-xs sm:text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                  {post.author || 'GB Plug Editorial Desk'}
-                </div>
-                <div className={`text-[11px] ${isDark ? 'text-[#64748B]' : 'text-slate-500'}`}>
-                  Published on {formatDate(post.publishedDate)}
-                </div>
-              </div>
-            </div>
+            <span className="font-medium">
+              Published on {formatDate(post.publishedDate)}
+            </span>
 
             <button
               onClick={handleShare}
-              className={`p-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`p-1.5 px-3 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                 isDark
                   ? 'bg-[#0B1322] border-[#18263E] text-slate-300 hover:text-white hover:bg-white/5'
                   : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -211,31 +197,8 @@ export function ArticleReader({ post }: ArticleReaderProps) {
           )}
         </article>
 
-        {/* Author Profile Bio Card */}
-        <div className={`mt-10 p-5 rounded-2xl border flex items-center gap-4 ${
-          isDark
-            ? 'bg-[#09121F] border-[#15233A]'
-            : 'bg-white border-slate-200'
-        }`}>
-          <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
-            isDark
-              ? 'bg-[#15233A] text-[#00C853] border border-[#233554]'
-              : 'bg-emerald-50 text-[#00C853] border border-emerald-200'
-          }`}>
-            GB
-          </div>
-          <div className="space-y-0.5">
-            <div className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-              GB Plug Editorial Desk
-            </div>
-            <p className={`text-xs leading-relaxed ${isDark ? 'text-[#8E9CAE]' : 'text-slate-600'}`}>
-              Official guides, bundle price trackers, and network tips from the GB Plug team.
-            </p>
-          </div>
-        </div>
-
-        {/* Inline Buy Data CTA */}
-        <div className={`mt-6 p-6 rounded-2xl border flex flex-col sm:flex-row items-center justify-between gap-5 ${
+        {/* Inline Buy Data CTA Card */}
+        <div className={`mt-10 p-6 rounded-2xl border flex flex-col sm:flex-row items-center justify-between gap-5 ${
           isDark
             ? 'bg-gradient-to-r from-[#09121F] to-[#0D1B2A] border-[#15233A]'
             : 'bg-gradient-to-r from-slate-50 to-emerald-50/40 border-slate-200'
