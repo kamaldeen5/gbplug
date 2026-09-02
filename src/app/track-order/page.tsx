@@ -551,19 +551,23 @@ function TrackOrderContent() {
     try {
       // Collect any known order IDs saved in this browser's localStorage
       let extraOrderIds: string[] = [];
+      let localMatchingOrders: any[] = [];
       try {
         const rawHistory = localStorage.getItem('gbplug_orders');
         if (rawHistory) {
           const parsed = JSON.parse(rawHistory);
           if (Array.isArray(parsed)) {
             const cleanDigits = cleanQuery.replace(/\D/g, '').slice(-9);
-            extraOrderIds = parsed
-              .filter((item: any) => {
-                if (!cleanDigits) return true;
-                const rec = (item.recipient || '').replace(/\D/g, '');
-                return rec.endsWith(cleanDigits) || cleanQuery.toUpperCase().includes((item.order_id || '').toUpperCase());
-              })
-              .map((item: any) => item.order_id)
+            localMatchingOrders = parsed.filter((item: any) => {
+              if (!cleanDigits) {
+                return (item.id || '').toUpperCase().includes(cleanQuery.toUpperCase()) || (item.order_id || '').toUpperCase().includes(cleanQuery.toUpperCase());
+              }
+              const rec = (item.recipient || '').replace(/\D/g, '');
+              return rec.endsWith(cleanDigits) || (item.id || '').toUpperCase().includes(cleanQuery.toUpperCase());
+            });
+
+            extraOrderIds = localMatchingOrders
+              .map((item: any) => item.order_id || item.id || item.reference)
               .filter(Boolean);
           }
         }
@@ -575,11 +579,54 @@ function TrackOrderContent() {
       const res = await fetch(`/api/track?q=${encodeURIComponent(cleanQuery)}${orderIdsParam}`);
       const data = await res.json();
 
-      if (!res.ok || !data.success) {
-        setFoundOrders([]);
-        setErrorMsg(data.error || 'No orders found for this search. Please check your phone number or order reference.');
+      if (res.ok && data.success && Array.isArray(data.orders) && data.orders.length > 0) {
+        setFoundOrders(data.orders);
+        setErrorMsg('');
+
+        // Sync fresh statuses back to localStorage
+        try {
+          const rawHistory = localStorage.getItem('gbplug_orders');
+          const history = rawHistory ? JSON.parse(rawHistory) : [];
+          if (Array.isArray(history)) {
+            data.orders.forEach((serverOrder: any) => {
+              const idx = history.findIndex(
+                (h: any) => h.order_id === serverOrder.id || h.id === serverOrder.id || h.reference === serverOrder.reference
+              );
+              if (idx !== -1) {
+                history[idx].status = serverOrder.status;
+                history[idx].order_id = serverOrder.id;
+              }
+            });
+            localStorage.setItem('gbplug_orders', JSON.stringify(history.slice(0, 30)));
+          }
+        } catch (e) {}
+      } else if (localMatchingOrders.length > 0) {
+        // Use local storage records formatted for UI
+        const mappedLocal: OrderRecord[] = localMatchingOrders.map((item: any) => {
+          const placedAt = item.timestamp || new Date().toISOString();
+          return {
+            id: item.order_id || item.id || 'ORDER',
+            reference: item.reference || item.order_id || item.id,
+            network: item.networkId || 'mtn',
+            networkName: item.network || 'MTN Ghana',
+            bundle: item.bundle || `${item.data || ''} Data Bundle`,
+            data: item.data || 'Data Bundle',
+            phone: item.recipient || cleanQuery,
+            amount: item.price || 0,
+            status: item.status || 'processing',
+            timeline: {
+              orderPlacedAt: placedAt,
+              processingAt: new Date(new Date(placedAt).getTime() + 20000).toISOString(),
+              deliveredAt: item.status === 'delivered' ? new Date().toISOString() : null,
+            },
+          };
+        });
+
+        setFoundOrders(mappedLocal);
+        setErrorMsg('');
       } else {
-        setFoundOrders(data.orders || []);
+        setFoundOrders([]);
+        setErrorMsg(data?.error || 'No orders found for this search. Please check your phone number or order reference.');
       }
     } catch {
       setFoundOrders([]);

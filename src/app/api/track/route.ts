@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { registerOrderEntry, getOrdersByPhone } from '@/lib/order-registry';
 import { NETWORK_BUNDLES } from '@/data/bundles';
 import { getOrderStatus } from '@/lib/datasika';
+import { verifyPayment } from '@/lib/moolre';
+import { fulfillOrderOnce } from '@/lib/fulfillment';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,19 +38,16 @@ function dsOrderToUi(ds: any) {
   const { id: networkId, name: networkName } = detectNetwork(ds.recipient || '');
   const rawStatus = (ds.status || '').toLowerCase();
 
-  // Customer sees 'delivered' when complete, 'processing' during queue/transit
   const isDelivered = rawStatus === 'delivered';
   const isFailed = rawStatus === 'failed' || rawStatus === 'refunded';
   const displayStatus = isDelivered ? 'delivered' : isFailed ? 'failed' : 'processing';
   const gb = Number(ds.bundle_gb || 0);
 
-  // Exact retail price paid by customer on gbplug.com
   let retailAmount = findExactRetailPrice(ds.network || networkId, gb);
   if (!retailAmount && ds.amount_charged) {
     retailAmount = Math.ceil((Number(ds.amount_charged) * 1.125) / 0.5) * 0.5;
   }
 
-  // Timeline progression
   const placedTime = ds.created_at ? new Date(ds.created_at).getTime() : Date.now();
   const orderPlacedAt = ds.created_at || new Date(placedTime).toISOString();
   const processingAt = new Date(placedTime + 20000).toISOString();
@@ -81,11 +80,85 @@ function dsOrderToUi(ds: any) {
   };
 }
 
+async function resolveSingleOrder(idOrRef: string): Promise<any | null> {
+  const clean = idOrRef.trim();
+  if (!clean) return null;
+
+  // 1. If it's a DataSika order ID
+  if (clean.toUpperCase().startsWith('API-') || clean.toUpperCase().startsWith('FLX-') || clean.toUpperCase().startsWith('ORD-')) {
+    try {
+      const ds = await getOrderStatus(clean.toUpperCase());
+      if (ds && ds.order_id) {
+        registerOrderEntry({ orderId: ds.order_id, recipient: ds.recipient, createdAt: (ds as any).created_at });
+        return dsOrderToUi(ds);
+      }
+    } catch (e) {}
+  }
+
+  // 2. If it's a Moolre / GB Plug payment reference
+  if (clean.toLowerCase().startsWith('gbplug-') || clean.toLowerCase().startsWith('moolre') || clean.includes('-')) {
+    try {
+      const res = await verifyPayment(clean);
+      if (res.status && res.data) {
+        const pData = res.data;
+        const metadata = pData.raw?.metadata || {};
+        const productId = metadata.product_id;
+        const recipient = metadata.recipient_phone || pData.customer_phone || '';
+        const serviceType = metadata.service_type;
+        const cleanRecipient = recipient.replace(/\D/g, '');
+
+        if (pData.status === 'success' && productId && cleanRecipient) {
+          try {
+            const dsOrder = await fulfillOrderOnce({
+              reference: clean,
+              productId,
+              recipient: cleanRecipient,
+              serviceType,
+            });
+
+            if (dsOrder && dsOrder.order_id) {
+              registerOrderEntry({ orderId: dsOrder.order_id, recipient: cleanRecipient });
+              return dsOrderToUi(dsOrder);
+            }
+          } catch (fErr) {}
+        }
+
+        const { id: netId, name: netName } = detectNetwork(cleanRecipient);
+        return {
+          id: pData.reference,
+          reference: pData.reference,
+          network: netId,
+          networkName: netName,
+          bundle: metadata.bundle_name || `${pData.amount} GHS Bundle`,
+          data: metadata.bundle_name || `${pData.amount} GHS`,
+          phone: cleanRecipient,
+          amount: pData.amount,
+          status: pData.status === 'success' ? 'processing' : (pData.status === 'failed' ? 'failed' : 'processing'),
+          timeline: {
+            orderPlacedAt: pData.paid_at || new Date().toISOString(),
+            processingAt: new Date().toISOString(),
+            deliveredAt: null,
+          },
+        };
+      }
+    } catch (e) {}
+  }
+
+  // 3. Fallback try DataSika status check
+  try {
+    const ds = await getOrderStatus(clean);
+    if (ds && ds.order_id) {
+      return dsOrderToUi(ds);
+    }
+  } catch (e) {}
+
+  return null;
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
 
-    // Accept multiple query param aliases for maximum compatibility
     const rawQuery = (
       searchParams.get('q') ||
       searchParams.get('query') ||
@@ -104,84 +177,68 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const dataSikaKey = process.env.DATA_API_KEY || process.env.DSK_API_KEY;
-    if (!dataSikaKey) {
-      return NextResponse.json(
-        { success: false, error: 'Data gateway key not configured.' },
-        { status: 500 }
-      );
-    }
-
-    // Direct Order ID Lookup (e.g. API-..., FLX-..., ORD-..., or any alphanumeric order code)
-    const isDirectOrderId =
+    // Direct single reference / order ID check
+    const isDirectId =
       rawQuery.toUpperCase().startsWith('API-') ||
       rawQuery.toUpperCase().startsWith('FLX-') ||
       rawQuery.toUpperCase().startsWith('ORD-') ||
+      rawQuery.toLowerCase().startsWith('gbplug-') ||
       (/[A-Za-z]/.test(rawQuery) && rawQuery.length > 5);
 
-    if (isDirectOrderId) {
-      try {
-        const ds = await getOrderStatus(rawQuery.toUpperCase());
-        if (ds && ds.order_id) {
-          registerOrderEntry({
-            orderId: ds.order_id,
-            recipient: ds.recipient,
-            createdAt: (ds as any).created_at,
-          });
-          return NextResponse.json({ success: true, orders: [dsOrderToUi(ds)] });
-        }
-      } catch (err) {
-        console.error('[Track] Direct order lookup error:', err);
+    if (isDirectId) {
+      const resolved = await resolveSingleOrder(rawQuery);
+      if (resolved) {
+        return NextResponse.json({ success: true, orders: [resolved] });
       }
     }
 
-    // Phone Number / Registry Lookup
+    // Phone Number / Multiple Order IDs lookup
     const cleanDigits = rawQuery.replace(/\D/g, '');
     const clean10 = cleanDigits.slice(-10);
 
-    // Collect order IDs from:
-    // 1. In-memory registry
-    const registryEntries = clean10.length >= 9 ? getOrdersByPhone(clean10) : [];
-    const orderIdSet = new Set<string>(registryEntries.map((e) => e.orderId));
+    const orderIdSet = new Set<string>();
 
-    // 2. Extra order IDs passed from client localStorage
+    // 1. In-memory registry
+    if (clean10.length >= 9) {
+      const registryEntries = getOrdersByPhone(clean10);
+      registryEntries.forEach((e) => orderIdSet.add(e.orderId));
+    }
+
+    // 2. Extra order IDs from client localStorage
     const extraParam = searchParams.get('orderIds') || searchParams.get('order_ids') || '';
     if (extraParam) {
       extraParam
         .split(',')
-        .map((s) => s.trim().toUpperCase())
+        .map((s) => s.trim())
         .filter(Boolean)
         .forEach((oid) => orderIdSet.add(oid));
     }
 
-    // 3. If the query itself looks like an order ID, add it
     if (rawQuery.length >= 6) {
-      orderIdSet.add(rawQuery.trim().toUpperCase());
+      orderIdSet.add(rawQuery.trim());
     }
 
-    const allOrderIds = Array.from(orderIdSet);
+    const allIds = Array.from(orderIdSet);
 
-    if (allOrderIds.length === 0) {
+    if (allIds.length === 0) {
       return NextResponse.json({
         success: false,
-        error: `No live orders found for ${rawQuery}. Please ensure you enter the exact recipient number used at checkout.`,
+        error: `No live orders found for ${rawQuery}. Please ensure you enter the recipient number or reference used at checkout.`,
       });
     }
 
-    // Fetch live status from DataSika in parallel
+    // Resolve all order IDs in parallel
     const settled = await Promise.allSettled(
-      allOrderIds.slice(0, 10).map(async (oid) => {
-        return getOrderStatus(oid);
-      })
+      allIds.slice(0, 10).map((id) => resolveSingleOrder(id))
     );
 
     const validOrders = settled
-      .map((r) => (r.status === 'fulfilled' && r.value ? dsOrderToUi(r.value) : null))
+      .map((r) => (r.status === 'fulfilled' ? r.value : null))
       .filter(Boolean);
 
     // Filter by phone number if a specific phone was queried
     const filtered = clean10.length >= 9
-      ? validOrders.filter((o) => (o!.phone || '').replace(/\D/g, '').endsWith(clean10.slice(-9)))
+      ? validOrders.filter((o) => (o.phone || '').replace(/\D/g, '').endsWith(clean10.slice(-9)))
       : validOrders;
 
     const results = filtered.length > 0 ? filtered : validOrders;
@@ -189,7 +246,7 @@ export async function GET(req: NextRequest) {
     if (results.length === 0) {
       return NextResponse.json({
         success: false,
-        error: `No orders found for ${rawQuery}. Please verify your details or contact support.`,
+        error: `No orders found for ${rawQuery}. If you just placed an order, please allow 1-2 minutes for the network to register it, or contact WhatsApp support.`,
       });
     }
 

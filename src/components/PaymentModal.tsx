@@ -62,20 +62,34 @@ export function PaymentModal({
           setIsQueued(!!data.dispatchError || data.order?.status?.toLowerCase() === 'pending');
 
           try {
-            const history = JSON.parse(localStorage.getItem('gbplug_orders') || '[]');
-            history.unshift({
+            const raw = localStorage.getItem('gbplug_orders');
+            const history = raw ? JSON.parse(raw) : [];
+            const list = Array.isArray(history) ? history : [];
+            const idx = list.findIndex((item: any) => item.id === reference || item.reference === reference || item.order_id === reference);
+            const isDelivered = data.order?.status?.toLowerCase() === 'delivered';
+            const updatedRecord = {
+              id: newOrderId,
               order_id: newOrderId,
+              reference: reference,
               network: network.name,
               networkId: network.id,
-              bundle: bundle.name,
+              bundle: `${bundle.name} Data Bundle`,
               data: bundle.data,
               price: bundle.price,
               recipient: cleanPhone,
-              status: data.dispatchError ? 'processing' : 'delivered',
+              status: isDelivered ? 'delivered' : 'processing',
               timestamp: new Date().toISOString(),
-            });
-            localStorage.setItem('gbplug_orders', JSON.stringify(history.slice(0, 20)));
-          } catch (e) {}
+            };
+
+            if (idx !== -1) {
+              list[idx] = updatedRecord;
+            } else {
+              list.unshift(updatedRecord);
+            }
+            localStorage.setItem('gbplug_orders', JSON.stringify(list.slice(0, 30)));
+          } catch (e) {
+            console.error('Failed to update order in localStorage:', e);
+          }
           setStatus('success');
           return;
         }
@@ -121,6 +135,33 @@ export function PaymentModal({
 
       if (data.authorization_url) {
         setAuthUrl(data.authorization_url);
+
+        // Save order immediately into localStorage so it is trackable even before verification completes
+        try {
+          const raw = localStorage.getItem('gbplug_orders');
+          const history = raw ? JSON.parse(raw) : [];
+          const list = Array.isArray(history) ? history : [];
+          const filtered = list.filter((item: any) => item.id !== data.reference && item.reference !== data.reference);
+          filtered.unshift({
+            id: data.reference,
+            order_id: data.reference,
+            reference: data.reference,
+            network: network.name,
+            networkId: network.id,
+            bundle: `${bundle.name} Data Bundle`,
+            data: bundle.data,
+            price: bundle.price,
+            recipient: cleanPhone,
+            productId: bundle.productId,
+            serviceType: bundle.serviceType || 'data_bundles',
+            status: 'processing',
+            timestamp: new Date().toISOString(),
+          });
+          localStorage.setItem('gbplug_orders', JSON.stringify(filtered.slice(0, 30)));
+        } catch (e) {
+          console.error('Failed to save initial order to localStorage:', e);
+        }
+
         startPolling(data.reference);
         setStatus('prompt_sent');
 
