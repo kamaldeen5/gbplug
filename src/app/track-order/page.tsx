@@ -12,6 +12,13 @@ import {
   Loader2,
   AlertCircle,
   RefreshCw,
+  HelpCircle,
+  X,
+  ShieldCheck,
+  Radio,
+  Server,
+  Sparkles,
+  Info,
 } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
@@ -48,18 +55,294 @@ function formatTimelineDate(dateStr?: string | null): string {
   return `${day} ${month}, ${time}`;
 }
 
-function OrderCard({ order, isDark, searchQuery, onRefresh }: {
+function WhyOrderTakingLongerModal({
+  isOpen,
+  onClose,
+  isDark,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  isDark: boolean;
+}) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-y-auto">
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity"
+      />
+
+      {/* Modal Card */}
+      <div
+        className={`relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl p-5 sm:p-7 md:p-9 border shadow-2xl z-10 transition-all ${
+          isDark
+            ? 'bg-[#09121F] border-[#182844] text-white'
+            : 'bg-white border-slate-200 text-slate-900'
+        }`}
+      >
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className={`absolute top-4 right-4 sm:top-6 sm:right-6 p-2 rounded-xl border transition-colors cursor-pointer ${
+            isDark
+              ? 'bg-[#0E1B2E] border-[#1D3252] text-slate-300 hover:text-white hover:bg-white/10'
+              : 'bg-slate-100 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
+          }`}
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        {/* Top Badge */}
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-[#00C853]/15 text-[#00C853] border border-[#00C853]/30 mb-3">
+          <Info className="w-3.5 h-3.5" />
+          <span>Good to know</span>
+        </div>
+
+        {/* Header Title */}
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight leading-tight mb-2">
+          Why does data delivery sometimes take a little longer?
+        </h2>
+
+        {/* Short summary callout */}
+        <div
+          className={`p-4 rounded-2xl border text-xs sm:text-sm leading-relaxed mb-6 ${
+            isDark
+              ? 'bg-[#060C16] border-[#15233A] text-slate-300'
+              : 'bg-emerald-50/70 border-emerald-200 text-slate-700'
+          }`}
+        >
+          <p className="font-semibold text-[#00C853] mb-1">Quick Answer:</p>
+          <p>
+            Most orders arrive within a few minutes. During network congestion, telco servers may take longer (occasionally up to a couple of hours). Here is the honest story of what happens the moment you tap Buy.
+          </p>
+        </div>
+
+        {/* Section 1: 3-Step Process */}
+        <div className="mb-7">
+          <h3 className={`text-sm md:text-base font-extrabold uppercase tracking-wider mb-3 ${isDark ? 'text-slate-300' : 'text-slate-800'}`}>
+            What happens the moment you order
+          </h3>
+
+          <div className="space-y-3">
+            {/* Step 1 */}
+            <div
+              className={`p-3.5 sm:p-4 rounded-2xl border flex items-start gap-3.5 ${
+                isDark ? 'bg-[#060C16] border-[#15233A]' : 'bg-slate-50 border-slate-200'
+              }`}
+            >
+              <div className="w-7 h-7 rounded-xl bg-[#00C853] text-slate-950 font-black text-sm flex items-center justify-center shrink-0 shadow-sm">
+                1
+              </div>
+              <div>
+                <h4 className="font-bold text-sm md:text-base tracking-tight mb-0.5">
+                  You make payment
+                </h4>
+                <p className={`text-xs md:text-sm leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                  The instant your Mobile Money payment approves, your order is already moving. There is zero queue or waiting time on our platform.
+                </p>
+              </div>
+            </div>
+
+            {/* Step 2 */}
+            <div
+              className={`p-3.5 sm:p-4 rounded-2xl border flex items-start gap-3.5 ${
+                isDark ? 'bg-[#060C16] border-[#15233A]' : 'bg-slate-50 border-slate-200'
+              }`}
+            >
+              <div className="w-7 h-7 rounded-xl bg-[#00C853] text-slate-950 font-black text-sm flex items-center justify-center shrink-0 shadow-sm">
+                2
+              </div>
+              <div>
+                <h4 className="font-bold text-sm md:text-base tracking-tight mb-0.5">
+                  We send it straight to the network automatically
+                </h4>
+                <p className={`text-xs md:text-sm leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                  Our automated engine hands your bundle request directly to MTN, Telecel, or AirtelTigo gateways in seconds. No manual typing, no waiting around.
+                </p>
+              </div>
+            </div>
+
+            {/* Step 3 */}
+            <div
+              className={`p-3.5 sm:p-4 rounded-2xl border flex items-start gap-3.5 ${
+                isDark ? 'bg-[#060C16] border-[#15233A]' : 'bg-slate-50 border-slate-200'
+              }`}
+            >
+              <div className="w-7 h-7 rounded-xl bg-[#00C853] text-slate-950 font-black text-sm flex items-center justify-center shrink-0 shadow-sm">
+                3
+              </div>
+              <div>
+                <h4 className="font-bold text-sm md:text-base tracking-tight mb-0.5">
+                  The network completes the SIM top-up
+                </h4>
+                <p className={`text-xs md:text-sm leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                  The cellular provider validates your phone number, processes the gigabytes, and applies them to your line. That final crediting step happens on their servers.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 2: How Telecom Reselling Works */}
+        <div
+          className={`p-4 sm:p-5 rounded-2xl border mb-7 ${
+            isDark ? 'bg-[#0D1B2D]/60 border-[#1B3150]' : 'bg-slate-100/80 border-slate-200'
+          }`}
+        >
+          <div className="flex items-center gap-2 text-xs font-bold text-[#00C853] mb-1.5 uppercase tracking-wider">
+            <Radio className="w-4 h-4" />
+            <span>How telecom fulfillment works</span>
+          </div>
+          <h4 className="font-bold text-sm md:text-base mb-2">
+            GB Plug connects directly to telecom bulk gateways
+          </h4>
+          <p className={`text-xs md:text-sm leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+            We purchase data at wholesale volume to give you affordable rates for MTN, Telecel, and AirtelTigo. Because the final delivery happens across the cellular network infrastructure, the speed of delivery depends directly on telecom server traffic at that exact moment.
+          </p>
+        </div>
+
+        {/* Section 3: Why fast sometimes and slower other times */}
+        <div className="mb-7">
+          <h3 className={`text-sm md:text-base font-extrabold uppercase tracking-wider mb-3 ${isDark ? 'text-slate-300' : 'text-slate-800'}`}>
+            Common reasons for temporary delivery delays
+          </h3>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className={`p-3.5 rounded-2xl border ${isDark ? 'bg-[#060C16] border-[#15233A]' : 'bg-slate-50 border-slate-200'}`}>
+              <p className="font-bold text-xs md:text-sm text-[#00C853] mb-1">⚡ Peak Network Hours</p>
+              <p className={`text-xs leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                When thousands of subscribers across Ghana top up at once, the telecom queue moves in batches.
+              </p>
+            </div>
+
+            <div className={`p-3.5 rounded-2xl border ${isDark ? 'bg-[#060C16] border-[#15233A]' : 'bg-slate-50 border-slate-200'}`}>
+              <p className="font-bold text-xs md:text-sm text-[#00C853] mb-1">🔍 Number Eligibility Check</p>
+              <p className={`text-xs leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                Certain bundles require the network to verify SIM active status before crediting data.
+              </p>
+            </div>
+
+            <div className={`p-3.5 rounded-2xl border ${isDark ? 'bg-[#060C16] border-[#15233A]' : 'bg-slate-50 border-slate-200'}`}>
+              <p className="font-bold text-xs md:text-sm text-[#00C853] mb-1">🛠️ Telecom Maintenance</p>
+              <p className={`text-xs leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                Telco systems occasionally perform routine database synchronization that briefly pauses queue dispatch.
+              </p>
+            </div>
+
+            <div className={`p-3.5 rounded-2xl border ${isDark ? 'bg-[#060C16] border-[#15233A]' : 'bg-slate-50 border-slate-200'}`}>
+              <p className="font-bold text-xs md:text-sm text-[#00C853] mb-1">📱 Number Formatting</p>
+              <p className={`text-xs leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                A single mistyped digit can cause network verification retries, so always double-check your digits.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 4: What We Can and Cannot Do */}
+        <div className="mb-7">
+          <h3 className={`text-sm md:text-base font-extrabold uppercase tracking-wider mb-3 ${isDark ? 'text-slate-300' : 'text-slate-800'}`}>
+            What we can (and cannot) do
+          </h3>
+
+          <div className="space-y-3">
+            <div className={`p-3.5 rounded-2xl border ${isDark ? 'bg-[#060C16] border-[#15233A]' : 'bg-slate-50 border-slate-200'}`}>
+              <p className="font-bold text-xs md:text-sm text-amber-400 mb-1">What we cannot do:</p>
+              <p className={`text-xs md:text-sm leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                Once your order is accepted by the network, our team cannot force the telco server to jump its queue. We believe in telling you the honest truth rather than giving unrealistic estimates.
+              </p>
+            </div>
+
+            <div className={`p-3.5 rounded-2xl border ${isDark ? 'bg-[#060C16] border-[#15233A]' : 'bg-slate-50 border-slate-200'}`}>
+              <p className="font-bold text-xs md:text-sm text-[#00C853] mb-1">What we do:</p>
+              <p className={`text-xs md:text-sm leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                If an order ever encounters a gateway timeout or fails to credit automatically, our monitoring system flags it immediately and our support team steps in to resolve it.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 5: The 100% Delivery Guarantee */}
+        <div
+          className={`p-5 rounded-2xl border mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
+            isDark
+              ? 'bg-gradient-to-br from-[#0B1728] to-[#060C16] border-[#00C853]/30'
+              : 'bg-emerald-50 border-emerald-200'
+          }`}
+        >
+          <div>
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#00C853] mb-1">
+              <ShieldCheck className="w-4 h-4" />
+              <span>Our 100% Delivery Guarantee</span>
+            </div>
+            <p className={`text-xs md:text-sm leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-800'}`}>
+              Every order on GB Plug is logged and guaranteed. Your money and your data are 100% safe. Even during telecom traffic delays, your bundle will always be delivered.
+            </p>
+          </div>
+        </div>
+
+        {/* Bottom Action Buttons */}
+        <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-4 border-t border-slate-700/30">
+          <a
+            href="https://wa.me/233241234567?text=Hello%20GB%20Plug,%20I%20have%20a%20question%20about%20my%20data%20order"
+            target="_blank"
+            rel="noreferrer"
+            className={`w-full sm:w-auto px-5 py-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+              isDark
+                ? 'bg-[#0E1B2E] border-[#1D3252] text-slate-200 hover:bg-white/5'
+                : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
+            }`}
+          >
+            <WhatsAppIcon className="w-4 h-4 text-[#00C853] fill-current" />
+            <span>Chat with Support</span>
+          </a>
+
+          <button
+            onClick={onClose}
+            className="w-full sm:w-auto px-6 py-2.5 bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer"
+          >
+            Got it, thanks
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OrderCard({
+  order,
+  isDark,
+  searchQuery,
+  onRefresh,
+  onOpenWhyModal,
+}: {
   order: OrderRecord;
   isDark: boolean;
   searchQuery: string;
   onRefresh: () => void;
+  onOpenWhyModal: () => void;
 }) {
   const isDelivered = order.status === 'delivered';
   const isProcessingActive = !isDelivered;
 
   return (
     <div
-      className={`rounded-2xl p-5 transition-all border animate-fade-in ${
+      className={`rounded-2xl p-5 md:p-6 transition-all border animate-fade-in ${
         isDark
           ? 'bg-[#09121F] border-[#15233A] shadow-2xl'
           : 'bg-white border-[#E2E8F0] shadow-xl'
@@ -83,12 +366,12 @@ function OrderCard({ order, isDark, searchQuery, onRefresh }: {
               </span>
             )}
           </div>
-          <p className={`text-base font-extrabold tracking-tight ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>
+          <p className={`text-base md:text-lg font-extrabold tracking-tight ${isDark ? 'text-white' : 'text-[#0F172A]'}`}>
             {order.bundle}
           </p>
         </div>
         {order.amount > 0 && (
-          <span className="text-lg font-black text-[#00C853] tracking-tight shrink-0">
+          <span className="text-lg md:text-xl font-black text-[#00C853] tracking-tight shrink-0">
             GH₵ {order.amount.toFixed(2)}
           </span>
         )}
@@ -98,7 +381,7 @@ function OrderCard({ order, isDark, searchQuery, onRefresh }: {
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#070D18] border-[#18263E]' : 'bg-slate-50 border-slate-100'}`}>
           <span className={`block text-[10px] font-medium mb-1 ${isDark ? 'text-[#64748B]' : 'text-slate-400'}`}>Network</span>
-          <div className="flex items-center gap-1.5 font-bold text-xs">
+          <div className="flex items-center gap-1.5 font-bold text-xs md:text-sm">
             {order.network === 'mtn' && <MTNLogo className="w-10 h-5" />}
             {order.network === 'telecel' && <TelecelLogo className="w-6 h-6" />}
             {order.network === 'airteltigo' && <AirtelTigoLogo className="w-14 h-5" />}
@@ -107,7 +390,7 @@ function OrderCard({ order, isDark, searchQuery, onRefresh }: {
         </div>
         <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#070D18] border-[#18263E]' : 'bg-slate-50 border-slate-100'}`}>
           <span className={`block text-[10px] font-medium mb-1 ${isDark ? 'text-[#64748B]' : 'text-slate-400'}`}>Recipient</span>
-          <span className="font-bold font-mono text-sm text-[#00C853]">{order.phone}</span>
+          <span className="font-bold font-mono text-sm md:text-base text-[#00C853]">{order.phone}</span>
         </div>
       </div>
 
@@ -148,14 +431,8 @@ function OrderCard({ order, isDark, searchQuery, onRefresh }: {
                 <span className="w-1.5 h-1.5 rounded-full bg-slate-900 animate-ping" />
               )}
             </span>
-            <p
-              className={`text-sm font-bold leading-tight ${
-                isDelivered
-                  ? (isDark ? 'text-white' : 'text-slate-900')
-                  : 'text-amber-400'
-              }`}
-            >
-              Processing
+            <p className={`text-sm font-bold leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              {isDelivered ? 'Processed' : 'Processing with Network'}
             </p>
             {order.timeline?.processingAt && (
               <p className={`text-xs mt-0.5 font-medium ${isDark ? 'text-[#8E9CAE]' : 'text-slate-500'}`}>
@@ -170,7 +447,9 @@ function OrderCard({ order, isDark, searchQuery, onRefresh }: {
               className={`absolute -left-6 top-0.5 w-4 h-4 rounded-full flex items-center justify-center ring-4 ring-[#070D18] ${
                 isDelivered
                   ? 'bg-[#00C853]'
-                  : 'bg-slate-700'
+                  : isDark
+                  ? 'bg-slate-700'
+                  : 'bg-slate-300'
               }`}
             >
               {isDelivered ? (
@@ -182,8 +461,12 @@ function OrderCard({ order, isDark, searchQuery, onRefresh }: {
             <p
               className={`text-sm font-bold leading-tight ${
                 isDelivered
-                  ? 'text-[#00C853]'
-                  : (isDark ? 'text-slate-500' : 'text-slate-400')
+                  ? isDark
+                    ? 'text-white'
+                    : 'text-slate-900'
+                  : isDark
+                  ? 'text-slate-500'
+                  : 'text-slate-400'
               }`}
             >
               Delivered
@@ -197,52 +480,47 @@ function OrderCard({ order, isDark, searchQuery, onRefresh }: {
         </div>
       </div>
 
-      {/* Wait notice */}
-      {isProcessingActive && (
-        <p className={`text-center text-[11px] mb-3 ${isDark ? 'text-[#8E9CAE]' : 'text-slate-500'}`}>
-          ⏳ Network delivery in progress. Orders deliver in a few minutes.
-        </p>
-      )}
-
-      {/* Actions */}
-      <div className="flex gap-2 pt-3 border-t border-slate-700/20">
+      {/* Action Footer */}
+      <div className="flex items-center justify-between gap-3 pt-2">
         <button
-          type="button"
           onClick={onRefresh}
-          className="flex-1 h-10 bg-[#00C853] hover:bg-[#00B74A] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          Refresh
-        </button>
-        <a
-          href={`https://wa.me/233241234567?text=Hello%20GB%20Plug,%20I%20am%20inquiring%20about%20order%20${order.id}`}
-          target="_blank"
-          rel="noreferrer"
-          className={`h-10 px-4 rounded-xl font-semibold text-xs flex items-center gap-1.5 border transition-all ${
+          className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border transition-colors cursor-pointer ${
             isDark
-              ? 'border-[#18263E] bg-[#070D18] hover:bg-white/5 text-slate-200'
-              : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
+              ? 'border-[#18263E] text-slate-300 hover:text-white hover:bg-white/5'
+              : 'border-slate-200 text-slate-700 hover:bg-slate-100'
           }`}
         >
-          <WhatsAppIcon className="w-3.5 h-3.5 text-[#00C853] fill-current" />
-          Help
-        </a>
+          <RefreshCw className="w-3.5 h-3.5" />
+          <span>Refresh</span>
+        </button>
+
+        {isProcessingActive && (
+          <button
+            onClick={onOpenWhyModal}
+            className="text-xs text-[#00C853] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+          >
+            <HelpCircle className="w-3.5 h-3.5" />
+            <span>Why is delivery taking longer?</span>
+          </button>
+        )}
       </div>
     </div>
   );
 }
 
 function TrackOrderContent() {
-  const [isDark, setIsDark] = useState<boolean>(true);
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [searched, setSearched] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [foundOrders, setFoundOrders] = useState<OrderRecord[]>([]);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
   const searchParams = useSearchParams();
+  const initialPhone = searchParams.get('phone') || '';
+  const initialRef = searchParams.get('ref') || '';
 
-  // Sync dark class to html document
+  const [isDark, setIsDark] = useState<boolean>(true);
+  const [searchQuery, setSearchQuery] = useState<string>(initialPhone || initialRef);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [searched, setSearched] = useState<boolean>(false);
+  const [foundOrders, setFoundOrders] = useState<OrderRecord[]>([]);
+  const [errorMsg, setErrorMsg] = useState<string>('');
+  const [isWhyModalOpen, setIsWhyModalOpen] = useState<boolean>(false);
+
   useEffect(() => {
     if (isDark) {
       document.documentElement.classList.add('dark');
@@ -253,84 +531,46 @@ function TrackOrderContent() {
     }
   }, [isDark]);
 
-  // Auto-search from URL params or localStorage recent order
-  useEffect(() => {
-    const paramOrderId = searchParams.get('order_id') || searchParams.get('orderId');
-    const paramPhone = searchParams.get('phone') || searchParams.get('query');
-
-    if (paramOrderId) {
-      setSearchQuery(paramOrderId);
-      executeSearch(paramOrderId);
-    } else if (paramPhone) {
-      setSearchQuery(paramPhone);
-      executeSearch(paramPhone);
-    } else {
-      // Auto-load most recent order from device localStorage
-      try {
-        const history = JSON.parse(localStorage.getItem('gbplug_orders') || '[]');
-        if (Array.isArray(history) && history.length > 0) {
-          const latest = history[0];
-          const queryTarget = latest.recipient || latest.order_id;
-          if (queryTarget) {
-            setSearchQuery(queryTarget);
-            executeSearch(queryTarget);
-          }
-        }
-      } catch (e) {}
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleToggleTheme = () => {
-    setIsDark((prev) => !prev);
-  };
-
+  // Execute lookup
   const executeSearch = async (query: string) => {
-    const clean = query.trim();
-    if (!clean) return;
+    const cleanQuery = query.trim();
+    if (!cleanQuery) return;
 
-    setSearched(true);
     setLoading(true);
-    setErrorMsg(null);
-    setFoundOrders([]);
-
-    // Collect all order IDs stored in this device's localStorage
-    let localOrderIds: string[] = [];
-    try {
-      const history = JSON.parse(localStorage.getItem('gbplug_orders') || '[]');
-      if (Array.isArray(history)) {
-        localOrderIds = history
-          .map((h: any) => h.order_id || h.orderId)
-          .filter((id: string) => typeof id === 'string' && (id.startsWith('API-') || id.startsWith('FLX-')));
-      }
-    } catch (e) {}
+    setErrorMsg('');
+    setSearched(true);
 
     try {
-      const orderIdsParam = localOrderIds.length > 0 ? `&orderIds=${encodeURIComponent(localOrderIds.join(','))}` : '';
-      const res = await fetch(`/api/track?query=${encodeURIComponent(clean)}${orderIdsParam}`);
+      const res = await fetch(`/api/track?q=${encodeURIComponent(cleanQuery)}`);
       const data = await res.json();
 
-      if (data.success && Array.isArray(data.orders) && data.orders.length > 0) {
-        setFoundOrders(data.orders);
-        setLoading(false);
-        return;
+      if (!res.ok || !data.success) {
+        setFoundOrders([]);
+        setErrorMsg(data.error || 'No orders found for this search. Please check your phone number or order reference.');
+      } else {
+        setFoundOrders(data.orders || []);
       }
-
-      setErrorMsg(
-        data.error ||
-        `No orders found for "${clean}". Make sure you enter the number you used to pay.`
-      );
-      setLoading(false);
-    } catch (err: any) {
-      console.error('Track error:', err);
-      setErrorMsg('Unable to retrieve orders right now. Please try again.');
+    } catch {
+      setFoundOrders([]);
+      setErrorMsg('Failed to connect to order server. Please check your connection and try again.');
+    } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (initialPhone || initialRef) {
+      executeSearch(initialPhone || initialRef);
+    }
+  }, []);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     executeSearch(searchQuery);
+  };
+
+  const handleToggleTheme = () => {
+    setIsDark(!isDark);
   };
 
   return (
@@ -377,7 +617,7 @@ function TrackOrderContent() {
         {/* Search Card */}
         <form
           onSubmit={handleSearchSubmit}
-          className={`rounded-2xl md:rounded-3xl p-5 sm:p-6 md:p-8 transition-all border mb-8 md:mb-10 ${
+          className={`rounded-2xl md:rounded-3xl p-5 sm:p-6 md:p-8 transition-all border mb-4 ${
             isDark
               ? 'bg-[#09121F] border-[#15233A] shadow-[0_25px_60px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.05)]'
               : 'bg-white border-[#E2E8F0] shadow-xl shadow-slate-200/50'
@@ -426,6 +666,24 @@ function TrackOrderContent() {
           </div>
         </form>
 
+        {/* Info Trigger Link: "Why is my order taking longer?" */}
+        <div className="flex items-center justify-center sm:justify-start mb-8 md:mb-10">
+          <button
+            type="button"
+            onClick={() => setIsWhyModalOpen(true)}
+            className={`inline-flex items-center gap-1.5 text-xs sm:text-[13px] md:text-sm font-semibold tracking-tight transition-colors py-1 px-2 rounded-lg cursor-pointer ${
+              isDark
+                ? 'text-[#8E9CAE] hover:text-[#00C853]'
+                : 'text-slate-600 hover:text-[#00C853]'
+            }`}
+          >
+            <HelpCircle className="w-3.5 h-3.5 text-[#00C853] shrink-0" />
+            <span className="underline decoration-dotted underline-offset-4">
+              Why is my order taking longer?
+            </span>
+          </button>
+        </div>
+
         {/* Loading state */}
         {loading && (
           <div className="py-12 text-center">
@@ -472,7 +730,7 @@ function TrackOrderContent() {
           </div>
         )}
 
-        {/* Live Order Results — up to 5 */}
+        {/* Live Order Results */}
         {searched && !loading && foundOrders.length > 0 && (
           <div className="flex flex-col gap-4">
             <p className={`text-xs font-semibold ${isDark ? 'text-[#8E9CAE]' : 'text-slate-500'}`}>
@@ -485,11 +743,19 @@ function TrackOrderContent() {
                 isDark={isDark}
                 searchQuery={searchQuery}
                 onRefresh={() => executeSearch(searchQuery)}
+                onOpenWhyModal={() => setIsWhyModalOpen(true)}
               />
             ))}
           </div>
         )}
       </main>
+
+      {/* Why is my order taking longer modal */}
+      <WhyOrderTakingLongerModal
+        isOpen={isWhyModalOpen}
+        onClose={() => setIsWhyModalOpen(false)}
+        isDark={isDark}
+      />
 
       <Footer isDark={isDark} />
     </div>
