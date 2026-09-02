@@ -510,11 +510,19 @@ function OrderCard({
 
 function TrackOrderContent() {
   const searchParams = useSearchParams();
-  const initialPhone = searchParams.get('phone') || '';
-  const initialRef = searchParams.get('ref') || '';
+  const initialQuery = (
+    searchParams.get('phone') ||
+    searchParams.get('q') ||
+    searchParams.get('query') ||
+    searchParams.get('order_id') ||
+    searchParams.get('orderId') ||
+    searchParams.get('ref') ||
+    searchParams.get('reference') ||
+    ''
+  ).trim();
 
   const [isDark, setIsDark] = useState<boolean>(true);
-  const [searchQuery, setSearchQuery] = useState<string>(initialPhone || initialRef);
+  const [searchQuery, setSearchQuery] = useState<string>(initialQuery);
   const [loading, setLoading] = useState<boolean>(false);
   const [searched, setSearched] = useState<boolean>(false);
   const [foundOrders, setFoundOrders] = useState<OrderRecord[]>([]);
@@ -541,7 +549,30 @@ function TrackOrderContent() {
     setSearched(true);
 
     try {
-      const res = await fetch(`/api/track?q=${encodeURIComponent(cleanQuery)}`);
+      // Collect any known order IDs saved in this browser's localStorage
+      let extraOrderIds: string[] = [];
+      try {
+        const rawHistory = localStorage.getItem('gbplug_orders');
+        if (rawHistory) {
+          const parsed = JSON.parse(rawHistory);
+          if (Array.isArray(parsed)) {
+            const cleanDigits = cleanQuery.replace(/\D/g, '').slice(-9);
+            extraOrderIds = parsed
+              .filter((item: any) => {
+                if (!cleanDigits) return true;
+                const rec = (item.recipient || '').replace(/\D/g, '');
+                return rec.endsWith(cleanDigits) || cleanQuery.toUpperCase().includes((item.order_id || '').toUpperCase());
+              })
+              .map((item: any) => item.order_id)
+              .filter(Boolean);
+          }
+        }
+      } catch (err) {
+        console.error('Error reading localStorage orders:', err);
+      }
+
+      const orderIdsParam = extraOrderIds.length > 0 ? `&orderIds=${encodeURIComponent(extraOrderIds.join(','))}` : '';
+      const res = await fetch(`/api/track?q=${encodeURIComponent(cleanQuery)}${orderIdsParam}`);
       const data = await res.json();
 
       if (!res.ok || !data.success) {
@@ -559,10 +590,23 @@ function TrackOrderContent() {
   };
 
   useEffect(() => {
-    if (initialPhone || initialRef) {
-      executeSearch(initialPhone || initialRef);
+    if (initialQuery) {
+      executeSearch(initialQuery);
+    } else {
+      // Auto-populate from recent localStorage order if available
+      try {
+        const rawHistory = localStorage.getItem('gbplug_orders');
+        if (rawHistory) {
+          const parsed = JSON.parse(rawHistory);
+          if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].recipient) {
+            const recentPhone = parsed[0].recipient;
+            setSearchQuery(recentPhone);
+            executeSearch(recentPhone);
+          }
+        }
+      } catch {}
     }
-  }, []);
+  }, [initialQuery]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();

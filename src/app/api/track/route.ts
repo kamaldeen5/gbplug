@@ -1,45 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { registerOrderEntry, getOrdersByPhone } from '@/lib/order-registry';
 import { NETWORK_BUNDLES } from '@/data/bundles';
+import { getOrderStatus } from '@/lib/datasika';
 
 export const dynamic = 'force-dynamic';
-
-const DATASIKA_BASE_URL = 'https://nrsfvhztpzwkadwciizp.supabase.co/functions/v1';
 
 function detectNetwork(phone: string): { id: 'mtn' | 'telecel' | 'airteltigo'; name: string } {
   const p = phone.replace(/\D/g, '');
   if (/^(024|054|055|059|025)/.test(p)) return { id: 'mtn', name: 'MTN Ghana' };
   if (/^(020|050)/.test(p)) return { id: 'telecel', name: 'Telecel Ghana' };
   return { id: 'airteltigo', name: 'AirtelTigo' };
-}
-
-function findProductId(network: string, bundleGb: number): { productId: string; serviceType?: string } | null {
-  const netLower = (network || '').toLowerCase();
-  const netKey = netLower.includes('telecel') || netLower.includes('vodafone')
-    ? 'telecel'
-    : netLower.includes('airtel') || netLower.includes('tigo')
-    ? 'airteltigo'
-    : 'mtn';
-
-  const list = NETWORK_BUNDLES[netKey] || [];
-  const found = list.find((b) => {
-    const gbNum = parseFloat(b.name.replace(/[^0-9.]/g, ''));
-    return gbNum === bundleGb;
-  });
-
-  if (found) {
-    return { productId: found.productId, serviceType: found.serviceType };
-  }
-  return null;
-}
-
-async function fetchDsOrder(orderId: string, dataSikaKey: string) {
-  const res = await fetch(
-    `${DATASIKA_BASE_URL}/api-order-status?order_id=${encodeURIComponent(orderId)}`,
-    { headers: { Authorization: `Bearer ${dataSikaKey}` }, cache: 'no-store' }
-  );
-  if (!res.ok) return null;
-  return res.json() as Promise<any>;
 }
 
 function findExactRetailPrice(network: string, bundleGb: number): number {
@@ -66,9 +36,10 @@ function dsOrderToUi(ds: any) {
   const { id: networkId, name: networkName } = detectNetwork(ds.recipient || '');
   const rawStatus = (ds.status || '').toLowerCase();
 
-  // Customer always sees 'processing' until actually 'delivered' (never 'failed')
+  // Customer sees 'delivered' when complete, 'processing' during queue/transit
   const isDelivered = rawStatus === 'delivered';
-  const displayStatus = isDelivered ? 'delivered' : 'processing';
+  const isFailed = rawStatus === 'failed' || rawStatus === 'refunded';
+  const displayStatus = isDelivered ? 'delivered' : isFailed ? 'failed' : 'processing';
   const gb = Number(ds.bundle_gb || 0);
 
   // Exact retail price paid by customer on gbplug.com
@@ -77,10 +48,9 @@ function dsOrderToUi(ds: any) {
     retailAmount = Math.ceil((Number(ds.amount_charged) * 1.125) / 0.5) * 0.5;
   }
 
-  // Realistic timeline progression
+  // Timeline progression
   const placedTime = ds.created_at ? new Date(ds.created_at).getTime() : Date.now();
   const orderPlacedAt = ds.created_at || new Date(placedTime).toISOString();
-  // Processing logged ~20 seconds after payment confirmation
   const processingAt = new Date(placedTime + 20000).toISOString();
 
   let deliveredAt: string | null = null;
@@ -102,7 +72,7 @@ function dsOrderToUi(ds: any) {
     data: ds.bundle_gb ? `${ds.bundle_gb} GB` : 'Data Bundle',
     phone: ds.recipient || '',
     amount: retailAmount,
-    status: displayStatus as 'delivered' | 'processing',
+    status: displayStatus,
     timeline: {
       orderPlacedAt,
       processingAt,
@@ -114,87 +84,121 @@ function dsOrderToUi(ds: any) {
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const query = (searchParams.get('query') || '').trim();
 
-    if (!query) {
-      return NextResponse.json({ success: false, error: 'Phone number is required.' }, { status: 400 });
-    }
+    // Accept multiple query param aliases for maximum compatibility
+    const rawQuery = (
+      searchParams.get('q') ||
+      searchParams.get('query') ||
+      searchParams.get('phone') ||
+      searchParams.get('order_id') ||
+      searchParams.get('orderId') ||
+      searchParams.get('ref') ||
+      searchParams.get('reference') ||
+      ''
+    ).trim();
 
-    const dataSikaKey = process.env.DATA_API_KEY || process.env.DSK_API_KEY;
-    if (!dataSikaKey) {
-      return NextResponse.json({ success: false, error: 'DataSika API key not configured.' }, { status: 500 });
-    }
-
-    // Path A: direct order ID lookup (API-... or FLX-...)
-    if (query.toUpperCase().startsWith('API-') || query.toUpperCase().startsWith('FLX-')) {
-      const ds = await fetchDsOrder(query.toUpperCase(), dataSikaKey);
-      if (!ds) {
-        return NextResponse.json({
-          success: false,
-          error: `Order ${query} not found. Double-check the Order ID and try again.`,
-        });
-      }
-
-      registerOrderEntry({ orderId: ds.order_id, recipient: ds.recipient, createdAt: ds.created_at });
-      return NextResponse.json({ success: true, orders: [dsOrderToUi(ds)] });
-    }
-
-    // Path B: phone number lookup via DataSika order registry
-    const cleanDigits = query.replace(/\D/g, '');
-    if (cleanDigits.length < 9) {
+    if (!rawQuery) {
       return NextResponse.json(
-        { success: false, error: 'Please enter your 10-digit recipient phone number.' },
+        { success: false, error: 'Please enter your phone number or Order ID.' },
         { status: 400 }
       );
     }
 
-    const entries = getOrdersByPhone(cleanDigits);
+    const dataSikaKey = process.env.DATA_API_KEY || process.env.DSK_API_KEY;
+    if (!dataSikaKey) {
+      return NextResponse.json(
+        { success: false, error: 'Data gateway key not configured.' },
+        { status: 500 }
+      );
+    }
 
-    // Merge any known order IDs saved in the client browser's localStorage
-    const extraOrderIds = (searchParams.get('orderIds') || '')
-      .split(',')
-      .map((s) => s.trim().toUpperCase())
-      .filter((s) => s.startsWith('API-') || s.startsWith('FLX-'));
+    // Direct Order ID Lookup (e.g. API-..., FLX-..., ORD-..., or any alphanumeric order code)
+    const isDirectOrderId =
+      rawQuery.toUpperCase().startsWith('API-') ||
+      rawQuery.toUpperCase().startsWith('FLX-') ||
+      rawQuery.toUpperCase().startsWith('ORD-') ||
+      (/[A-Za-z]/.test(rawQuery) && rawQuery.length > 5);
 
-    for (const oid of extraOrderIds) {
-      if (!entries.find((e) => e.orderId === oid)) {
-        entries.push({ orderId: oid, recipient: cleanDigits, createdAt: new Date().toISOString() });
+    if (isDirectOrderId) {
+      try {
+        const ds = await getOrderStatus(rawQuery.toUpperCase());
+        if (ds && ds.order_id) {
+          registerOrderEntry({
+            orderId: ds.order_id,
+            recipient: ds.recipient,
+            createdAt: (ds as any).created_at,
+          });
+          return NextResponse.json({ success: true, orders: [dsOrderToUi(ds)] });
+        }
+      } catch (err) {
+        console.error('[Track] Direct order lookup error:', err);
       }
     }
 
-    if (entries.length === 0) {
+    // Phone Number / Registry Lookup
+    const cleanDigits = rawQuery.replace(/\D/g, '');
+    const clean10 = cleanDigits.slice(-10);
+
+    // Collect order IDs from:
+    // 1. In-memory registry
+    const registryEntries = clean10.length >= 9 ? getOrdersByPhone(clean10) : [];
+    const orderIdSet = new Set<string>(registryEntries.map((e) => e.orderId));
+
+    // 2. Extra order IDs passed from client localStorage
+    const extraParam = searchParams.get('orderIds') || searchParams.get('order_ids') || '';
+    if (extraParam) {
+      extraParam
+        .split(',')
+        .map((s) => s.trim().toUpperCase())
+        .filter(Boolean)
+        .forEach((oid) => orderIdSet.add(oid));
+    }
+
+    // 3. If the query itself looks like an order ID, add it
+    if (rawQuery.length >= 6) {
+      orderIdSet.add(rawQuery.trim().toUpperCase());
+    }
+
+    const allOrderIds = Array.from(orderIdSet);
+
+    if (allOrderIds.length === 0) {
       return NextResponse.json({
         success: false,
-        error: `No orders found for ${query}. Make sure you enter the recipient number used at checkout.`,
+        error: `No live orders found for ${rawQuery}. Please ensure you enter the exact recipient number used at checkout.`,
       });
     }
 
-    // Sort newest first, cap at 10
-    const sorted = [...entries]
-      .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
-      .slice(0, 10);
-
-    // Fetch live status from DataSika for each order in parallel (100% read-only)
+    // Fetch live status from DataSika in parallel
     const settled = await Promise.allSettled(
-      sorted.map(async (e) => {
-        return fetchDsOrder(e.orderId, dataSikaKey);
+      allOrderIds.slice(0, 10).map(async (oid) => {
+        return getOrderStatus(oid);
       })
     );
 
-    const orders = settled
+    const validOrders = settled
       .map((r) => (r.status === 'fulfilled' && r.value ? dsOrderToUi(r.value) : null))
       .filter(Boolean);
 
-    if (orders.length === 0) {
+    // Filter by phone number if a specific phone was queried
+    const filtered = clean10.length >= 9
+      ? validOrders.filter((o) => (o!.phone || '').replace(/\D/g, '').endsWith(clean10.slice(-9)))
+      : validOrders;
+
+    const results = filtered.length > 0 ? filtered : validOrders;
+
+    if (results.length === 0) {
       return NextResponse.json({
         success: false,
-        error: 'Could not retrieve order details from DataSika right now. Try again shortly.',
+        error: `No orders found for ${rawQuery}. Please verify your details or contact support.`,
       });
     }
 
-    return NextResponse.json({ success: true, orders });
+    return NextResponse.json({ success: true, orders: results });
   } catch (error: any) {
     console.error('Track API error:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: error.message || 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
