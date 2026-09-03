@@ -1,4 +1,4 @@
-﻿// Moolre Bank of Ghana Licensed Payment Gateway - Server-Side Client
+// Moolre Bank of Ghana Licensed Payment Gateway - Server-Side Client
 const MOOLRE_BASE_URL = 'https://api.moolre.com';
 
 function getMoolreConfig() {
@@ -66,7 +66,7 @@ export async function initializePayment({
   const cleanPhone = phone.replace(/\D/g, '');
   const externalRef = `gbplug-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
   const defaultCallback = `${process.env.NEXT_PUBLIC_APP_URL || 'https://gbplug.com'}/api/webhook/moolre`;
-  const defaultRedirect = `${process.env.NEXT_PUBLIC_APP_URL || 'https://gbplug.com'}/track-order?order_id=${encodeURIComponent(externalRef)}`;
+  const defaultRedirect = `${process.env.NEXT_PUBLIC_APP_URL || 'https://gbplug.com'}/track-order?phone=${encodeURIComponent(cleanPhone)}`;
 
   const payload = {
     type: 1,

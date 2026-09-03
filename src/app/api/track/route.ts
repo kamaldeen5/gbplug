@@ -7,20 +7,21 @@ import { fulfillOrderOnce } from '@/lib/fulfillment';
 
 export const dynamic = 'force-dynamic';
 
-function detectNetwork(phone: string): { id: 'mtn' | 'telecel' | 'airteltigo'; name: string } {
-  const p = phone.replace(/\D/g, '');
+function normalizeNetwork(networkStr?: string, phone?: string): { id: 'mtn' | 'telecel' | 'airteltigo'; name: string } {
+  const netLower = (networkStr || '').toLowerCase();
+  if (netLower.includes('mtn') || netLower.includes('flexa')) return { id: 'mtn', name: 'MTN Ghana' };
+  if (netLower.includes('telecel') || netLower.includes('vodafone')) return { id: 'telecel', name: 'Telecel Ghana' };
+  if (netLower.includes('airtel') || netLower.includes('tigo') || netLower.includes('at')) return { id: 'airteltigo', name: 'AirtelTigo' };
+
+  // Fallback to phone prefix detection only if network was not specified
+  const p = (phone || '').replace(/\D/g, '');
   if (/^(024|054|055|059|025)/.test(p)) return { id: 'mtn', name: 'MTN Ghana' };
   if (/^(020|050)/.test(p)) return { id: 'telecel', name: 'Telecel Ghana' };
   return { id: 'airteltigo', name: 'AirtelTigo' };
 }
 
 function findExactRetailPrice(network: string, bundleGb: number): number {
-  const netLower = (network || '').toLowerCase();
-  const netKey = netLower.includes('telecel') || netLower.includes('vodafone')
-    ? 'telecel'
-    : netLower.includes('airtel') || netLower.includes('tigo')
-    ? 'airteltigo'
-    : 'mtn';
+  const { id: netKey } = normalizeNetwork(network);
 
   const list = NETWORK_BUNDLES[netKey] || [];
   const found = list.find((b) => {
@@ -35,7 +36,7 @@ function findExactRetailPrice(network: string, bundleGb: number): number {
 }
 
 function dsOrderToUi(ds: any) {
-  const { id: networkId, name: networkName } = detectNetwork(ds.recipient || '');
+  const { id: networkId, name: networkName } = normalizeNetwork(ds.network, ds.recipient || '');
   const rawStatus = (ds.status || '').toLowerCase();
 
   const isDelivered = rawStatus === 'delivered';
@@ -123,7 +124,7 @@ async function resolveSingleOrder(idOrRef: string): Promise<any | null> {
           } catch (fErr) {}
         }
 
-        const { id: netId, name: netName } = detectNetwork(cleanRecipient);
+        const { id: netId, name: netName } = normalizeNetwork(metadata.bundle_name || serviceType, cleanRecipient);
         return {
           id: pData.reference,
           reference: pData.reference,
@@ -160,9 +161,9 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
 
     const rawQuery = (
+      searchParams.get('phone') ||
       searchParams.get('q') ||
       searchParams.get('query') ||
-      searchParams.get('phone') ||
       searchParams.get('order_id') ||
       searchParams.get('orderId') ||
       searchParams.get('ref') ||
@@ -172,7 +173,7 @@ export async function GET(req: NextRequest) {
 
     if (!rawQuery) {
       return NextResponse.json(
-        { success: false, error: 'Please enter your phone number or Order ID.' },
+        { success: false, error: 'Please enter your 10-digit phone number.' },
         { status: 400 }
       );
     }
@@ -223,7 +224,7 @@ export async function GET(req: NextRequest) {
     if (allIds.length === 0) {
       return NextResponse.json({
         success: false,
-        error: `No live orders found for ${rawQuery}. Please ensure you enter the recipient number or reference used at checkout.`,
+        error: `No live orders found for ${rawQuery}. Please ensure you enter the recipient number used at checkout.`,
       });
     }
 
@@ -246,7 +247,7 @@ export async function GET(req: NextRequest) {
     if (results.length === 0) {
       return NextResponse.json({
         success: false,
-        error: `No orders found for ${rawQuery}. If you just placed an order, please allow 1-2 minutes for the network to register it, or contact WhatsApp support.`,
+        error: `No orders found for ${rawQuery}. If you just placed an order, please allow a moment for the network to register it, or contact WhatsApp support.`,
       });
     }
 

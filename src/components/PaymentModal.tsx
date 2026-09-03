@@ -325,9 +325,9 @@ export function PaymentModal({
             <div className="space-y-2.5">
               {/* Primary CTA — Track Order */}
               <Link
-                href={orderId ? `/track-order?order_id=${encodeURIComponent(orderId)}` : '/track-order'}
+                href={`/track-order?phone=${encodeURIComponent(cleanPhone)}`}
                 onClick={handleDone}
-                className="w-full h-12 bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white font-bold tracking-tight rounded-xl shadow-[0_4px_16px_rgba(0,200,83,0.35),inset_0_1px_0_rgba(255,255,255,0.2)] transition-all flex items-center justify-center gap-2"
+                className="w-full h-12 bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white font-bold tracking-tight rounded-xl shadow-[0_4px_16px_rgba(0,200,83,0.35),inset_0_1px_0_rgba(255,255,255,0.2)] transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <PackageSearch className="w-4 h-4" />
                 Track My Order

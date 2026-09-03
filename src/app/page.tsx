@@ -40,20 +40,10 @@ export default function Home() {
       return;
     }
     const cleanPhone = phoneNumber.replace(/\D/g, '');
-    if (cleanPhone.length < 10) {
-      setErrorMsg('Please enter a valid 10-digit Ghana phone number.');
+    if (cleanPhone.length !== 10 || !cleanPhone.startsWith('0')) {
+      setErrorMsg('Please enter a valid 10-digit Ghana phone number (e.g. 024 123 4567).');
       setTimeout(() => setErrorMsg(null), 3000);
       return;
-    }
-
-    // Strict MTN-only check for MTN bundles
-    if (selectedBundle.serviceType === 'mtn_flexa' || selectedNetwork.id === 'mtn') {
-      const isMtn = ['024', '054', '055', '059', '025'].some((p) => cleanPhone.startsWith(p));
-      if (!isMtn) {
-        setErrorMsg('MTN bundles are only for MTN numbers (024, 054, 055, 059, 025). Please check your recipient number or select another network.');
-        setTimeout(() => setErrorMsg(null), 4000);
-        return;
-      }
     }
 
     setErrorMsg(null);

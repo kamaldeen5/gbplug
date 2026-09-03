@@ -508,9 +508,19 @@ function OrderCard({
   );
 }
 
+function formatPhoneDisplay(raw: string): string {
+  const digits = raw.replace(/\D/g, '').slice(-10);
+  if (digits.length > 3 && digits.length <= 6) {
+    return `${digits.slice(0, 3)} ${digits.slice(3)}`;
+  } else if (digits.length > 6) {
+    return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
+  }
+  return digits || raw;
+}
+
 function TrackOrderContent() {
   const searchParams = useSearchParams();
-  const initialQuery = (
+  const rawParam = (
     searchParams.get('phone') ||
     searchParams.get('q') ||
     searchParams.get('query') ||
@@ -520,6 +530,8 @@ function TrackOrderContent() {
     searchParams.get('reference') ||
     ''
   ).trim();
+
+  const initialQuery = /^\d+$/.test(rawParam) ? formatPhoneDisplay(rawParam) : rawParam;
 
   const [isDark, setIsDark] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>(initialQuery);
@@ -727,8 +739,16 @@ function TrackOrderContent() {
               <input
                 type="tel"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="e.g. 024XXXXXXX or Order ID"
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const digits = val.replace(/\D/g, '').slice(0, 10);
+                  if (digits.length > 0) {
+                    setSearchQuery(formatPhoneDisplay(digits));
+                  } else {
+                    setSearchQuery(val);
+                  }
+                }}
+                placeholder="e.g. 024 123 4567"
                 inputMode="numeric"
                 className={`w-full h-[52px] sm:h-[54px] md:h-[60px] px-4 md:px-5 pl-11 md:pl-12 rounded-xl md:rounded-2xl border text-[16px] md:text-[17px] font-medium tracking-tight transition-all outline-none ${
                   isDark

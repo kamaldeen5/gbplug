@@ -63,16 +63,6 @@ export function PurchaseCard({
       formatted = `${raw.slice(0, 3)} ${raw.slice(3, 6)} ${raw.slice(6)}`;
     }
     setPhoneNumber(formatted);
-
-    // Auto-detect network prefix if user types
-    if (raw.length >= 3) {
-      const prefix = raw.slice(0, 3);
-      const matched = NETWORKS.find((n) => n.phonePrefixes.includes(prefix));
-      if (matched && matched.id !== selectedNetwork.id) {
-        setSelectedNetwork(matched);
-        setSelectedBundle(null);
-      }
-    }
   };
 
   const handleSelectNetwork = (net: Network) => {
