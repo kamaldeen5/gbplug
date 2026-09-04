@@ -29,10 +29,18 @@ export function Footer({ isDark }: FooterProps) {
         </div>
 
         {/* Center: Essential Links */}
-        <div className="flex items-center gap-5 md:gap-8 font-medium">
+        <div className="flex items-center gap-4 sm:gap-5 md:gap-7 font-medium flex-wrap justify-center">
           <Link href="/blog" className="hover:text-[#00C853] transition-colors">
             Blog &amp; Guides
           </Link>
+          <a
+            href="https://wa.me/233241234567?text=Hello%20GB%20Plug,%20I%20would%20like%20to%20register%20my%20MTN%20number%20for%20Flexa%20bundles"
+            target="_blank"
+            rel="noreferrer"
+            className="hover:text-[#00C853] transition-colors"
+          >
+            Register Flexa
+          </a>
           <Link href="/terms" className="hover:text-[#00C853] transition-colors">
             Terms
           </Link>
