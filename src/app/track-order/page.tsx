@@ -299,7 +299,7 @@ function WhyOrderTakingLongerModal({
         {/* Bottom Action Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-4 border-t border-slate-700/30">
           <a
-            href="https://wa.me/233241234567?text=Hello%20GB%20Plug,%20I%20have%20a%20question%20about%20my%20data%20order"
+            href="https://wa.me/233530677880?text=Hello%20GB%20Plug,%20I%20have%20a%20question%20about%20my%20data%20order"
             target="_blank"
             rel="noreferrer"
             className={`w-full sm:w-auto px-5 py-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
@@ -827,7 +827,7 @@ function TrackOrderContent() {
                 Buy Data Bundle
               </Link>
               <a
-                href={`https://wa.me/233241234567?text=Hello%20GB%20Plug,%20I%20need%20help%20tracking%20my%20order%20for%20${searchQuery}`}
+                href={`https://wa.me/233530677880?text=Hello%20GB%20Plug,%20I%20need%20help%20tracking%20my%20order%20for%20${searchQuery}`}
                 target="_blank"
                 rel="noreferrer"
                 className={`px-5 py-2.5 rounded-xl font-semibold text-xs transition-all border flex items-center gap-1.5 ${

@@ -335,7 +335,7 @@ export function PaymentModal({
 
               {/* Secondary — WhatsApp support */}
               <a
-                href={`https://wa.me/233241234567?text=Hello%20GB%20Plug!%20I%20just%20paid%20for%20${encodeURIComponent(bundle.data)}%20to%20${cleanPhone}.%20Order%3A%20${orderId || 'N/A'}`}
+                href={`https://wa.me/233530677880?text=Hello%20GB%20Plug!%20I%20just%20paid%20for%20${encodeURIComponent(bundle.data)}%20to%20${cleanPhone}.%20Order%3A%20${orderId || 'N/A'}`}
                 target="_blank"
                 rel="noreferrer"
                 className={`w-full h-11 rounded-xl text-xs font-semibold tracking-tight transition-all flex items-center justify-center gap-2 border ${

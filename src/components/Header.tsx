@@ -20,7 +20,7 @@ export function Header({
   const isTrackOrder = pathname === '/track-order';
 
   const openWhatsApp = () => {
-    window.open('https://wa.me/233241234567?text=Hello%20GB%20Plug,%20I%20need%20help%20with%20data%20bundle', '_blank');
+    window.open('https://wa.me/233530677880?text=Hello%20GB%20Plug,%20I%20need%20help%20with%20data%20bundle', '_blank');
   };
 
   return (

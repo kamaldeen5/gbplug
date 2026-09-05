@@ -34,7 +34,7 @@ export function Footer({ isDark }: FooterProps) {
             Blog &amp; Guides
           </Link>
           <a
-            href="https://wa.me/233241234567?text=Hello%20GB%20Plug,%20I%20would%20like%20to%20register%20my%20MTN%20number%20for%20Flexa%20bundles"
+            href="https://wa.me/233530677880?text=Hello%20GB%20Plug,%20I%20would%20like%20to%20register%20my%20MTN%20number%20for%20Flexa%20bundles"
             target="_blank"
             rel="noreferrer"
             className="hover:text-[#00C853] transition-colors"
@@ -55,7 +55,7 @@ export function Footer({ isDark }: FooterProps) {
         {/* Right: WhatsApp Contact */}
         <div>
           <a
-            href="https://wa.me/233241234567?text=Hello%20GB%20Plug,%20I%20need%20assistance"
+            href="https://wa.me/233530677880?text=Hello%20GB%20Plug,%20I%20need%20assistance"
             target="_blank"
             rel="noreferrer"
             className="flex items-center gap-1.5 md:gap-2 text-[#00C853] font-semibold hover:underline"

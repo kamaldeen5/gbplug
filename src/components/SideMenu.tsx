@@ -79,7 +79,7 @@ export function SideMenu({ isOpen, onClose, isDark }: SideMenuProps) {
           </Link>
 
           <a
-            href="https://wa.me/233241234567"
+            href="https://wa.me/233530677880"
             target="_blank"
             rel="noreferrer"
             className={`flex items-center gap-3 w-full p-3 rounded-xl transition-colors tracking-tight ${
