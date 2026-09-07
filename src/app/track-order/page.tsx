@@ -592,7 +592,22 @@ function TrackOrderContent() {
       const data = await res.json();
 
       if (res.ok && data.success && Array.isArray(data.orders) && data.orders.length > 0) {
-        setFoundOrders(data.orders);
+        // Strict deduplication by ID / reference
+        const clientUniqueMap = new Map<string, OrderRecord>();
+        for (const o of data.orders) {
+          if (!o) continue;
+          const k = (o.id || o.reference || '').toUpperCase().trim();
+          if (!k) continue;
+          if (!clientUniqueMap.has(k)) {
+            clientUniqueMap.set(k, o);
+          } else {
+            const existing = clientUniqueMap.get(k);
+            if (existing && existing.status !== 'delivered' && o.status === 'delivered') {
+              clientUniqueMap.set(k, o);
+            }
+          }
+        }
+        setFoundOrders(Array.from(clientUniqueMap.values()));
         setErrorMsg('');
 
         // Sync fresh statuses back to localStorage
@@ -613,28 +628,33 @@ function TrackOrderContent() {
           }
         } catch (e) {}
       } else if (localMatchingOrders.length > 0) {
-        // Use local storage records formatted for UI
-        const mappedLocal: OrderRecord[] = localMatchingOrders.map((item: any) => {
+        // Use local storage records formatted for UI with deduplication
+        const mappedLocalMap = new Map<string, OrderRecord>();
+        for (const item of localMatchingOrders) {
           const placedAt = item.timestamp || new Date().toISOString();
-          return {
-            id: item.order_id || item.id || 'ORDER',
-            reference: item.reference || item.order_id || item.id,
-            network: item.networkId || 'mtn',
-            networkName: item.network || 'MTN Ghana',
-            bundle: item.bundle || `${item.data || ''} Data Bundle`,
-            data: item.data || 'Data Bundle',
-            phone: item.recipient || cleanQuery,
-            amount: item.price || 0,
-            status: item.status || 'processing',
-            timeline: {
-              orderPlacedAt: placedAt,
-              processingAt: new Date(new Date(placedAt).getTime() + 20000).toISOString(),
-              deliveredAt: item.status === 'delivered' ? new Date().toISOString() : null,
-            },
-          };
-        });
+          const id = item.order_id || item.id || 'ORDER';
+          const k = id.toUpperCase().trim();
+          if (!mappedLocalMap.has(k)) {
+            mappedLocalMap.set(k, {
+              id: id,
+              reference: item.reference || item.order_id || item.id,
+              network: item.networkId || 'mtn',
+              networkName: item.network || 'MTN Ghana',
+              bundle: item.bundle || `${item.data || ''} Data Bundle`,
+              data: item.data || 'Data Bundle',
+              phone: item.recipient || cleanQuery,
+              amount: item.price || 0,
+              status: item.status || 'processing',
+              timeline: {
+                orderPlacedAt: placedAt,
+                processingAt: new Date(new Date(placedAt).getTime() + 20000).toISOString(),
+                deliveredAt: item.status === 'delivered' ? new Date().toISOString() : null,
+              },
+            });
+          }
+        }
 
-        setFoundOrders(mappedLocal);
+        setFoundOrders(Array.from(mappedLocalMap.values()));
         setErrorMsg('');
       } else {
         setFoundOrders([]);

@@ -242,7 +242,24 @@ export async function GET(req: NextRequest) {
       ? validOrders.filter((o) => (o.phone || '').replace(/\D/g, '').endsWith(clean10.slice(-9)))
       : validOrders;
 
-    const results = filtered.length > 0 ? filtered : validOrders;
+    // Strict deduplication by order ID / reference
+    const uniqueOrdersMap = new Map<string, any>();
+    for (const ord of filtered) {
+      if (!ord) continue;
+      const key = (ord.id || ord.reference || '').toUpperCase().trim();
+      if (!key) continue;
+      if (!uniqueOrdersMap.has(key)) {
+        uniqueOrdersMap.set(key, ord);
+      } else {
+        const existing = uniqueOrdersMap.get(key);
+        // If current is delivered and existing is not, prioritize delivered
+        if (existing.status !== 'delivered' && ord.status === 'delivered') {
+          uniqueOrdersMap.set(key, ord);
+        }
+      }
+    }
+
+    const results = Array.from(uniqueOrdersMap.values());
 
     if (results.length === 0) {
       return NextResponse.json({
