@@ -47,20 +47,20 @@ export const NETWORKS: Network[] = [
 
 export const NETWORK_BUNDLES: Record<string, BundleOption[]> = {
   mtn: [
-    { id: 'mtn-1',  productId: 'e5825a25-f365-4926-b78e-8a5b7d2a1c40', name: '1 GB',  data: '1 GB',  costPrice: 3.95,  price: 4.30,   validity: '90 Days', serviceType: 'mtn_flexa' },
-    { id: 'mtn-2',  productId: 'b285a7da-adea-4bdd-be49-8dd54ad2663f', name: '2 GB',  data: '2 GB',  costPrice: 8.00,  price: 8.70,   validity: '90 Days', serviceType: 'mtn_flexa' },
-    { id: 'mtn-3',  productId: '211647ff-747a-4c00-99d1-f793ced9755c', name: '3 GB',  data: '3 GB',  costPrice: 12.00, price: 13.00,  validity: '90 Days', serviceType: 'mtn_flexa' },
-    { id: 'mtn-4',  productId: 'd56621a9-875a-496d-b216-cc21cb5bae02', name: '4 GB',  data: '4 GB',  costPrice: 16.00, price: 17.30,  validity: '90 Days', serviceType: 'mtn_flexa' },
-    { id: 'mtn-5',  productId: '440262fb-f6fe-4c43-89f3-b6c470f24fea', name: '5 GB',  data: '5 GB',  costPrice: 20.00, price: 21.50,  validity: '90 Days', popular: true, serviceType: 'mtn_flexa' },
-    { id: 'mtn-6',  productId: '81cc78fc-3e21-45f0-ac54-1fafa3f01923', name: '6 GB',  data: '6 GB',  costPrice: 24.00, price: 25.80,  validity: '90 Days', serviceType: 'mtn_flexa' },
-    { id: 'mtn-8',  productId: '45caa58f-397c-41d2-a4f1-48ad8d6e1b23', name: '8 GB',  data: '8 GB',  costPrice: 33.00, price: 35.50,  validity: '90 Days', serviceType: 'mtn_flexa' },
-    { id: 'mtn-10', productId: '56456480-f69d-4cb2-8d0f-fd90e5a3e7b7', name: '10 GB', data: '10 GB', costPrice: 40.00, price: 43.00,  validity: '90 Days', popular: true, serviceType: 'mtn_flexa' },
-    { id: 'mtn-15', productId: 'c5418c3a-83fb-461b-ba61-59c1583d5699', name: '15 GB', data: '15 GB', costPrice: 60.00, price: 64.50,  validity: '90 Days', serviceType: 'mtn_flexa' },
-    { id: 'mtn-20', productId: '02c2d960-3676-4e34-b96e-3791b8c2b16c', name: '20 GB', data: '20 GB', costPrice: 78.00, price: 83.50,  validity: '90 Days', serviceType: 'mtn_flexa' },
-    { id: 'mtn-25', productId: '6912f2a7-8c03-4ef3-9be3-292e1ba407ed', name: '25 GB', data: '25 GB', costPrice: 98.00, price: 104.50, validity: '90 Days', serviceType: 'mtn_flexa' },
-    { id: 'mtn-30', productId: 'a18f4d14-fac2-4277-901e-d8732b3cfa8e', name: '30 GB', data: '30 GB', costPrice: 119.00, price: 127.00, validity: '90 Days', serviceType: 'mtn_flexa' },
-    { id: 'mtn-40', productId: '6be0cb96-ba7e-4bb1-a993-82cbc4adca62', name: '40 GB', data: '40 GB', costPrice: 160.00, price: 170.00, validity: '90 Days', serviceType: 'mtn_flexa' },
-    { id: 'mtn-50', productId: '4545d0f0-1181-40e0-83b0-f78a8984824f', name: '50 GB', data: '50 GB', costPrice: 195.00, price: 207.00, validity: '90 Days', serviceType: 'mtn_flexa' },
+    { id: 'mtn-1',  productId: '17490299-29e5-4e73-bcae-85be8ed68972', name: '1 GB',  data: '1 GB',  costPrice: 4.00,  price: 4.50,   validity: 'No Expiry', serviceType: 'data_bundles' },
+    { id: 'mtn-2',  productId: '15f90b99-ae56-41d1-bc86-0770ba7d8d74', name: '2 GB',  data: '2 GB',  costPrice: 8.00,  price: 8.70,   validity: 'No Expiry', serviceType: 'data_bundles' },
+    { id: 'mtn-3',  productId: 'cb0f6cf3-efa5-4cc1-a1a9-27ac095130a0', name: '3 GB',  data: '3 GB',  costPrice: 12.00, price: 13.00,  validity: 'No Expiry', serviceType: 'data_bundles' },
+    { id: 'mtn-4',  productId: 'd5898b8c-9979-4a09-bc52-f08430157498', name: '4 GB',  data: '4 GB',  costPrice: 16.00, price: 17.30,  validity: 'No Expiry', serviceType: 'data_bundles' },
+    { id: 'mtn-5',  productId: 'ca208754-ed35-4f7a-af14-f103691947c8', name: '5 GB',  data: '5 GB',  costPrice: 20.00, price: 21.50,  validity: 'No Expiry', popular: true, serviceType: 'data_bundles' },
+    { id: 'mtn-6',  productId: 'f6a726a5-f3cb-43fb-afa1-bd273337057d', name: '6 GB',  data: '6 GB',  costPrice: 24.00, price: 25.80,  validity: 'No Expiry', serviceType: 'data_bundles' },
+    { id: 'mtn-8',  productId: 'c6625d9d-722b-4f33-bf20-9a7eba9a3d6a', name: '8 GB',  data: '8 GB',  costPrice: 33.00, price: 35.50,  validity: 'No Expiry', serviceType: 'data_bundles' },
+    { id: 'mtn-10', productId: '16527bc5-9832-476d-913f-1f1abc7e79e8', name: '10 GB', data: '10 GB', costPrice: 40.00, price: 43.00,  validity: 'No Expiry', popular: true, serviceType: 'data_bundles' },
+    { id: 'mtn-15', productId: '3c78af77-a372-4bf8-9a5b-23dc7c45a134', name: '15 GB', data: '15 GB', costPrice: 59.00, price: 64.50,  validity: 'No Expiry', serviceType: 'data_bundles' },
+    { id: 'mtn-20', productId: 'b6cdc71b-7701-46fa-b773-9fd92a241c1f', name: '20 GB', data: '20 GB', costPrice: 78.00, price: 83.50,  validity: 'No Expiry', serviceType: 'data_bundles' },
+    { id: 'mtn-25', productId: '61cf3850-edb2-48c7-8ccd-15a6a7ce7737', name: '25 GB', data: '25 GB', costPrice: 98.00, price: 104.50, validity: 'No Expiry', serviceType: 'data_bundles' },
+    { id: 'mtn-30', productId: '90dde8e8-320c-4580-98ec-cabdc77a00ee', name: '30 GB', data: '30 GB', costPrice: 119.00, price: 127.00, validity: 'No Expiry', serviceType: 'data_bundles' },
+    { id: 'mtn-40', productId: 'a6709756-6b41-4adf-b4d1-516f5598bd44', name: '40 GB', data: '40 GB', costPrice: 160.00, price: 170.00, validity: 'No Expiry', serviceType: 'data_bundles' },
+    { id: 'mtn-50', productId: 'c63cbabb-6c29-4667-bedd-f63f5d31feeb', name: '50 GB', data: '50 GB', costPrice: 195.00, price: 207.00, validity: 'No Expiry', serviceType: 'data_bundles' },
   ],
   telecel: [
     { id: 'telecel-5',  productId: 'cc6ac2e0-7711-4ad4-af14-1098fc3addc5', name: '5 GB',  data: '5 GB',  costPrice: 20.0,  price: 21.50,  validity: 'No Expiry' },
@@ -81,5 +81,3 @@ export const NETWORK_BUNDLES: Record<string, BundleOption[]> = {
     { id: 'at-50', productId: '6e2237df-aaf6-4aa1-93b8-0b5ccad3eed8', name: '50 GB', data: '50 GB', costPrice: 184.5, price: 205.00, validity: 'No Expiry' },
   ],
 };
-
-export const MTN_FLEXA_BUNDLES = NETWORK_BUNDLES.mtn;
