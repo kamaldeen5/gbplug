@@ -25,6 +25,23 @@ if (!g.__gbplug_inflight_refs__) {
   g.__gbplug_inflight_refs__ = new Map();
 }
 
+const FLEXA_PRODUCT_IDS = new Set([
+  'e5825a25-f365-4926-b78e-8a5b7d2a1c40', // 1GB
+  'b285a7da-adea-4bdd-be49-8dd54ad2663f', // 2GB
+  '211647ff-747a-4c00-99d1-f793ced9755c', // 3GB
+  'd56621a9-875a-496d-b216-cc21cb5bae02', // 4GB
+  '440262fb-f6fe-4c43-89f3-b6c470f24fea', // 5GB
+  '81cc78fc-3e21-45f0-ac54-1fafa3f01923', // 6GB
+  '45caa58f-397c-41d2-a4f1-48ad8d6e1b23', // 8GB
+  '56456480-f69d-4cb2-8d0f-fd90e5a3e7b7', // 10GB
+  'c5418c3a-83fb-461b-ba61-59c1583d5699', // 15GB
+  '02c2d960-3676-4e34-b96e-3791b8c2b16c', // 20GB
+  '6912f2a7-8c03-4ef3-9be3-292e1ba407ed', // 25GB
+  'a18f4d14-fac2-4277-901e-d8732b3cfa8e', // 30GB
+  '6be0cb96-ba7e-4bb1-a993-82cbc4adca62', // 40GB
+  '4545d0f0-1181-40e0-83b0-f78a8984824f', // 50GB
+]);
+
 /**
  * Fulfill an order once and only once for a given payment reference.
  * If the reference has already been fulfilled or is currently in flight,
@@ -56,7 +73,7 @@ export async function fulfillOrderOnce(params: FulfillOrderParams): Promise<BuyD
 
   const fulfillmentPromise = (async () => {
     try {
-      const isFlexa = serviceType === 'mtn_flexa';
+      const isFlexa = serviceType === 'mtn_flexa' || FLEXA_PRODUCT_IDS.has(productId);
       console.log(`[Fulfillment] Dispatching SINGLE order for ref ${cleanRef} (${isFlexa ? 'MTN Flexa' : 'Standard Bundle'}) to ${cleanRecipient}...`);
 
       const order = isFlexa
