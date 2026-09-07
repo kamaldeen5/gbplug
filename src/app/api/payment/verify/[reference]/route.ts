@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyPayment } from '@/lib/moolre';
+import { verifyPayment } from '@/lib/paystack';
 import { fulfillOrderOnce } from '@/lib/fulfillment';
 import { queuePendingOrder } from '@/lib/order-registry';
 

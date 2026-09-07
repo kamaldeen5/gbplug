@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { initializePayment } from '@/lib/moolre';
+import { initializePayment } from '@/lib/paystack';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { amount, phone, bundleName, productId, callbackUrl, serviceType } = body;
+    const { amount, phone, email, bundleName, productId, callbackUrl, serviceType } = body;
 
     if (!amount || !phone || !bundleName || !productId) {
       return NextResponse.json(
@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
     const result = await initializePayment({
       amount: Number(amount),
       phone: cleanPhone,
+      email: email || `${cleanPhone}@gbplug.com`,
       bundleName,
       productId,
       callbackUrl,
@@ -43,9 +44,10 @@ export async function POST(req: NextRequest) {
       success: true,
       reference: result.data.reference,
       authorization_url: result.data.authorization_url,
+      access_code: result.data.access_code,
     });
   } catch (error: any) {
-    console.error('Moolre initialize error:', error);
+    console.error('Paystack initialize error:', error);
     return NextResponse.json(
       { success: false, error: error.message || 'Payment initiation failed' },
       { status: 500 }

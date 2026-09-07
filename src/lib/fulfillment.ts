@@ -52,7 +52,7 @@ export async function fulfillOrderOnce(params: FulfillOrderParams): Promise<BuyD
   }
 
   // 3. Deterministic Idempotency Key - IDENTICAL across verify, webhook, and cron
-  const deterministicKey = `gbplug-moolre-${cleanRef}`;
+  const deterministicKey = `gbplug-paystack-${cleanRef}`;
 
   const fulfillmentPromise = (async () => {
     try {

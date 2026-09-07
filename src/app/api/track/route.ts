@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { registerOrderEntry, getOrdersByPhone } from '@/lib/order-registry';
 import { NETWORK_BUNDLES } from '@/data/bundles';
 import { getOrderStatus } from '@/lib/datasika';
-import { verifyPayment } from '@/lib/moolre';
+import { verifyPayment } from '@/lib/paystack';
 import { fulfillOrderOnce } from '@/lib/fulfillment';
 
 export const dynamic = 'force-dynamic';
