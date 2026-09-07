@@ -5,13 +5,12 @@ const PAYSTACK_BASE_URL = 'https://api.paystack.co';
 
 function getPaystackConfig() {
   const secretKey = process.env.PAYSTACK_SECRET_KEY;
-  const publicKey = process.env.PAYSTACK_PUBLIC_KEY || process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY;
 
   if (!secretKey) {
     throw new Error('PAYSTACK_SECRET_KEY is missing from environment variables');
   }
 
-  return { secretKey, publicKey };
+  return { secretKey };
 }
 
 export interface InitializePaymentParams {
