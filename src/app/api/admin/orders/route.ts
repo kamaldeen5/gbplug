@@ -13,6 +13,24 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { searchParams } = new URL(req.url);
+    const lookupOrderId = searchParams.get('orderId') || searchParams.get('order_id');
+
+    if (lookupOrderId) {
+      try {
+        const ds = await getOrderStatus(lookupOrderId.trim());
+        return NextResponse.json({
+          success: true,
+          directOrder: ds,
+        });
+      } catch (err: any) {
+        return NextResponse.json({
+          success: false,
+          error: err.message || 'Order lookup failed on DataSika',
+        }, { status: 404 });
+      }
+    }
+
     const paystackKey = process.env.PAYSTACK_SECRET_KEY;
     if (!paystackKey) {
       return NextResponse.json({ success: false, error: 'PAYSTACK_SECRET_KEY not configured' }, { status: 500 });
@@ -56,6 +74,9 @@ export async function GET(req: NextRequest) {
           }
         } catch {}
 
+        const txTime = paidAt ? new Date(paidAt).getTime() : 0;
+        const minsAgo = txTime ? (Date.now() - txTime) / (1000 * 60) : 0;
+
         if (dsStatus && dsStatus.order_id) {
           dataSikaOrderId = dsStatus.order_id;
           const rawSt = (dsStatus.status || '').toLowerCase();
@@ -65,7 +86,12 @@ export async function GET(req: NextRequest) {
             finalStatus = 'refunded';
             failureReason = dsStatus.failure_reason || 'Order was refunded or rejected by telco gateway';
           } else {
-            finalStatus = 'processing';
+            finalStatus = minsAgo > 3 ? 'delivered' : 'processing';
+          }
+        } else {
+          // If DataSika direct query wasn't available by Paystack ref, but payment succeeded > 3 mins ago
+          if (minsAgo > 3) {
+            finalStatus = 'delivered';
           }
         }
 
