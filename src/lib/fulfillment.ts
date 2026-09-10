@@ -90,7 +90,7 @@ export async function fulfillOrderOnce(params: FulfillOrderParams): Promise<BuyD
 
       if (order?.order_id) {
         console.log(`[Fulfillment] Order successfully created with ID: ${order.order_id}`);
-        registerOrderEntry({ orderId: order.order_id, recipient: cleanRecipient });
+        registerOrderEntry({ orderId: order.order_id, recipient: cleanRecipient, reference: cleanRef });
         g.__gbplug_fulfilled_refs__?.set(cleanRef, order);
       }
 

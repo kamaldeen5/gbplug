@@ -124,15 +124,6 @@ async function resolveSingleOrder(idOrRef: string): Promise<any | null> {
           } catch (fErr) {}
         }
 
-        const paidTime = pData.paid_at ? new Date(pData.paid_at).getTime() : Date.now();
-        const minsAgo = (Date.now() - paidTime) / (1000 * 60);
-        const isSuccess = pData.status === 'success';
-        const displayStatus = isSuccess ? (minsAgo > 3 ? 'delivered' : 'processing') : (pData.status === 'failed' ? 'failed' : 'processing');
-
-        const placedTimeIso = pData.paid_at || new Date(paidTime).toISOString();
-        const processingTimeIso = new Date(paidTime + 15000).toISOString();
-        const deliveredTimeIso = displayStatus === 'delivered' ? new Date(paidTime + 65000).toISOString() : null;
-
         const { id: netId, name: netName } = normalizeNetwork(metadata.bundle_name || serviceType, cleanRecipient);
         return {
           id: pData.reference,
@@ -143,11 +134,11 @@ async function resolveSingleOrder(idOrRef: string): Promise<any | null> {
           data: metadata.bundle_name || `${pData.amount} GHS`,
           phone: cleanRecipient,
           amount: pData.amount,
-          status: displayStatus,
+          status: pData.status === 'success' ? 'processing' : (pData.status === 'failed' ? 'failed' : 'processing'),
           timeline: {
-            orderPlacedAt: placedTimeIso,
-            processingAt: processingTimeIso,
-            deliveredAt: deliveredTimeIso,
+            orderPlacedAt: pData.paid_at || new Date().toISOString(),
+            processingAt: new Date().toISOString(),
+            deliveredAt: null,
           },
         };
       }

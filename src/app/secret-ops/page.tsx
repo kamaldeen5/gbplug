@@ -14,8 +14,6 @@ import {
   Copy,
   Check,
   ExternalLink,
-  Search,
-  PackageSearch,
 } from 'lucide-react';
 import { REGULAR_MTN_PACKAGES } from '@/data/bundles';
 import { WhatsAppIcon } from '@/components/NetworkLogos';
@@ -52,41 +50,6 @@ export default function SecretOpsPage() {
   const [dispatchingId, setDispatchingId] = useState<string | null>(null);
   const [dispatchSuccessMsg, setDispatchSuccessMsg] = useState<string | null>(null);
   const [dispatchErrorMsg, setDispatchErrorMsg] = useState<string | null>(null);
-
-  // Direct DataSika Lookup state
-  const [directOrderId, setDirectOrderId] = useState<string>('');
-  const [directLoading, setDirectLoading] = useState<boolean>(false);
-  const [directResult, setDirectResult] = useState<any>(null);
-  const [directError, setDirectError] = useState<string | null>(null);
-
-  const handleDirectLookup = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const cleanId = directOrderId.trim();
-    if (!cleanId) return;
-
-    const activeToken = localStorage.getItem('gbplug_admin_token');
-    if (!activeToken) return;
-
-    setDirectLoading(true);
-    setDirectError(null);
-    setDirectResult(null);
-
-    try {
-      const res = await fetch(`/api/admin/orders?orderId=${encodeURIComponent(cleanId)}`, {
-        headers: { Authorization: `Bearer ${activeToken}` },
-      });
-      const data = await res.json();
-      if (res.ok && data.success && data.directOrder) {
-        setDirectResult(data.directOrder);
-      } else {
-        setDirectError(data.error || 'Order not found on DataSika');
-      }
-    } catch (err: any) {
-      setDirectError(err.message || 'Lookup request failed');
-    } finally {
-      setDirectLoading(false);
-    }
-  };
 
   const fetchOrders = useCallback(async (token?: string) => {
     const activeToken = token || localStorage.getItem('gbplug_admin_token');
@@ -448,78 +411,7 @@ export default function SecretOpsPage() {
           </div>
         </section>
 
-        {/* ── SECTION 3: DATASIKA DIRECT LIVE ORDER INSPECTOR ── */}
-        <section className="bg-[#0C1524] border border-[#16253C] rounded-2xl p-4 sm:p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <PackageSearch className="w-4 h-4 text-[#00C853]" />
-            <h2 className="text-sm font-extrabold tracking-tight">Direct DataSika Live Order Inspector</h2>
-          </div>
-          <p className="text-xs text-slate-400 mb-3">
-            Enter any DataSika Order ID (e.g. <span className="text-[#00C853] font-mono">API-CEB8F20D1C</span>, <span className="text-[#00C853] font-mono">FLX-L6SVFVK5</span>) to fetch real-time gateway status.
-          </p>
-
-          <form onSubmit={handleDirectLookup} className="flex gap-2">
-            <input
-              type="text"
-              value={directOrderId}
-              onChange={(e) => setDirectOrderId(e.target.value)}
-              placeholder="e.g. API-CEB8F20D1C or FLX-S5GFQPFS"
-              className="flex-1 h-11 px-3 bg-[#070D18] border border-[#1A2C46] rounded-xl text-xs sm:text-sm font-bold text-white font-mono uppercase focus:outline-none focus:border-[#00C853]"
-            />
-            <button
-              type="submit"
-              disabled={!directOrderId.trim() || directLoading}
-              className="h-11 px-4 bg-[#101F33] hover:bg-[#162A45] active:bg-[#1C3558] text-white border border-[#1E3456] font-bold text-xs rounded-xl flex items-center gap-1.5 disabled:opacity-50 cursor-pointer shadow-md shrink-0"
-            >
-              <Search className={`w-3.5 h-3.5 ${directLoading ? 'animate-spin' : ''}`} />
-              <span>{directLoading ? 'Checking...' : 'Check Status'}</span>
-            </button>
-          </form>
-
-          {directError && (
-            <div className="mt-3 p-3 rounded-xl bg-rose-950/40 border border-rose-800/50 text-rose-300 text-xs font-semibold">
-              {directError}
-            </div>
-          )}
-
-          {directResult && (
-            <div className="mt-3 bg-[#070D18] border border-[#1E304D] rounded-xl p-3.5 space-y-2 text-xs">
-              <div className="flex items-center justify-between border-b border-[#15233A] pb-2">
-                <span className="font-mono font-bold text-white text-sm">{directResult.order_id}</span>
-                <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${
-                  (directResult.status || '').toLowerCase() === 'delivered'
-                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                    : (directResult.status || '').toLowerCase() === 'refunded'
-                    ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                    : 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
-                }`}>
-                  {directResult.status}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-                <div>
-                  <span className="text-[10px] text-slate-500 block">Recipient</span>
-                  <span className="font-mono font-bold text-[#00C853]">{directResult.recipient}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-500 block">Bundle Size</span>
-                  <span className="font-bold text-white">{directResult.bundle_gb} GB ({directResult.network})</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-500 block">API Cost</span>
-                  <span className="font-bold text-white">GH₵ {Number(directResult.amount_charged || 0).toFixed(2)}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-500 block">Supplier Ref</span>
-                  <span className="font-mono text-slate-300">{directResult.supplier_reference || 'N/A'}</span>
-                </div>
-              </div>
-            </div>
-          )}
-        </section>
-
-        {/* ── SECTION 4: RECENT TRANSACTIONS FEED ── */}
+        {/* ── SECTION 3: RECENT TRANSACTIONS FEED ── */}
         <section>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-extrabold tracking-tight flex items-center gap-2">

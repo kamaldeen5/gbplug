@@ -4,6 +4,7 @@
 export interface OrderEntry {
   orderId: string;      // DataSika order_id e.g. "API-21778B1443"
   recipient: string;    // 10-digit Ghana number e.g. "0544530442"
+  reference?: string;   // Payment reference e.g. "gbplug-..."
   createdAt?: string;
 }
 
@@ -61,4 +62,11 @@ export function getOrdersByPhone(phone: string): OrderEntry[] {
   const clean = phone.replace(/\D/g, '').slice(-10);
   return (g.__gbplug_order_registry__ || [])
     .filter((o) => o.recipient.replace(/\D/g, '').endsWith(clean));
+}
+
+export function getOrderByRef(reference: string): OrderEntry | undefined {
+  const cleanRef = reference.trim();
+  return (g.__gbplug_order_registry__ || []).find(
+    (o) => o.reference === cleanRef || o.orderId === cleanRef
+  );
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdminToken } from '@/lib/adminAuth';
 import { getOrderStatus } from '@/lib/datasika';
+import { getOrderByRef } from '@/lib/order-registry';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,24 +12,6 @@ export async function GET(req: NextRequest) {
 
     if (!verifyAdminToken(token)) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { searchParams } = new URL(req.url);
-    const lookupOrderId = searchParams.get('orderId') || searchParams.get('order_id');
-
-    if (lookupOrderId) {
-      try {
-        const ds = await getOrderStatus(lookupOrderId.trim());
-        return NextResponse.json({
-          success: true,
-          directOrder: ds,
-        });
-      } catch (err: any) {
-        return NextResponse.json({
-          success: false,
-          error: err.message || 'Order lookup failed on DataSika',
-        }, { status: 404 });
-      }
     }
 
     const paystackKey = process.env.PAYSTACK_SECRET_KEY;
@@ -59,23 +42,24 @@ export async function GET(req: NextRequest) {
         const paidAt = tx.paid_at || tx.paidAt || tx.created_at;
         const amountPaid = (Number(tx.amount) || 0) / 100;
 
-        // Try checking DataSika status
+        // Check registry for known DataSika order ID
+        const registryEntry = getOrderByRef(ref);
+        let dataSikaOrderId = metadata.order_id || registryEntry?.orderId || null;
+
         let dsStatus: any = null;
         let finalStatus = 'processing';
         let failureReason: string | null = null;
-        let dataSikaOrderId = metadata.order_id || null;
 
-        // Check if we can look up status by reference or order ID
-        try {
-          if (dataSikaOrderId) {
+        // Query live status directly from DataSika
+        if (dataSikaOrderId) {
+          try {
             dsStatus = await getOrderStatus(dataSikaOrderId);
-          } else if (ref) {
+          } catch {}
+        } else if (ref && ref.startsWith('API-')) {
+          try {
             dsStatus = await getOrderStatus(ref);
-          }
-        } catch {}
-
-        const txTime = paidAt ? new Date(paidAt).getTime() : 0;
-        const minsAgo = txTime ? (Date.now() - txTime) / (1000 * 60) : 0;
+          } catch {}
+        }
 
         if (dsStatus && dsStatus.order_id) {
           dataSikaOrderId = dsStatus.order_id;
@@ -86,12 +70,7 @@ export async function GET(req: NextRequest) {
             finalStatus = 'refunded';
             failureReason = dsStatus.failure_reason || 'Order was refunded or rejected by telco gateway';
           } else {
-            finalStatus = minsAgo > 3 ? 'delivered' : 'processing';
-          }
-        } else {
-          // If DataSika direct query wasn't available by Paystack ref, but payment succeeded > 3 mins ago
-          if (minsAgo > 3) {
-            finalStatus = 'delivered';
+            finalStatus = rawSt || 'processing';
           }
         }
 
