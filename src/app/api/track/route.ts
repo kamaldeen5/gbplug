@@ -215,16 +215,14 @@ export async function GET(req: NextRequest) {
         .forEach((oid) => orderIdSet.add(oid));
     }
 
-    if (rawQuery.length >= 6) {
-      orderIdSet.add(rawQuery.trim());
-    }
+    // Do NOT add raw phone number itself as an order ID to look up
 
     const allIds = Array.from(orderIdSet);
 
     if (allIds.length === 0) {
       return NextResponse.json({
         success: false,
-        error: `No live orders found for ${rawQuery}. Please ensure you enter the recipient number used at checkout.`,
+        error: `No orders found for ${rawQuery}. If you just placed an order, please allow a moment for the network to register it, or contact WhatsApp support.`,
       });
     }
 
@@ -239,7 +237,10 @@ export async function GET(req: NextRequest) {
 
     // Filter by phone number if a specific phone was queried
     const filtered = clean10.length >= 9
-      ? validOrders.filter((o) => (o.phone || '').replace(/\D/g, '').endsWith(clean10.slice(-9)))
+      ? validOrders.filter((o) => {
+          const orderPhone = (o.phone || '').replace(/\D/g, '');
+          return orderPhone.endsWith(clean10.slice(-9)) || clean10.endsWith(orderPhone.slice(-9));
+        })
       : validOrders;
 
     // Strict deduplication by order ID / reference
