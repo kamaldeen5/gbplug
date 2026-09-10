@@ -7,16 +7,18 @@ import {
   Zap,
   AlertTriangle,
   CheckCircle2,
-  Clock,
   Send,
   LogOut,
   Smartphone,
   Copy,
   Check,
-  ExternalLink,
+  Wallet,
+  TrendingUp,
+  CreditCard,
+  Layers,
 } from 'lucide-react';
 import { REGULAR_MTN_PACKAGES } from '@/data/bundles';
-import { WhatsAppIcon } from '@/components/NetworkLogos';
+import { WhatsAppIcon, GBPlugLogo } from '@/components/NetworkLogos';
 
 interface AdminOrder {
   id: string;
@@ -32,15 +34,31 @@ interface AdminOrder {
   paidAt: string;
 }
 
+interface WalletData {
+  balance: number;
+  currency: string;
+  spent: number;
+  as_of: string;
+}
+
+interface ChartPoint {
+  date: string;
+  revenue: number;
+  orders: number;
+}
+
 export default function SecretOpsPage() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [pinInput, setPinInput] = useState<string>('');
   const [authLoading, setAuthLoading] = useState<boolean>(false);
   const [authError, setAuthError] = useState<string>('');
 
-  const [loading, setLoading] = useState<boolean>(false);
   const [actionNeededOrders, setActionNeededOrders] = useState<AdminOrder[]>([]);
-  const [allOrders, setAllOrders] = useState<AdminOrder[]>([]);
+  const [wallet, setWallet] = useState<WalletData | null>(null);
+  const [chartData, setChartData] = useState<ChartPoint[]>([]);
+  const [totalRevenue, setTotalRevenue] = useState<number>(0);
+  const [totalOrders, setTotalOrders] = useState<number>(0);
+
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [copiedPhone, setCopiedPhone] = useState<string | null>(null);
 
@@ -51,29 +69,47 @@ export default function SecretOpsPage() {
   const [dispatchSuccessMsg, setDispatchSuccessMsg] = useState<string | null>(null);
   const [dispatchErrorMsg, setDispatchErrorMsg] = useState<string | null>(null);
 
-  const fetchOrders = useCallback(async (token?: string) => {
+  const fetchData = useCallback(async (token?: string) => {
     const activeToken = token || localStorage.getItem('gbplug_admin_token');
     if (!activeToken) return;
 
     setRefreshing(true);
     try {
-      const res = await fetch('/api/admin/orders', {
-        headers: { Authorization: `Bearer ${activeToken}` },
-      });
-      const data = await res.json();
+      const [ordersRes, statsRes] = await Promise.all([
+        fetch('/api/admin/orders', {
+          headers: { Authorization: `Bearer ${activeToken}` },
+        }),
+        fetch('/api/admin/stats', {
+          headers: { Authorization: `Bearer ${activeToken}` },
+        }),
+      ]);
 
-      if (res.ok && data.success) {
-        setActionNeededOrders(data.actionNeeded || []);
-        setAllOrders(data.allOrders || []);
-      } else if (res.status === 401) {
+      if (ordersRes.status === 401 || statsRes.status === 401) {
         setIsAuthenticated(false);
         localStorage.removeItem('gbplug_admin_token');
+        return;
+      }
+
+      if (ordersRes.ok) {
+        const oData = await ordersRes.json();
+        if (oData.success) {
+          setActionNeededOrders(oData.actionNeeded || []);
+        }
+      }
+
+      if (statsRes.ok) {
+        const sData = await statsRes.json();
+        if (sData.success) {
+          if (sData.wallet) setWallet(sData.wallet);
+          if (sData.chartData) setChartData(sData.chartData);
+          if (typeof sData.totalRevenue === 'number') setTotalRevenue(sData.totalRevenue);
+          if (typeof sData.totalOrders === 'number') setTotalOrders(sData.totalOrders);
+        }
       }
     } catch (err) {
-      console.error('Fetch orders error:', err);
+      console.error('Fetch admin data error:', err);
     } finally {
       setRefreshing(false);
-      setLoading(false);
     }
   }, []);
 
@@ -81,9 +117,9 @@ export default function SecretOpsPage() {
     const savedToken = localStorage.getItem('gbplug_admin_token');
     if (savedToken) {
       setIsAuthenticated(true);
-      fetchOrders(savedToken);
+      fetchData(savedToken);
     }
-  }, [fetchOrders]);
+  }, [fetchData]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,7 +141,7 @@ export default function SecretOpsPage() {
         localStorage.setItem('gbplug_admin_token', data.token);
         setIsAuthenticated(true);
         setPinInput('');
-        fetchOrders(data.token);
+        fetchData(data.token);
       } else {
         setAuthError(data.error || 'Incorrect secret PIN');
       }
@@ -153,9 +189,8 @@ export default function SecretOpsPage() {
 
       if (res.ok && data.success) {
         setDispatchSuccessMsg(data.message || `Dispatched ${bundleGb} GB to ${recipient}!`);
-        // Remove from action needed locally
         setActionNeededOrders((prev) => prev.filter((o) => o.id !== targetIdKey && o.reference !== targetIdKey));
-        fetchOrders();
+        fetchData();
       } else {
         setDispatchErrorMsg(data.error || 'Dispatch failed on DataSika');
       }
@@ -173,6 +208,14 @@ export default function SecretOpsPage() {
     }
     return p;
   };
+
+  // Max value for chart bar heights
+  const maxRevenue = chartData.length > 0 ? Math.max(...chartData.map((d) => d.revenue), 1) : 1;
+
+  // Short feedback text without em dash
+  const growthFeedback = totalRevenue > 0
+    ? `Strong sales momentum with GH₵ ${totalRevenue.toFixed(2)} generated across ${totalOrders} orders.`
+    : 'Orders are syncing directly from your gateways in real time.';
 
   // ── 1. LOGIN PIN SCREEN ──
   if (!isAuthenticated) {
@@ -222,22 +265,20 @@ export default function SecretOpsPage() {
       {/* Top Navigation Bar */}
       <header className="sticky top-0 z-30 bg-[#070D18]/90 backdrop-blur-md border-b border-[#15233A] px-4 py-3 sm:py-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#00C853]/15 flex items-center justify-center border border-[#00C853]/30">
-              <Zap className="w-4 h-4 text-[#00C853]" />
-            </div>
-            <div>
-              <h1 className="text-sm sm:text-base font-black tracking-tight leading-none">GB Plug Ops</h1>
-              <span className="text-[10px] text-[#00C853] font-bold tracking-wide">● LIVE SYSTEM</span>
-            </div>
+          <div className="flex items-center gap-3">
+            <GBPlugLogo dark={true} className="shrink-0" />
+            <div className="h-5 w-px bg-slate-700/60 hidden sm:block" />
+            <span className="text-xs sm:text-sm font-black tracking-wider uppercase text-slate-300">
+              Ops
+            </span>
           </div>
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => fetchOrders()}
+              onClick={() => fetchData()}
               disabled={refreshing}
               className="p-2 rounded-xl bg-[#0E1B2E] border border-[#1A2E4C] text-slate-200 hover:text-white hover:bg-white/5 active:scale-95 transition-all cursor-pointer"
-              title="Refresh Orders"
+              title="Refresh Data"
             >
               <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-[#00C853]' : ''}`} />
             </button>
@@ -267,13 +308,148 @@ export default function SecretOpsPage() {
           </div>
         )}
 
+        {/* ── SECTION: BALANCES & OVERVIEW CARDS ── */}
+        <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* DataSika Balance Card */}
+          <div className="bg-gradient-to-br from-[#0D1C30] to-[#07111F] border border-[#1A3152] rounded-2xl p-4 sm:p-5 shadow-lg relative overflow-hidden">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <Wallet className="w-3.5 h-3.5 text-[#00C853]" />
+                DataSika Wallet
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#00C853]/15 text-[#00C853] font-bold border border-[#00C853]/30">
+                API Live
+              </span>
+            </div>
+            <div className="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight">
+              GH₵ {wallet ? Number(wallet.balance).toFixed(2) : '...'}
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1">
+              Total spent on wholesale: GH₵ {wallet ? Number(wallet.spent).toFixed(2) : '0.00'}
+            </p>
+          </div>
+
+          {/* Paystack Earnings Card */}
+          <div className="bg-gradient-to-br from-[#0D1C30] to-[#07111F] border border-[#1A3152] rounded-2xl p-4 sm:p-5 shadow-lg relative overflow-hidden">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <CreditCard className="w-3.5 h-3.5 text-sky-400" />
+                Paystack Earnings
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded-md bg-sky-500/15 text-sky-300 font-bold border border-sky-500/30">
+                Revenue
+              </span>
+            </div>
+            <div className="text-2xl sm:text-3xl font-black text-sky-300 font-mono tracking-tight">
+              GH₵ {totalRevenue.toFixed(2)}
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1">
+              Gross processed across {totalOrders} orders
+            </p>
+          </div>
+
+          {/* Net Margin / Growth Snapshot */}
+          <div className="bg-gradient-to-br from-[#0D1C30] to-[#07111F] border border-[#1A3152] rounded-2xl p-4 sm:p-5 shadow-lg relative overflow-hidden">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <TrendingUp className="w-3.5 h-3.5 text-amber-400" />
+                Growth Snapshot
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-300 font-bold border border-amber-500/30">
+                Active
+              </span>
+            </div>
+            <div className="text-2xl sm:text-3xl font-black text-amber-300 font-mono tracking-tight">
+              {chartData.length} Days
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1">
+              {totalOrders > 0 ? `Avg GH₵ ${(totalRevenue / totalOrders).toFixed(2)} per bundle` : 'No order history yet'}
+            </p>
+          </div>
+        </section>
+
+        {/* ── SECTION: BEAUTIFUL GROWTH GRAPH & FEEDBACK ── */}
+        <section className="bg-[#0C1524] border border-[#16253C] rounded-2xl p-4 sm:p-5 shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-[#00C853]" />
+                <h2 className="text-sm font-black tracking-tight text-white uppercase">Revenue & Volume Growth</h2>
+              </div>
+              <p className="text-xs text-emerald-400/90 font-medium mt-0.5">
+                {growthFeedback}
+              </p>
+            </div>
+            <div className="flex items-center gap-3 text-xs text-slate-400">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#00C853]" />
+                Paystack Earnings
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-sky-400" />
+                Orders
+              </span>
+            </div>
+          </div>
+
+          {/* Bar Chart Visualization */}
+          {chartData.length === 0 ? (
+            <div className="h-44 flex items-center justify-center text-slate-500 text-xs font-semibold">
+              Loading revenue chart...
+            </div>
+          ) : (
+            <div className="pt-4">
+              <div className="h-44 flex items-end justify-between gap-3 sm:gap-6 border-b border-slate-800/80 pb-2">
+                {chartData.map((d) => {
+                  const barHeightPct = Math.max(Math.round((d.revenue / maxRevenue) * 100), 12);
+                  const shortDate = new Date(d.date).toLocaleDateString('en-GB', {
+                    day: 'numeric',
+                    month: 'short',
+                  });
+
+                  return (
+                    <div key={d.date} className="flex-1 flex flex-col items-center h-full justify-end group relative">
+                      {/* Hover Tooltip */}
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-10 bg-[#070D18] border border-slate-700 text-[10px] font-bold py-1 px-2 rounded-lg pointer-events-none shadow-xl whitespace-nowrap z-10">
+                        GH₵ {d.revenue.toFixed(2)} ({d.orders} {d.orders === 1 ? 'order' : 'orders'})
+                      </div>
+
+                      {/* Revenue Pill Label */}
+                      <span className="text-[10px] font-mono font-bold text-slate-400 mb-1.5 hidden sm:block">
+                        GH₵ {d.revenue.toFixed(2)}
+                      </span>
+
+                      {/* Animated Gradient Bar */}
+                      <div className="w-full max-w-[48px] flex items-end justify-center rounded-t-xl bg-[#081322] overflow-hidden border border-[#142640] p-1 h-full max-h-[120px]">
+                        <div
+                          style={{ height: `${barHeightPct}%` }}
+                          className="w-full bg-gradient-to-t from-[#00C853]/60 via-[#00C853] to-[#4AFFA3] rounded-t-lg transition-all duration-500 flex flex-col justify-between items-center py-1"
+                        >
+                          <span className="text-[9px] font-black text-black leading-none font-mono">
+                            {d.orders}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Date Axis Label */}
+                      <span className="text-[10px] font-bold text-slate-400 mt-2 whitespace-nowrap font-mono">
+                        {shortDate}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </section>
+
         {/* ── SECTION 1: ACTION NEEDED (REFUNDED / NON-FLEXA) ── */}
         <section>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-amber-400" />
               <h2 className="text-base font-extrabold tracking-tight">
-                Action Needed (Refunded / Failed)
+                Action Needed (Refunded Orders)
               </h2>
             </div>
             <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
@@ -408,52 +584,6 @@ export default function SecretOpsPage() {
                 <span>{dispatchingId === 'manual-custom' ? 'Sending...' : 'Send Normal Data'}</span>
               </button>
             </div>
-          </div>
-        </section>
-
-        {/* ── SECTION 3: RECENT TRANSACTIONS FEED ── */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-extrabold tracking-tight flex items-center gap-2">
-              <Clock className="w-4 h-4 text-slate-400" />
-              <span>Recent Transactions ({allOrders.length})</span>
-            </h2>
-          </div>
-
-          <div className="space-y-2">
-            {allOrders.map((ord) => {
-              const isDelivered = ord.status === 'delivered';
-              const isRefunded = ord.status === 'refunded';
-
-              return (
-                <div
-                  key={ord.id || ord.reference}
-                  className="bg-[#0C1524] border border-[#16253C] rounded-xl p-3 sm:p-3.5 flex items-center justify-between gap-3 text-xs"
-                >
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-white font-mono">{formatPhone(ord.recipient)}</span>
-                      <span className="text-slate-400 font-medium">• {ord.bundleName}</span>
-                    </div>
-                    <span className="text-[10px] text-slate-500 block truncate font-mono">
-                      {ord.id || ord.reference}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide ${
-                      isDelivered
-                        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                        : isRefunded
-                        ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                        : 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
-                    }`}>
-                      {ord.status}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
           </div>
         </section>
       </main>
