@@ -68,18 +68,20 @@ export default function SecretOpsPage() {
   const [dispatchSuccessMsg, setDispatchSuccessMsg] = useState<string | null>(null);
   const [dispatchErrorMsg, setDispatchErrorMsg] = useState<string | null>(null);
 
-  const fetchData = useCallback(async (token?: string) => {
+  const fetchData = useCallback(async (token?: string, isSilent = false) => {
     const activeToken = token || localStorage.getItem('gbplug_admin_token');
     if (!activeToken) return;
 
-    setRefreshing(true);
+    if (!isSilent) setRefreshing(true);
     try {
       const [ordersRes, statsRes] = await Promise.all([
         fetch('/api/admin/orders', {
           headers: { Authorization: `Bearer ${activeToken}` },
+          cache: 'no-store',
         }),
         fetch('/api/admin/stats', {
           headers: { Authorization: `Bearer ${activeToken}` },
+          cache: 'no-store',
         }),
       ]);
 
@@ -108,7 +110,7 @@ export default function SecretOpsPage() {
     } catch (err) {
       console.error('Fetch admin data error:', err);
     } finally {
-      setRefreshing(false);
+      if (!isSilent) setRefreshing(false);
     }
   }, []);
 
@@ -119,6 +121,26 @@ export default function SecretOpsPage() {
       fetchData(savedToken);
     }
   }, [fetchData]);
+
+  // Real-time background sync: poll every 12 seconds and instantly on tab focus
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const interval = setInterval(() => {
+      fetchData(undefined, true);
+    }, 12000);
+
+    const handleFocus = () => {
+      fetchData(undefined, true);
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [isAuthenticated, fetchData]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
