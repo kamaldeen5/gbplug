@@ -162,6 +162,19 @@ export async function buyFlexaBundle({
 
   if (!res.ok) {
     const errorMsg = data.message || data.error || `Flexa purchase failed (${res.status})`;
+    const errorCode = (data.error || '').toLowerCase();
+
+    // If the number is unsupported on MTN Flexa (HTTP 403 or flexa_number_unsupported)
+    if (res.status === 403 || errorCode.includes('flexa_number_unsupported') || errorCode.includes('unsupported')) {
+      console.warn(`[DataSika] Non-Flexa recipient detected (${cleanRecipient}): flexa_number_unsupported`);
+      return {
+        order_id: data.order_id || data.req_id || data.id || `FLX-UNSUPPORTED-${Date.now()}`,
+        status: 'refunded',
+        failure_reason: 'Number is not registered for MTN Flexa (flexa_number_unsupported)',
+        recipient: cleanRecipient,
+      } as any;
+    }
+
     throw new Error(errorMsg);
   }
 
@@ -169,11 +182,29 @@ export async function buyFlexaBundle({
 }
 
 /**
- * Query real-time status of an order
+ * Query real-time status of an order.
+ * Strictly validates that orderId has a valid DataSika prefix (API-, FLX-, DS-, ORD-)
+ * to avoid wasting network requests or producing 404 order_not_found.
  */
 export async function getOrderStatus(orderId: string): Promise<OrderStatusResponse> {
   const apiKey = getApiKey();
   const cleanOrderId = orderId.trim();
+
+  if (!cleanOrderId) {
+    throw new Error('Order ID is required');
+  }
+
+  // Guard: Only query if it matches a DataSika order ID pattern
+  const upper = cleanOrderId.toUpperCase();
+  const isDataSikaFormat =
+    upper.startsWith('API-') ||
+    upper.startsWith('FLX-') ||
+    upper.startsWith('DS-') ||
+    upper.startsWith('ORD-');
+
+  if (!isDataSikaFormat) {
+    throw new Error(`Invalid DataSika order ID format: ${cleanOrderId}`);
+  }
 
   const res = await fetch(`${DATASIKA_BASE_URL}/api-order-status?order_id=${encodeURIComponent(cleanOrderId)}`, {
     method: 'GET',
