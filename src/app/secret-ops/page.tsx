@@ -253,11 +253,10 @@ export default function SecretOpsPage() {
           <form onSubmit={handleLogin} className="space-y-4">
             <input
               type="password"
-              inputMode="numeric"
               value={pinInput}
               onChange={(e) => setPinInput(e.target.value)}
-              placeholder="Enter PIN"
-              className="w-full h-14 bg-[#070D18] border border-[#1E304D] rounded-2xl text-center text-2xl font-bold tracking-widest text-white placeholder-slate-600 focus:outline-none focus:border-[#00C853] focus:ring-2 focus:ring-[#00C853]/30"
+              placeholder="Enter Password"
+              className="w-full h-14 bg-[#070D18] border border-[#1E304D] rounded-2xl text-center text-lg sm:text-xl font-bold tracking-wider text-white placeholder-slate-600 focus:outline-none focus:border-[#00C853] focus:ring-2 focus:ring-[#00C853]/30"
               autoFocus
             />
 
