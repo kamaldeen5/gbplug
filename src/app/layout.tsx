@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import Script from 'next/script';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -104,6 +105,26 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-[#070D18] dark:bg-[#070D18] text-slate-100 min-h-screen transition-colors duration-200 antialiased selection:bg-[#00C853]/20 selection:text-[#00C853] overflow-x-hidden">
+        {/* Google Analytics (gtag.js) */}
+        <Script
+          strategy="afterInteractive"
+          src="https://www.googletagmanager.com/gtag/js?id=G-GK8K452QSZ"
+        />
+        <Script
+          id="google-analytics"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-GK8K452QSZ', {
+                page_path: window.location.pathname,
+              });
+            `,
+          }}
+        />
+
         {children}
       </body>
     </html>
