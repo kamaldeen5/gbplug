@@ -81,34 +81,15 @@ export async function GET(req: NextRequest) {
           } else {
             finalStatus = rawSt || 'processing';
           }
-        } else {
-          // If no live DataSika response was found, check if it was marked refunded in saved metadata
-          if (savedOrder?.status === 'refunded' || savedOrder?.failureReason) {
-            finalStatus = 'refunded';
-            failureReason = savedOrder.failureReason || 'Dispatch failed on DataSika gateway';
-          }
         }
 
-        const paidTime = new Date(paidAt).getTime();
-        const minutesElapsed = (Date.now() - paidTime) / 60000;
-        const hoursElapsed = minutesElapsed / 60;
-        const isFlexa = serviceType === 'mtn_flexa' || metadata.service_type === 'mtn_flexa';
-
-        // Proactive safety check for active orders within last 24h
+        // Prioritize confirmed status from customer metadata or order registry
         if (savedOrder?.status === 'delivered') {
           finalStatus = 'delivered';
           failureReason = null;
         } else if (savedOrder?.status === 'refunded' || savedOrder?.failureReason) {
           finalStatus = 'refunded';
-          failureReason = savedOrder.failureReason;
-        } else if (finalStatus !== 'delivered' && minutesElapsed >= 2 && hoursElapsed <= 24) {
-          if (!dataSikaOrderId) {
-            finalStatus = 'refunded';
-            failureReason = failureReason || 'Unconfirmed dispatch. Check if number is non-Flexa and send normal data.';
-          } else if (finalStatus === 'processing' && minutesElapsed >= 5) {
-            finalStatus = 'refunded';
-            failureReason = failureReason || 'Processing delay exceeding 5 minutes. Possible telco refund or stall.';
-          }
+          failureReason = savedOrder.failureReason || 'Dispatch failed on DataSika gateway';
         }
 
         // Parse bundle GB number
