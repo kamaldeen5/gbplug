@@ -13,9 +13,8 @@ import {
   Copy,
   Check,
   Wallet,
-  TrendingUp,
   CreditCard,
-  Layers,
+  ArrowUpRight,
 } from 'lucide-react';
 import { REGULAR_MTN_PACKAGES } from '@/data/bundles';
 import { WhatsAppIcon, GBPlugLogo } from '@/components/NetworkLogos';
@@ -209,13 +208,8 @@ export default function SecretOpsPage() {
     return p;
   };
 
-  // Max value for chart bar heights
+  // Max value for clean bar visualization
   const maxRevenue = chartData.length > 0 ? Math.max(...chartData.map((d) => d.revenue), 1) : 1;
-
-  // Short feedback text without em dash
-  const growthFeedback = totalRevenue > 0
-    ? `Strong sales momentum with GH₵ ${totalRevenue.toFixed(2)} generated across ${totalOrders} orders.`
-    : 'Orders are syncing directly from your gateways in real time.';
 
   // ── 1. LOGIN PIN SCREEN ──
   if (!isAuthenticated) {
@@ -308,142 +302,7 @@ export default function SecretOpsPage() {
           </div>
         )}
 
-        {/* ── SECTION: BALANCES & OVERVIEW CARDS ── */}
-        <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {/* DataSika Balance Card */}
-          <div className="bg-gradient-to-br from-[#0D1C30] to-[#07111F] border border-[#1A3152] rounded-2xl p-4 sm:p-5 shadow-lg relative overflow-hidden">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <Wallet className="w-3.5 h-3.5 text-[#00C853]" />
-                DataSika Wallet
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#00C853]/15 text-[#00C853] font-bold border border-[#00C853]/30">
-                API Live
-              </span>
-            </div>
-            <div className="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight">
-              GH₵ {wallet ? Number(wallet.balance).toFixed(2) : '...'}
-            </div>
-            <p className="text-[11px] text-slate-400 mt-1">
-              Total spent on wholesale: GH₵ {wallet ? Number(wallet.spent).toFixed(2) : '0.00'}
-            </p>
-          </div>
-
-          {/* Paystack Earnings Card */}
-          <div className="bg-gradient-to-br from-[#0D1C30] to-[#07111F] border border-[#1A3152] rounded-2xl p-4 sm:p-5 shadow-lg relative overflow-hidden">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <CreditCard className="w-3.5 h-3.5 text-sky-400" />
-                Paystack Earnings
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-md bg-sky-500/15 text-sky-300 font-bold border border-sky-500/30">
-                Revenue
-              </span>
-            </div>
-            <div className="text-2xl sm:text-3xl font-black text-sky-300 font-mono tracking-tight">
-              GH₵ {totalRevenue.toFixed(2)}
-            </div>
-            <p className="text-[11px] text-slate-400 mt-1">
-              Gross processed across {totalOrders} orders
-            </p>
-          </div>
-
-          {/* Net Margin / Growth Snapshot */}
-          <div className="bg-gradient-to-br from-[#0D1C30] to-[#07111F] border border-[#1A3152] rounded-2xl p-4 sm:p-5 shadow-lg relative overflow-hidden">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <TrendingUp className="w-3.5 h-3.5 text-amber-400" />
-                Growth Snapshot
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-300 font-bold border border-amber-500/30">
-                Active
-              </span>
-            </div>
-            <div className="text-2xl sm:text-3xl font-black text-amber-300 font-mono tracking-tight">
-              {chartData.length} Days
-            </div>
-            <p className="text-[11px] text-slate-400 mt-1">
-              {totalOrders > 0 ? `Avg GH₵ ${(totalRevenue / totalOrders).toFixed(2)} per bundle` : 'No order history yet'}
-            </p>
-          </div>
-        </section>
-
-        {/* ── SECTION: BEAUTIFUL GROWTH GRAPH & FEEDBACK ── */}
-        <section className="bg-[#0C1524] border border-[#16253C] rounded-2xl p-4 sm:p-5 shadow-xl">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-[#00C853]" />
-                <h2 className="text-sm font-black tracking-tight text-white uppercase">Revenue & Volume Growth</h2>
-              </div>
-              <p className="text-xs text-emerald-400/90 font-medium mt-0.5">
-                {growthFeedback}
-              </p>
-            </div>
-            <div className="flex items-center gap-3 text-xs text-slate-400">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#00C853]" />
-                Paystack Earnings
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-sky-400" />
-                Orders
-              </span>
-            </div>
-          </div>
-
-          {/* Bar Chart Visualization */}
-          {chartData.length === 0 ? (
-            <div className="h-44 flex items-center justify-center text-slate-500 text-xs font-semibold">
-              Loading revenue chart...
-            </div>
-          ) : (
-            <div className="pt-4">
-              <div className="h-44 flex items-end justify-between gap-3 sm:gap-6 border-b border-slate-800/80 pb-2">
-                {chartData.map((d) => {
-                  const barHeightPct = Math.max(Math.round((d.revenue / maxRevenue) * 100), 12);
-                  const shortDate = new Date(d.date).toLocaleDateString('en-GB', {
-                    day: 'numeric',
-                    month: 'short',
-                  });
-
-                  return (
-                    <div key={d.date} className="flex-1 flex flex-col items-center h-full justify-end group relative">
-                      {/* Hover Tooltip */}
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-10 bg-[#070D18] border border-slate-700 text-[10px] font-bold py-1 px-2 rounded-lg pointer-events-none shadow-xl whitespace-nowrap z-10">
-                        GH₵ {d.revenue.toFixed(2)} ({d.orders} {d.orders === 1 ? 'order' : 'orders'})
-                      </div>
-
-                      {/* Revenue Pill Label */}
-                      <span className="text-[10px] font-mono font-bold text-slate-400 mb-1.5 hidden sm:block">
-                        GH₵ {d.revenue.toFixed(2)}
-                      </span>
-
-                      {/* Animated Gradient Bar */}
-                      <div className="w-full max-w-[48px] flex items-end justify-center rounded-t-xl bg-[#081322] overflow-hidden border border-[#142640] p-1 h-full max-h-[120px]">
-                        <div
-                          style={{ height: `${barHeightPct}%` }}
-                          className="w-full bg-gradient-to-t from-[#00C853]/60 via-[#00C853] to-[#4AFFA3] rounded-t-lg transition-all duration-500 flex flex-col justify-between items-center py-1"
-                        >
-                          <span className="text-[9px] font-black text-black leading-none font-mono">
-                            {d.orders}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Date Axis Label */}
-                      <span className="text-[10px] font-bold text-slate-400 mt-2 whitespace-nowrap font-mono">
-                        {shortDate}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </section>
-
-        {/* ── SECTION 1: ACTION NEEDED (REFUNDED / NON-FLEXA) ── */}
+        {/* ── TOP SECTION 1: ACTION NEEDED (REFUNDED ORDERS) ── */}
         <section>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -540,7 +399,7 @@ export default function SecretOpsPage() {
           )}
         </section>
 
-        {/* ── SECTION 2: QUICK MANUAL DISPATCH TOOL ── */}
+        {/* ── TOP SECTION 2: QUICK MANUAL DISPATCH TOOL ── */}
         <section className="bg-[#0C1524] border border-[#16253C] rounded-2xl p-4 sm:p-5">
           <div className="flex items-center gap-2 mb-3">
             <Smartphone className="w-4 h-4 text-[#00C853]" />
@@ -585,6 +444,91 @@ export default function SecretOpsPage() {
               </button>
             </div>
           </div>
+        </section>
+
+        {/* ── SECTION: CLEAN WALLET & EARNINGS METRICS ── */}
+        <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* DataSika Balance Card */}
+          <div className="bg-[#0C1524] border border-[#1A3152] rounded-2xl p-5 shadow-lg">
+            <div className="flex items-center gap-2 mb-2 text-slate-400 text-xs font-bold uppercase tracking-wider">
+              <Wallet className="w-4 h-4 text-[#00C853]" />
+              <span>DataSika Wholesale Balance</span>
+            </div>
+            <div className="text-3xl font-black text-white font-mono tracking-tight">
+              GH₵ {wallet ? Number(wallet.balance).toFixed(2) : '...'}
+            </div>
+            <p className="text-xs text-slate-400 mt-2">
+              Total wholesale data purchased: GH₵ {wallet ? Number(wallet.spent).toFixed(2) : '0.00'}
+            </p>
+          </div>
+
+          {/* Paystack Earnings Card */}
+          <div className="bg-[#0C1524] border border-[#1A3152] rounded-2xl p-5 shadow-lg">
+            <div className="flex items-center gap-2 mb-2 text-slate-400 text-xs font-bold uppercase tracking-wider">
+              <CreditCard className="w-4 h-4 text-emerald-400" />
+              <span>Paystack Gross Revenue</span>
+            </div>
+            <div className="text-3xl font-black text-[#00C853] font-mono tracking-tight">
+              GH₵ {totalRevenue.toFixed(2)}
+            </div>
+            <p className="text-xs text-slate-400 mt-2">
+              Successfully processed across {totalOrders} orders
+            </p>
+          </div>
+        </section>
+
+        {/* ── SECTION: CLEAN REVENUE HISTORY & PROGRESS ── */}
+        <section className="bg-[#0C1524] border border-[#16253C] rounded-2xl p-5 shadow-xl">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-sm font-black tracking-tight text-white uppercase">Daily Revenue Breakdown</h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Revenue is growing steadily with {totalOrders} customer orders completed.
+              </p>
+            </div>
+          </div>
+
+          {/* Clean, intuitive progress breakdown per day */}
+          {chartData.length === 0 ? (
+            <div className="py-8 text-center text-slate-500 text-xs font-semibold">
+              Loading revenue breakdown...
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {chartData.map((d) => {
+                const pct = Math.max(Math.round((d.revenue / maxRevenue) * 100), 5);
+                const formattedDate = new Date(d.date).toLocaleDateString('en-GB', {
+                  weekday: 'short',
+                  day: 'numeric',
+                  month: 'short',
+                });
+
+                return (
+                  <div key={d.date} className="bg-[#070D18] border border-[#142640] rounded-xl p-3">
+                    <div className="flex items-center justify-between text-xs mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-white">{formattedDate}</span>
+                        <span className="text-slate-500 text-[11px] font-mono">
+                          ({d.orders} {d.orders === 1 ? 'order' : 'orders'})
+                        </span>
+                      </div>
+                      <span className="font-mono font-black text-[#00C853] text-sm">
+                        GH₵ {d.revenue.toFixed(2)}
+                      </span>
+                    </div>
+
+                    {/* Clean Progress Bar */}
+                    <div className="w-full h-2 bg-[#0C1726] rounded-full overflow-hidden">
+                      <div
+                        style={{ width: `${pct}%` }}
+                        className="h-full bg-gradient-to-r from-[#00C853] to-[#4AFFA3] rounded-full transition-all duration-500"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
       </main>
     </div>
