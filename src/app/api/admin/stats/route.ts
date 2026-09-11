@@ -3,6 +3,24 @@ import { verifyAdminToken } from '@/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
+// Exact wholesale cost by bundle size (in GHS)
+const WHOLESALE_COST_MAP: Record<number, number> = {
+  1: 3.95,
+  2: 8.00,
+  3: 12.00,
+  4: 16.00,
+  5: 20.00,
+  6: 24.00,
+  8: 33.00,
+  10: 40.00,
+  15: 60.00,
+  20: 78.00,
+  25: 98.00,
+  30: 119.00,
+  40: 160.00,
+  50: 195.00,
+};
+
 export async function GET(req: NextRequest) {
   try {
     const authHeader = req.headers.get('authorization') || '';
@@ -30,30 +48,51 @@ export async function GET(req: NextRequest) {
     let wallet = null;
     if (walletRes.ok) wallet = await walletRes.json();
 
-    const dailyEarnings: Record<string, { revenue: number; orders: number }> = {};
+    const dailyEarnings: Record<string, { revenue: number; profit: number; orders: number }> = {};
     let totalRevenue = 0;
+    let totalPaystackFees = 0;
+    let totalWholesaleCost = 0;
     let totalOrders = 0;
 
     if (txRes && txRes.ok) {
       const txData = await txRes.json();
       const txs: any[] = Array.isArray(txData.data) ? txData.data : [];
+
       txs.forEach((t) => {
-        const amount = (Number(t.amount) || 0) / 100;
+        const gross = (Number(t.amount) || 0) / 100;
+        const fee = (Number(t.fees) || 0) / 100;
+        const meta = t.metadata || {};
+
+        // Extract bundle GB from metadata or estimate from amount
+        const parsedGb = Number(meta.bundle_gb || (meta.bundle_name || '').replace(/\D/g, ''));
+        const gb = parsedGb > 0 ? parsedGb : gross < 5 ? 1 : gross < 10 ? 2 : gross < 14 ? 3 : 1;
+        const cost = WHOLESALE_COST_MAP[gb] || gb * 4.0;
+        const profit = gross - fee - cost;
+
         const day = (t.paid_at || t.created_at || '').substring(0, 10);
-        if (!day) return;
-        if (!dailyEarnings[day]) dailyEarnings[day] = { revenue: 0, orders: 0 };
-        dailyEarnings[day].revenue += amount;
-        dailyEarnings[day].orders += 1;
-        totalRevenue += amount;
+        if (day) {
+          if (!dailyEarnings[day]) dailyEarnings[day] = { revenue: 0, profit: 0, orders: 0 };
+          dailyEarnings[day].revenue += gross;
+          dailyEarnings[day].profit += profit;
+          dailyEarnings[day].orders += 1;
+        }
+
+        totalRevenue += gross;
+        totalPaystackFees += fee;
+        totalWholesaleCost += cost;
         totalOrders += 1;
       });
     }
+
+    const netProfit = totalRevenue - totalPaystackFees - totalWholesaleCost;
+    const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
     const chartData = Object.entries(dailyEarnings)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, val]) => ({
         date,
         revenue: Math.round(val.revenue * 100) / 100,
+        profit: Math.round(val.profit * 100) / 100,
         orders: val.orders,
       }));
 
@@ -62,6 +101,10 @@ export async function GET(req: NextRequest) {
       wallet,
       chartData,
       totalRevenue: Math.round(totalRevenue * 100) / 100,
+      totalPaystackFees: Math.round(totalPaystackFees * 100) / 100,
+      totalWholesaleCost: Math.round(totalWholesaleCost * 100) / 100,
+      netProfit: Math.round(netProfit * 100) / 100,
+      profitMargin: Math.round(profitMargin * 10) / 10,
       totalOrders,
     });
   } catch (error: any) {

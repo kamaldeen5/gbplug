@@ -14,7 +14,7 @@ import {
   Check,
   Wallet,
   CreditCard,
-  ArrowUpRight,
+  PiggyBank,
 } from 'lucide-react';
 import { REGULAR_MTN_PACKAGES } from '@/data/bundles';
 import { WhatsAppIcon, GBPlugLogo } from '@/components/NetworkLogos';
@@ -43,6 +43,7 @@ interface WalletData {
 interface ChartPoint {
   date: string;
   revenue: number;
+  profit: number;
   orders: number;
 }
 
@@ -56,6 +57,8 @@ export default function SecretOpsPage() {
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [chartData, setChartData] = useState<ChartPoint[]>([]);
   const [totalRevenue, setTotalRevenue] = useState<number>(0);
+  const [netProfit, setNetProfit] = useState<number>(0);
+  const [profitMargin, setProfitMargin] = useState<number>(0);
   const [totalOrders, setTotalOrders] = useState<number>(0);
 
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -104,6 +107,8 @@ export default function SecretOpsPage() {
           if (sData.wallet) setWallet(sData.wallet);
           if (sData.chartData) setChartData(sData.chartData);
           if (typeof sData.totalRevenue === 'number') setTotalRevenue(sData.totalRevenue);
+          if (typeof sData.netProfit === 'number') setNetProfit(sData.netProfit);
+          if (typeof sData.profitMargin === 'number') setProfitMargin(sData.profitMargin);
           if (typeof sData.totalOrders === 'number') setTotalOrders(sData.totalOrders);
         }
       }
@@ -468,52 +473,66 @@ export default function SecretOpsPage() {
           </div>
         </section>
 
-        {/* ── SECTION: CLEAN WALLET & EARNINGS METRICS ── */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* ── SECTION: BALANCES & REAL-TIME PROFIT CARDS ── */}
+        <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {/* DataSika Balance Card */}
-          <div className="bg-[#0C1524] border border-[#1A3152] rounded-2xl p-5 shadow-lg">
+          <div className="bg-[#0C1524] border border-[#1A3152] rounded-2xl p-4 sm:p-5 shadow-lg">
             <div className="flex items-center gap-2 mb-2 text-slate-400 text-xs font-bold uppercase tracking-wider">
-              <Wallet className="w-4 h-4 text-[#00C853]" />
-              <span>DataSika Wholesale Balance</span>
+              <Wallet className="w-4 h-4 text-amber-400" />
+              <span>DataSika Wholesale</span>
             </div>
-            <div className="text-3xl font-black text-white font-mono tracking-tight">
+            <div className="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight">
               GH₵ {wallet ? Number(wallet.balance).toFixed(2) : '...'}
             </div>
-            <p className="text-xs text-slate-400 mt-2">
-              Total wholesale data purchased: GH₵ {wallet ? Number(wallet.spent).toFixed(2) : '0.00'}
+            <p className="text-[11px] text-slate-400 mt-1">
+              Wholesale data spent: GH₵ {wallet ? Number(wallet.spent).toFixed(2) : '0.00'}
             </p>
           </div>
 
-          {/* Paystack Earnings Card */}
-          <div className="bg-[#0C1524] border border-[#1A3152] rounded-2xl p-5 shadow-lg">
+          {/* Paystack Gross Earnings Card */}
+          <div className="bg-[#0C1524] border border-[#1A3152] rounded-2xl p-4 sm:p-5 shadow-lg">
             <div className="flex items-center gap-2 mb-2 text-slate-400 text-xs font-bold uppercase tracking-wider">
-              <CreditCard className="w-4 h-4 text-emerald-400" />
-              <span>Paystack Gross Revenue</span>
+              <CreditCard className="w-4 h-4 text-sky-400" />
+              <span>Paystack Revenue</span>
             </div>
-            <div className="text-3xl font-black text-[#00C853] font-mono tracking-tight">
+            <div className="text-2xl sm:text-3xl font-black text-sky-300 font-mono tracking-tight">
               GH₵ {totalRevenue.toFixed(2)}
             </div>
-            <p className="text-xs text-slate-400 mt-2">
-              Successfully processed across {totalOrders} orders
+            <p className="text-[11px] text-slate-400 mt-1">
+              Gross from {totalOrders} customer orders
+            </p>
+          </div>
+
+          {/* Real-Time Net Profit Card */}
+          <div className="bg-gradient-to-br from-[#0B1E16] to-[#07130F] border border-emerald-500/40 rounded-2xl p-4 sm:p-5 shadow-lg relative overflow-hidden">
+            <div className="flex items-center gap-2 mb-2 text-emerald-400 text-xs font-bold uppercase tracking-wider">
+              <PiggyBank className="w-4 h-4 text-[#00C853]" />
+              <span>Net Profit Earned</span>
+            </div>
+            <div className="text-2xl sm:text-3xl font-black text-[#00C853] font-mono tracking-tight">
+              GH₵ {netProfit.toFixed(2)}
+            </div>
+            <p className="text-[11px] text-emerald-300/80 mt-1">
+              {profitMargin.toFixed(1)}% profit margin after fees and costs
             </p>
           </div>
         </section>
 
-        {/* ── SECTION: CLEAN REVENUE HISTORY & PROGRESS ── */}
+        {/* ── SECTION: REVENUE & PROFIT HISTORY ── */}
         <section className="bg-[#0C1524] border border-[#16253C] rounded-2xl p-5 shadow-xl">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-sm font-black tracking-tight text-white uppercase">Daily Revenue Breakdown</h2>
+              <h2 className="text-sm font-black tracking-tight text-white uppercase">Daily Revenue & Profit</h2>
               <p className="text-xs text-slate-400 mt-0.5">
-                Revenue is growing steadily with {totalOrders} customer orders completed.
+                Every sale automatically recalculates your margins in real time.
               </p>
             </div>
           </div>
 
-          {/* Clean, intuitive progress breakdown per day */}
+          {/* Clean progress breakdown per day with revenue + net profit */}
           {chartData.length === 0 ? (
             <div className="py-8 text-center text-slate-500 text-xs font-semibold">
-              Loading revenue breakdown...
+              Loading financial breakdown...
             </div>
           ) : (
             <div className="space-y-3">
@@ -534,9 +553,14 @@ export default function SecretOpsPage() {
                           ({d.orders} {d.orders === 1 ? 'order' : 'orders'})
                         </span>
                       </div>
-                      <span className="font-mono font-black text-[#00C853] text-sm">
-                        GH₵ {d.revenue.toFixed(2)}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-slate-400 text-[11px] font-mono">
+                          Revenue: GH₵ {d.revenue.toFixed(2)}
+                        </span>
+                        <span className="font-mono font-black text-[#00C853] text-sm">
+                          Profit: GH₵ {d.profit.toFixed(2)}
+                        </span>
+                      </div>
                     </div>
 
                     {/* Clean Progress Bar */}
