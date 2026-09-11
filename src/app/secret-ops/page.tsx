@@ -15,6 +15,10 @@ import {
   Wallet,
   CreditCard,
   PiggyBank,
+  Bell,
+  BellRing,
+  CheckCheck,
+  X,
 } from 'lucide-react';
 import { REGULAR_MTN_PACKAGES } from '@/data/bundles';
 import { WhatsAppIcon, GBPlugLogo } from '@/components/NetworkLogos';
@@ -55,6 +59,7 @@ export default function SecretOpsPage() {
   const [authError, setAuthError] = useState<string>('');
 
   const [actionNeededOrders, setActionNeededOrders] = useState<AdminOrder[]>([]);
+  const [allOrders, setAllOrders] = useState<AdminOrder[]>([]);
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [chartData, setChartData] = useState<ChartPoint[]>([]);
   const [totalRevenue, setTotalRevenue] = useState<number>(0);
@@ -64,6 +69,11 @@ export default function SecretOpsPage() {
 
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [copiedPhone, setCopiedPhone] = useState<string | null>(null);
+
+  // Notification bell state
+  const [isNotifOpen, setIsNotifOpen] = useState<boolean>(false);
+  const [readNotifIds, setReadNotifIds] = useState<string[]>([]);
+  const notifRef = React.useRef<HTMLDivElement>(null);
 
   // Manual dispatch form state
   const [manualPhone, setManualPhone] = useState<string>('');
@@ -99,6 +109,7 @@ export default function SecretOpsPage() {
         const oData = await ordersRes.json();
         if (oData.success) {
           setActionNeededOrders(oData.actionNeeded || []);
+          setAllOrders(oData.allOrders || []);
         }
       }
 
@@ -244,6 +255,105 @@ export default function SecretOpsPage() {
     return p;
   };
 
+  const formatNotifTime = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return 'Just now';
+      return (
+        d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) +
+        ' · ' +
+        d.toLocaleDateString([], { month: 'short', day: 'numeric' })
+      );
+    } catch {
+      return 'Just now';
+    }
+  };
+
+  // Hydrate read notification IDs from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('gbplug_admin_read_notifs');
+      if (saved) {
+        setReadNotifIds(JSON.parse(saved));
+      }
+    } catch {}
+  }, []);
+
+  // Close notifications dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setIsNotifOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Compute live notifications from all orders
+  const notifications = React.useMemo(() => {
+    return allOrders
+      .map((o) => {
+        const isActionNeeded = o.status === 'refunded' || !!o.failureReason;
+        const isDelivered = o.status === 'delivered';
+        const timeMs = new Date(o.paidAt).getTime() || Date.now();
+
+        let notifType: 'action_needed' | 'success' | 'new_order' = 'new_order';
+        let title = `New Order: ${o.bundleName}`;
+        let detail = `GHS ${o.amountPaid.toFixed(2)} received for ${formatPhone(o.recipient)}`;
+
+        if (isActionNeeded) {
+          notifType = 'action_needed';
+          title = `Action Needed: ${o.bundleName}`;
+          detail = o.failureReason || `Refunded on gateway for ${formatPhone(o.recipient)}`;
+        } else if (isDelivered) {
+          notifType = 'success';
+          title = `Delivered: ${o.bundleName}`;
+          detail = `Successfully sent to ${formatPhone(o.recipient)}`;
+        }
+
+        return {
+          id: `${o.reference}-${o.status}`,
+          title,
+          detail,
+          time: formatNotifTime(o.paidAt),
+          timestamp: timeMs,
+          type: notifType,
+          recipient: o.recipient,
+          bundle: o.bundleName,
+          reference: o.reference,
+          status: o.status,
+        };
+      })
+      .sort((a, b) => b.timestamp - a.timestamp);
+  }, [allOrders]);
+
+  const unreadNotifs = notifications.filter((n) => !readNotifIds.includes(n.id));
+  const unreadCount = unreadNotifs.length;
+  const hasUnreadActionNeeded = unreadNotifs.some((n) => n.type === 'action_needed');
+
+  const markAsRead = (id: string) => {
+    setReadNotifIds((prev) => {
+      if (prev.includes(id)) return prev;
+      const updated = [...prev, id];
+      try {
+        localStorage.setItem('gbplug_admin_read_notifs', JSON.stringify(updated.slice(-300)));
+      } catch {}
+      return updated;
+    });
+  };
+
+  const markAllAsRead = () => {
+    const allIds = notifications.map((n) => n.id);
+    setReadNotifIds((prev) => {
+      const merged = Array.from(new Set([...prev, ...allIds]));
+      try {
+        localStorage.setItem('gbplug_admin_read_notifs', JSON.stringify(merged.slice(-300)));
+      } catch {}
+      return merged;
+    });
+  };
+
   // Max value for clean bar visualization
   const maxRevenue = chartData.length > 0 ? Math.max(...chartData.map((d) => d.revenue), 1) : 1;
 
@@ -303,6 +413,139 @@ export default function SecretOpsPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Notification Bell Dropdown */}
+            <div className="relative" ref={notifRef}>
+              <button
+                onClick={() => setIsNotifOpen((prev) => !prev)}
+                className={`relative p-2 rounded-xl bg-[#0E1B2E] border transition-all cursor-pointer ${
+                  isNotifOpen
+                    ? 'text-white border-[#00C853]/60 bg-[#00C853]/10'
+                    : 'border-[#1A2E4C] text-slate-200 hover:text-white hover:bg-white/5 active:scale-95'
+                }`}
+                title="Notifications"
+              >
+                {unreadCount > 0 ? (
+                  <BellRing
+                    className={`w-4 h-4 ${
+                      hasUnreadActionNeeded ? 'text-amber-400 animate-bounce' : 'text-[#00C853]'
+                    }`}
+                  />
+                ) : (
+                  <Bell className="w-4 h-4" />
+                )}
+                {unreadCount > 0 && (
+                  <span
+                    className={`absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 text-[10px] font-black rounded-full flex items-center justify-center text-black shadow-lg ${
+                      hasUnreadActionNeeded ? 'bg-amber-400' : 'bg-[#00C853]'
+                    }`}
+                  >
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Dropdown Menu */}
+              {isNotifOpen && (
+                <div className="absolute right-0 mt-2 w-80 sm:w-96 max-h-[460px] bg-[#0C1524] border border-[#1E3456] rounded-2xl shadow-2xl z-50 flex flex-col overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+                  {/* Dropdown Header */}
+                  <div className="p-3 sm:p-3.5 border-b border-[#1A2E4C] flex items-center justify-between bg-[#080E1A]">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black uppercase tracking-wider text-slate-200">
+                        Notifications
+                      </span>
+                      {unreadCount > 0 && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#00C853]/20 text-[#00C853] border border-[#00C853]/30">
+                          {unreadCount} new
+                        </span>
+                      )}
+                    </div>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={markAllAsRead}
+                        className="text-[11px] font-bold text-slate-400 hover:text-[#00C853] flex items-center gap-1 transition-colors cursor-pointer"
+                      >
+                        <CheckCheck className="w-3.5 h-3.5" />
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Dropdown List */}
+                  <div className="overflow-y-auto divide-y divide-[#15233A] flex-1 max-h-[380px]">
+                    {notifications.length === 0 ? (
+                      <div className="py-10 px-4 text-center">
+                        <Bell className="w-8 h-8 text-slate-600 mx-auto mb-2 opacity-50" />
+                        <p className="text-xs text-slate-400 font-medium">No notifications yet</p>
+                      </div>
+                    ) : (
+                      notifications.map((n) => {
+                        const isRead = readNotifIds.includes(n.id);
+                        return (
+                          <div
+                            key={n.id}
+                            className={`p-3 sm:p-3.5 transition-colors flex items-start justify-between gap-3 ${
+                              isRead
+                                ? 'bg-transparent opacity-65 hover:opacity-100'
+                                : n.type === 'action_needed'
+                                ? 'bg-amber-500/5 border-l-2 border-l-amber-400'
+                                : 'bg-[#00C853]/5 border-l-2 border-l-[#00C853]'
+                            }`}
+                          >
+                            <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                              <div className="shrink-0 mt-0.5">
+                                {n.type === 'action_needed' ? (
+                                  <div className="w-7 h-7 rounded-lg bg-amber-400/15 border border-amber-400/30 flex items-center justify-center text-amber-400">
+                                    <AlertTriangle className="w-3.5 h-3.5" />
+                                  </div>
+                                ) : n.type === 'success' ? (
+                                  <div className="w-7 h-7 rounded-lg bg-emerald-400/15 border border-emerald-400/30 flex items-center justify-center text-emerald-400">
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                  </div>
+                                ) : (
+                                  <div className="w-7 h-7 rounded-lg bg-cyan-400/15 border border-cyan-400/30 flex items-center justify-center text-cyan-400">
+                                    <Zap className="w-3.5 h-3.5" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center justify-between gap-1 mb-0.5">
+                                  <h4
+                                    className={`text-xs font-bold truncate ${
+                                      n.type === 'action_needed' ? 'text-amber-300' : 'text-slate-200'
+                                    }`}
+                                  >
+                                    {n.title}
+                                  </h4>
+                                  <span className="text-[10px] text-slate-500 shrink-0 font-medium">
+                                    {n.time}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-slate-400 leading-tight line-clamp-2 mb-1">
+                                  {n.detail}
+                                </p>
+                                <div className="text-[10px] font-mono text-slate-500 truncate">
+                                  Ref: {n.reference}
+                                </div>
+                              </div>
+                            </div>
+                            {!isRead && (
+                              <button
+                                onClick={() => markAsRead(n.id)}
+                                className="shrink-0 p-1.5 rounded-lg text-slate-400 hover:text-[#00C853] hover:bg-[#00C853]/10 transition-colors cursor-pointer"
+                                title="Mark as read"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <button
               onClick={() => fetchData()}
               disabled={refreshing}
