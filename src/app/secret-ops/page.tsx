@@ -31,6 +31,7 @@ interface AdminOrder {
   status: string;
   failureReason?: string | null;
   paidAt: string;
+  customerCode?: string;
 }
 
 interface WalletData {
@@ -189,7 +190,13 @@ export default function SecretOpsPage() {
     setTimeout(() => setCopiedPhone(null), 2000);
   };
 
-  const handleDispatchRegular = async (recipient: string, bundleGb: number, targetIdKey?: string) => {
+  const handleDispatchRegular = async (
+    recipient: string,
+    bundleGb: number,
+    targetIdKey?: string,
+    reference?: string,
+    customerCode?: string
+  ) => {
     const activeToken = localStorage.getItem('gbplug_admin_token');
     if (!activeToken) return;
 
@@ -208,6 +215,8 @@ export default function SecretOpsPage() {
         body: JSON.stringify({
           recipient,
           bundleGb,
+          reference,
+          customerCode,
         }),
       });
 
@@ -396,7 +405,15 @@ export default function SecretOpsPage() {
                     {/* Action Buttons Row */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       <button
-                        onClick={() => handleDispatchRegular(order.recipient, order.bundleGb, order.id || order.reference)}
+                        onClick={() =>
+                          handleDispatchRegular(
+                            order.recipient,
+                            order.bundleGb,
+                            order.id || order.reference,
+                            order.reference,
+                            order.customerCode
+                          )
+                        }
                         disabled={isDispatching}
                         className="h-11 bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white font-bold text-xs tracking-tight rounded-xl shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 transition-all"
                       >

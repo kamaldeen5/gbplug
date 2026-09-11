@@ -216,3 +216,67 @@ export function verifyWebhookSignature(rawBody: string, signature: string | null
     return false;
   }
 }
+
+/**
+ * Persistently save DataSika order mapping into Paystack customer metadata.
+ * Survives Vercel serverless cold starts across all lambda instances.
+ */
+export async function saveCustomerOrderMetadata(
+  customerCode: string,
+  reference: string,
+  orderData: {
+    orderId?: string | null;
+    status?: string;
+    failureReason?: string | null;
+  }
+): Promise<boolean> {
+  if (!customerCode || !reference) return false;
+  const { secretKey } = getPaystackConfig();
+
+  try {
+    // 1. Fetch current customer metadata
+    const getRes = await fetch(`${PAYSTACK_BASE_URL}/customer/${encodeURIComponent(customerCode)}`, {
+      headers: { Authorization: `Bearer ${secretKey}` },
+      cache: 'no-store',
+    });
+
+    let currentOrders: Record<string, any> = {};
+    let existingMeta: Record<string, any> = {};
+
+    if (getRes.ok) {
+      const getJson = await getRes.json();
+      existingMeta = getJson.data?.metadata || {};
+      if (existingMeta.orders && typeof existingMeta.orders === 'object') {
+        currentOrders = { ...existingMeta.orders };
+      }
+    }
+
+    // 2. Merge order info
+    currentOrders[reference] = {
+      orderId: orderData.orderId || currentOrders[reference]?.orderId || null,
+      status: orderData.status || currentOrders[reference]?.status || 'processing',
+      failureReason: orderData.failureReason || currentOrders[reference]?.failureReason || null,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // 3. Update customer metadata
+    const updateRes = await fetch(`${PAYSTACK_BASE_URL}/customer/${encodeURIComponent(customerCode)}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${secretKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        metadata: {
+          ...existingMeta,
+          orders: currentOrders,
+        },
+      }),
+    });
+
+    return updateRes.ok;
+  } catch (err) {
+    console.error(`[Paystack] Failed to persist order metadata for ${reference}:`, err);
+    return false;
+  }
+}

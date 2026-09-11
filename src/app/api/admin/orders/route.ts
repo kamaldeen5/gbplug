@@ -41,21 +41,29 @@ export async function GET(req: NextRequest) {
         const serviceType = metadata.service_type || 'mtn_flexa';
         const paidAt = tx.paid_at || tx.paidAt || tx.created_at;
         const amountPaid = (Number(tx.amount) || 0) / 100;
+        const customerCode = tx.customer?.customer_code;
 
-        // Check registry for known DataSika order ID
+        // Check persistent customer metadata first, then in-memory registry
+        const customerSavedOrders = tx.customer?.metadata?.orders || {};
+        const savedOrder = customerSavedOrders[ref];
+
         const registryEntry = getOrderByRef(ref);
-        let dataSikaOrderId = metadata.order_id || registryEntry?.orderId || null;
+        let dataSikaOrderId =
+          savedOrder?.orderId ||
+          metadata.order_id ||
+          registryEntry?.orderId ||
+          null;
 
         let dsStatus: any = null;
-        let finalStatus = 'processing';
-        let failureReason: string | null = null;
+        let finalStatus = savedOrder?.status || 'processing';
+        let failureReason: string | null = savedOrder?.failureReason || null;
 
-        // Query live status directly from DataSika
+        // Query live status directly from DataSika if we have an ID
         if (dataSikaOrderId) {
           try {
             dsStatus = await getOrderStatus(dataSikaOrderId);
           } catch {}
-        } else if (ref && ref.startsWith('API-')) {
+        } else if (ref && (ref.startsWith('API-') || ref.startsWith('FLX-'))) {
           try {
             dsStatus = await getOrderStatus(ref);
           } catch {}
@@ -66,11 +74,40 @@ export async function GET(req: NextRequest) {
           const rawSt = (dsStatus.status || '').toLowerCase();
           if (rawSt === 'delivered') {
             finalStatus = 'delivered';
+            failureReason = null;
           } else if (rawSt === 'failed' || rawSt === 'refunded' || dsStatus.failure_reason) {
             finalStatus = 'refunded';
             failureReason = dsStatus.failure_reason || 'Order was refunded or rejected by telco gateway';
           } else {
             finalStatus = rawSt || 'processing';
+          }
+        } else {
+          // If no live DataSika response was found, check if it was marked refunded in saved metadata
+          if (savedOrder?.status === 'refunded' || savedOrder?.failureReason) {
+            finalStatus = 'refunded';
+            failureReason = savedOrder.failureReason || 'Dispatch failed on DataSika gateway';
+          }
+        }
+
+        const paidTime = new Date(paidAt).getTime();
+        const minutesElapsed = (Date.now() - paidTime) / 60000;
+        const hoursElapsed = minutesElapsed / 60;
+        const isFlexa = serviceType === 'mtn_flexa' || metadata.service_type === 'mtn_flexa';
+
+        // Proactive safety check for active orders within last 24h
+        if (savedOrder?.status === 'delivered') {
+          finalStatus = 'delivered';
+          failureReason = null;
+        } else if (savedOrder?.status === 'refunded' || savedOrder?.failureReason) {
+          finalStatus = 'refunded';
+          failureReason = savedOrder.failureReason;
+        } else if (finalStatus !== 'delivered' && minutesElapsed >= 2 && hoursElapsed <= 24) {
+          if (!dataSikaOrderId) {
+            finalStatus = 'refunded';
+            failureReason = failureReason || 'Unconfirmed dispatch. Check if number is non-Flexa and send normal data.';
+          } else if (finalStatus === 'processing' && minutesElapsed >= 5) {
+            finalStatus = 'refunded';
+            failureReason = failureReason || 'Processing delay exceeding 5 minutes. Possible telco refund or stall.';
           }
         }
 
@@ -90,6 +127,7 @@ export async function GET(req: NextRequest) {
           status: finalStatus,
           failureReason,
           paidAt,
+          customerCode,
           rawTx: {
             id: tx.id,
             channel: tx.channel,

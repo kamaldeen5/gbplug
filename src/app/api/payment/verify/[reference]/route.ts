@@ -29,6 +29,7 @@ export async function GET(
       const productId = url.searchParams.get('productId') || result.data.raw?.metadata?.product_id;
       const recipient = url.searchParams.get('recipient') || result.data.raw?.metadata?.recipient_phone;
       const serviceType = url.searchParams.get('serviceType') || result.data.raw?.metadata?.service_type;
+      const customerCode = result.data.raw?.customer?.customer_code;
 
       if (productId && recipient) {
         const cleanRecipient = recipient.replace(/\D/g, '');
@@ -38,6 +39,7 @@ export async function GET(
             productId,
             recipient: cleanRecipient,
             serviceType,
+            customerCode,
           });
 
           return NextResponse.json({

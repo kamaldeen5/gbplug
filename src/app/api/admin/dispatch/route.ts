@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdminToken } from '@/lib/adminAuth';
 import { buyDataBundle } from '@/lib/datasika';
 import { registerOrderEntry } from '@/lib/order-registry';
+import { saveCustomerOrderMetadata } from '@/lib/paystack';
 import { REGULAR_MTN_PACKAGES } from '@/data/bundles';
 
 export const dynamic = 'force-dynamic';
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { recipient, bundleGb, customProductId } = body;
+    const { recipient, bundleGb, customProductId, reference, customerCode } = body;
 
     if (!recipient) {
       return NextResponse.json({ success: false, error: 'Recipient phone number is required' }, { status: 400 });
@@ -55,7 +56,16 @@ export async function POST(req: NextRequest) {
     });
 
     if (result.order_id) {
-      registerOrderEntry({ orderId: result.order_id, recipient: cleanRecipient });
+      registerOrderEntry({ orderId: result.order_id, recipient: cleanRecipient, reference });
+
+      // Mark the order persistently as resolved/delivered
+      if (customerCode && reference) {
+        saveCustomerOrderMetadata(customerCode, reference, {
+          orderId: result.order_id,
+          status: 'delivered',
+          failureReason: null,
+        }).catch((err) => console.error('[Admin Dispatch] Error updating customer metadata:', err));
+      }
     }
 
     return NextResponse.json({

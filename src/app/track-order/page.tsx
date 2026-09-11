@@ -627,10 +627,13 @@ function TrackOrderContent() {
             localStorage.setItem('gbplug_orders', JSON.stringify(history.slice(0, 30)));
           }
         } catch (e) {}
-      } else if (localMatchingOrders.length > 0) {
+      } else if (localMatchingOrders.filter((item: any) => item.status === 'delivered' || (item.order_id && (item.order_id.startsWith('API-') || item.order_id.startsWith('FLX-')))).length > 0) {
+        const verifiedLocalOrders = localMatchingOrders.filter(
+          (item: any) => item.status === 'delivered' || (item.order_id && (item.order_id.startsWith('API-') || item.order_id.startsWith('FLX-')))
+        );
         // Use local storage records formatted for UI with deduplication
         const mappedLocalMap = new Map<string, OrderRecord>();
-        for (const item of localMatchingOrders) {
+        for (const item of verifiedLocalOrders) {
           const placedAt = item.timestamp || new Date().toISOString();
           const id = item.order_id || item.id || 'ORDER';
           const k = id.toUpperCase().trim();

@@ -115,6 +115,7 @@ async function resolveSingleOrder(idOrRef: string): Promise<any | null> {
               productId,
               recipient: cleanRecipient,
               serviceType,
+              customerCode: pData.raw?.customer?.customer_code,
             });
 
             if (dsOrder && dsOrder.order_id) {
@@ -125,6 +126,34 @@ async function resolveSingleOrder(idOrRef: string): Promise<any | null> {
         }
 
         const { id: netId, name: netName } = normalizeNetwork(metadata.bundle_name || serviceType, cleanRecipient);
+
+        // If payment explicitly failed
+        if (pData.status === 'failed') {
+          return {
+            id: pData.reference,
+            reference: pData.reference,
+            network: netId,
+            networkName: netName,
+            bundle: metadata.bundle_name || `${pData.amount} GHS Bundle`,
+            data: metadata.bundle_name || `${pData.amount} GHS`,
+            phone: cleanRecipient,
+            amount: pData.amount,
+            status: 'failed',
+            failureReason: pData.raw?.gateway_response || 'Payment failed or was declined',
+            timeline: {
+              orderPlacedAt: pData.paid_at || new Date().toISOString(),
+              processingAt: null,
+              deliveredAt: null,
+            },
+          };
+        }
+
+        // If payment was abandoned or never made, do not treat as an active order
+        if (pData.status !== 'success') {
+          return null;
+        }
+
+        // Only verified successful payments reach here
         return {
           id: pData.reference,
           reference: pData.reference,
@@ -134,7 +163,7 @@ async function resolveSingleOrder(idOrRef: string): Promise<any | null> {
           data: metadata.bundle_name || `${pData.amount} GHS`,
           phone: cleanRecipient,
           amount: pData.amount,
-          status: pData.status === 'success' ? 'processing' : (pData.status === 'failed' ? 'failed' : 'processing'),
+          status: 'processing',
           timeline: {
             orderPlacedAt: pData.paid_at || new Date().toISOString(),
             processingAt: new Date().toISOString(),

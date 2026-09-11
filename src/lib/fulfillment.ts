@@ -4,12 +4,14 @@
 
 import { buyDataBundle, buyFlexaBundle, BuyDataResponse } from './datasika';
 import { registerOrderEntry } from './order-registry';
+import { saveCustomerOrderMetadata } from './paystack';
 
 export interface FulfillOrderParams {
   reference: string;
   productId: string;
   recipient: string;
   serviceType?: string;
+  customerCode?: string;
 }
 
 const g = global as unknown as {
@@ -48,7 +50,7 @@ const FLEXA_PRODUCT_IDS = new Set([
  * it returns the existing order result without sending a second purchase request.
  */
 export async function fulfillOrderOnce(params: FulfillOrderParams): Promise<BuyDataResponse> {
-  const { reference, productId, recipient, serviceType } = params;
+  const { reference, productId, recipient, serviceType, customerCode } = params;
   const cleanRef = reference.trim();
   const cleanRecipient = recipient.replace(/\D/g, '');
 
@@ -92,9 +94,29 @@ export async function fulfillOrderOnce(params: FulfillOrderParams): Promise<BuyD
         console.log(`[Fulfillment] Order successfully created with ID: ${order.order_id}`);
         registerOrderEntry({ orderId: order.order_id, recipient: cleanRecipient, reference: cleanRef });
         g.__gbplug_fulfilled_refs__?.set(cleanRef, order);
+
+        // Persist to Paystack customer metadata so it survives across all Vercel lambdas
+        if (customerCode) {
+          const rawStatus = (order.status || '').toLowerCase();
+          const isRefunded = rawStatus === 'failed' || rawStatus === 'refunded' || !!(order as any).failure_reason;
+          saveCustomerOrderMetadata(customerCode, cleanRef, {
+            orderId: order.order_id,
+            status: isRefunded ? 'refunded' : rawStatus || 'processing',
+            failureReason: (order as any).failure_reason || (isRefunded ? 'Refunded by DataSika' : null),
+          }).catch((err) => console.error('[Fulfillment] Error persisting metadata:', err));
+        }
       }
 
       return order;
+    } catch (dispatchErr: any) {
+      // Record failure reason persistently if customerCode is known
+      if (customerCode) {
+        saveCustomerOrderMetadata(customerCode, cleanRef, {
+          status: 'refunded',
+          failureReason: dispatchErr.message || 'Dispatch error on DataSika gateway',
+        }).catch(() => {});
+      }
+      throw dispatchErr;
     } finally {
       // Clear in-flight state once settled
       g.__gbplug_inflight_refs__?.delete(cleanRef);

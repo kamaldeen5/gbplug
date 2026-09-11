@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
       const productId = metadata.product_id;
       const recipientPhone = metadata.recipient_phone || data.customer?.phone;
       const serviceType = metadata.service_type;
+      const customerCode = data.customer?.customer_code;
 
       if (reference && productId && recipientPhone) {
         const cleanRecipient = recipientPhone.toString().replace(/\D/g, '');
@@ -43,6 +44,7 @@ export async function POST(req: NextRequest) {
             productId,
             recipient: cleanRecipient,
             serviceType,
+            customerCode,
           });
 
           console.log(`[Paystack Webhook] Order successfully dispatched for ${reference}:`, order.order_id);
