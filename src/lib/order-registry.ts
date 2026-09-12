@@ -21,6 +21,7 @@ export interface PendingOrder {
 const g = global as unknown as {
   __gbplug_order_registry__?: OrderEntry[];
   __gbplug_pending_queue__?: PendingOrder[];
+  __gbplug_dismissed_refs__?: Set<string>;
 };
 
 if (!g.__gbplug_order_registry__) {
@@ -29,6 +30,20 @@ if (!g.__gbplug_order_registry__) {
 
 if (!g.__gbplug_pending_queue__) {
   g.__gbplug_pending_queue__ = [];
+}
+
+if (!g.__gbplug_dismissed_refs__) {
+  g.__gbplug_dismissed_refs__ = new Set();
+}
+
+export function dismissOrderRef(ref: string): void {
+  if (!ref) return;
+  g.__gbplug_dismissed_refs__?.add(ref.trim());
+}
+
+export function isOrderRefDismissed(ref: string): boolean {
+  if (!ref) return false;
+  return !!g.__gbplug_dismissed_refs__?.has(ref.trim());
 }
 
 export function registerOrderEntry(entry: OrderEntry): void {

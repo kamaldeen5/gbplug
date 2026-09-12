@@ -99,3 +99,37 @@ export const REGULAR_MTN_PACKAGES: { gb: number; name: string; productId: string
   { gb: 40, name: '40 GB', productId: 'a6709756-6b41-4adf-b4d1-516f5598bd44', cost: 160.00 },
   { gb: 50, name: '50 GB', productId: 'c63cbabb-6c29-4667-bedd-f63f5d31feeb', cost: 195.00 },
 ];
+
+/**
+ * Server-side source of truth for bundle pricing and validation.
+ * Used to strictly prevent client-side price tampering and fraud.
+ */
+export function getOfficialBundle(productIdOrId: string): (BundleOption & { network: string }) | null {
+  if (!productIdOrId) return null;
+  const clean = productIdOrId.trim();
+
+  for (const [netKey, bundles] of Object.entries(NETWORK_BUNDLES)) {
+    const found = bundles.find((b) => b.productId === clean || b.id === clean);
+    if (found) {
+      return { ...found, network: netKey };
+    }
+  }
+
+  // Check regular MTN packages as well
+  const regular = REGULAR_MTN_PACKAGES.find((p) => p.productId === clean);
+  if (regular) {
+    return {
+      id: `regular-${regular.gb}`,
+      productId: regular.productId,
+      name: regular.name,
+      data: regular.name,
+      costPrice: regular.cost,
+      price: regular.cost,
+      validity: 'No Expiry',
+      serviceType: 'data_bundles',
+      network: 'mtn',
+    };
+  }
+
+  return null;
+}

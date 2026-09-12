@@ -19,6 +19,7 @@ import {
   BellRing,
   CheckCheck,
   X,
+  Trash2,
 } from 'lucide-react';
 import { REGULAR_MTN_PACKAGES } from '@/data/bundles';
 import { WhatsAppIcon, GBPlugLogo } from '@/components/NetworkLogos';
@@ -70,6 +71,9 @@ export default function SecretOpsPage() {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [copiedPhone, setCopiedPhone] = useState<string | null>(null);
 
+  // Dismissed Action Needed orders
+  const [dismissedOrderRefs, setDismissedOrderRefs] = useState<string[]>([]);
+
   // Notification bell state
   const [isNotifOpen, setIsNotifOpen] = useState<boolean>(false);
   const [readNotifIds, setReadNotifIds] = useState<string[]>([]);
@@ -108,7 +112,16 @@ export default function SecretOpsPage() {
       if (ordersRes.ok) {
         const oData = await ordersRes.json();
         if (oData.success) {
-          setActionNeededOrders(oData.actionNeeded || []);
+          let dismissedList: string[] = [];
+          try {
+            const raw = localStorage.getItem('gbplug_admin_dismissed_orders');
+            if (raw) dismissedList = JSON.parse(raw);
+          } catch {}
+
+          const activeActionNeeded = (oData.actionNeeded || []).filter(
+            (o: AdminOrder) => !dismissedList.includes(o.reference) && !dismissedList.includes(o.id)
+          );
+          setActionNeededOrders(activeActionNeeded);
           setAllOrders(oData.allOrders || []);
         }
       }
@@ -247,6 +260,47 @@ export default function SecretOpsPage() {
     }
   };
 
+  const handleDeleteActionNeeded = async (order: AdminOrder) => {
+    const targetRef = order.reference || order.id;
+    if (!targetRef) return;
+
+    // 1. Instantly remove from UI
+    setActionNeededOrders((prev) => prev.filter((o) => o.reference !== targetRef && o.id !== targetRef));
+    setDismissedOrderRefs((prev) => [...prev, targetRef]);
+
+    // 2. Persist dismissed reference in localStorage
+    try {
+      const raw = localStorage.getItem('gbplug_admin_dismissed_orders');
+      const list: string[] = raw ? JSON.parse(raw) : [];
+      if (!list.includes(targetRef)) {
+        list.push(targetRef);
+        localStorage.setItem('gbplug_admin_dismissed_orders', JSON.stringify(list.slice(-300)));
+      }
+    } catch {}
+
+    setDispatchSuccessMsg(`Entry for ${formatPhone(order.recipient)} removed from Action Needed.`);
+
+    // 3. Notify backend API
+    try {
+      const activeToken = localStorage.getItem('gbplug_admin_token');
+      if (activeToken) {
+        await fetch('/api/admin/orders/dismiss', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${activeToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            reference: targetRef,
+            customerCode: order.customerCode,
+          }),
+        });
+      }
+    } catch (err) {
+      console.error('Error syncing order dismissal:', err);
+    }
+  };
+
   const formatPhone = (p: string) => {
     const raw = p.replace(/\D/g, '');
     if (raw.length === 10) {
@@ -269,12 +323,16 @@ export default function SecretOpsPage() {
     }
   };
 
-  // Hydrate read notification IDs from localStorage
+  // Hydrate read notification IDs and dismissed orders from localStorage
   useEffect(() => {
     try {
       const saved = localStorage.getItem('gbplug_admin_read_notifs');
       if (saved) {
         setReadNotifIds(JSON.parse(saved));
+      }
+      const dismissedSaved = localStorage.getItem('gbplug_admin_dismissed_orders');
+      if (dismissedSaved) {
+        setDismissedOrderRefs(JSON.parse(dismissedSaved));
       }
     } catch {}
   }, []);
@@ -293,6 +351,12 @@ export default function SecretOpsPage() {
   // Compute live notifications from all orders
   const notifications = React.useMemo(() => {
     return allOrders
+      .filter((o) => {
+        const isDismissed = dismissedOrderRefs.includes(o.reference) || dismissedOrderRefs.includes(o.id);
+        const isActionNeeded = o.status === 'refunded' || !!o.failureReason;
+        if (isDismissed && isActionNeeded) return false;
+        return true;
+      })
       .map((o) => {
         const isActionNeeded = o.status === 'refunded' || !!o.failureReason;
         const isDelivered = o.status === 'delivered';
@@ -326,7 +390,7 @@ export default function SecretOpsPage() {
         };
       })
       .sort((a, b) => b.timestamp - a.timestamp);
-  }, [allOrders]);
+  }, [allOrders, dismissedOrderRefs]);
 
   const unreadNotifs = notifications.filter((n) => !readNotifIds.includes(n.id));
   const unreadCount = unreadNotifs.length;
@@ -633,10 +697,17 @@ export default function SecretOpsPage() {
                         </span>
                       </div>
 
-                      <div className="text-right">
+                      <div className="text-right flex items-center gap-2">
                         <span className="inline-block px-2.5 py-1 bg-amber-500/15 border border-amber-500/30 text-amber-300 font-extrabold text-xs rounded-xl">
                           {order.bundleName}
                         </span>
+                        <button
+                          onClick={() => handleDeleteActionNeeded(order)}
+                          className="p-1.5 rounded-lg bg-[#16253C] hover:bg-rose-950/60 border border-[#1E3456] hover:border-rose-500/50 text-slate-400 hover:text-rose-400 transition-all cursor-pointer"
+                          title="Delete from Action Needed"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
 
@@ -646,7 +717,7 @@ export default function SecretOpsPage() {
                     </div>
 
                     {/* Action Buttons Row */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                       <button
                         onClick={() =>
                           handleDispatchRegular(
@@ -662,7 +733,7 @@ export default function SecretOpsPage() {
                       >
                         <Zap className="w-4 h-4 fill-current" />
                         <span>
-                          {isDispatching ? 'Dispatching...' : `Dispatch Normal MTN (${order.bundleGb} GB @ GH₵ ${matchedPkg.cost.toFixed(2)})`}
+                          {isDispatching ? 'Dispatching...' : `Dispatch MTN (${order.bundleGb} GB)`}
                         </span>
                       </button>
 
@@ -675,8 +746,17 @@ export default function SecretOpsPage() {
                         className="h-11 bg-[#101F33] hover:bg-[#162A45] text-slate-200 border border-[#1E3456] font-semibold text-xs tracking-tight rounded-xl flex items-center justify-center gap-2 transition-all"
                       >
                         <WhatsAppIcon className="w-3.5 h-3.5 text-[#00C853] fill-current" />
-                        <span>WhatsApp Customer</span>
+                        <span>WhatsApp</span>
                       </a>
+
+                      <button
+                        onClick={() => handleDeleteActionNeeded(order)}
+                        className="h-11 bg-[#16253C]/80 hover:bg-rose-950/70 border border-[#1E3456] hover:border-rose-500/50 text-slate-300 hover:text-rose-300 font-semibold text-xs tracking-tight rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer"
+                        title="Remove from Action Needed"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                        <span>Delete Entry</span>
+                      </button>
                     </div>
                   </div>
                 );

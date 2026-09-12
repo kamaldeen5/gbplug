@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { initializePayment } from '@/lib/paystack';
+import { getOfficialBundle } from '@/data/bundles';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { amount, phone, email, bundleName, productId, callbackUrl, serviceType } = body;
+    const { amount, phone, email, productId, callbackUrl, serviceType } = body;
 
-    if (!amount || !phone || !bundleName || !productId) {
+    if (!phone || !productId) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields: amount, phone, bundleName, productId' },
+        { success: false, error: 'Missing required fields: phone, productId' },
         { status: 400 }
       );
     }
@@ -23,14 +24,46 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 1. STRICT SERVER-SIDE PRICE & PRODUCT VALIDATION
+    const officialBundle = getOfficialBundle(productId);
+    if (!officialBundle) {
+      console.error(`[Security Alert] Unknown or invalid productId attempted: ${productId} by ${cleanPhone}`);
+      return NextResponse.json(
+        { success: false, error: 'Invalid bundle product ID. Transaction rejected.' },
+        { status: 400 }
+      );
+    }
+
+    // 2. DETECT CLIENT-SIDE PRICE TAMPERING FRAUD
+    if (amount !== undefined && amount !== null) {
+      const clientAmount = Number(amount);
+      if (isNaN(clientAmount) || Math.abs(clientAmount - officialBundle.price) > 0.01) {
+        console.error(
+          `[SECURITY FRAUD BLOCKED] Price tampering attempt detected! Phone: ${cleanPhone}, Product: ${officialBundle.name} (${officialBundle.productId}), Client claimed: GHS ${clientAmount}, Official Price: GHS ${officialBundle.price}`
+        );
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Security verification failed: Price tampering detected. Your transaction has been blocked.',
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // 3. ALWAYS USE THE SERVER OFFICIAL PRICE FOR PAYMENT INITIALIZATION
+    const verifiedAmount = officialBundle.price;
+    const verifiedBundleName = officialBundle.name;
+    const verifiedServiceType = officialBundle.serviceType || serviceType || 'data_bundles';
+
     const result = await initializePayment({
-      amount: Number(amount),
+      amount: verifiedAmount,
       phone: cleanPhone,
       email: email || `${cleanPhone}@gbplug.com`,
-      bundleName,
-      productId,
+      bundleName: verifiedBundleName,
+      productId: officialBundle.productId,
       callbackUrl,
-      serviceType: serviceType || 'data_bundles',
+      serviceType: verifiedServiceType,
     });
 
     if (!result.status || !result.data) {

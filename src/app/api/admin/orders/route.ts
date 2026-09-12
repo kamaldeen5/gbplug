@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdminToken } from '@/lib/adminAuth';
 import { getOrderStatus } from '@/lib/datasika';
-import { getOrderByRef } from '@/lib/order-registry';
+import { getOrderByRef, isOrderRefDismissed } from '@/lib/order-registry';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,8 +83,12 @@ export async function GET(req: NextRequest) {
           }
         }
 
-        // Prioritize confirmed status from customer metadata or order registry
-        if (savedOrder?.status === 'delivered') {
+        // Prioritize dismissed or confirmed status from customer metadata or order registry
+        const isDismissed = savedOrder?.dismissed || isOrderRefDismissed(ref);
+        if (isDismissed) {
+          finalStatus = 'delivered';
+          failureReason = null;
+        } else if (savedOrder?.status === 'delivered') {
           finalStatus = 'delivered';
           failureReason = null;
         } else if (savedOrder?.status === 'refunded' || savedOrder?.failureReason) {

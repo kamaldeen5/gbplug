@@ -75,17 +75,20 @@ export async function fulfillOrderOnce(params: FulfillOrderParams): Promise<BuyD
 
   const fulfillmentPromise = (async () => {
     try {
-      const isFlexa = serviceType === 'mtn_flexa' || FLEXA_PRODUCT_IDS.has(productId);
+      const { getOfficialBundle } = await import('@/data/bundles');
+      const officialBundle = getOfficialBundle(productId);
+      const effectiveProductId = officialBundle ? officialBundle.productId : productId;
+      const isFlexa = (officialBundle?.serviceType === 'mtn_flexa') || serviceType === 'mtn_flexa' || FLEXA_PRODUCT_IDS.has(effectiveProductId);
       console.log(`[Fulfillment] Dispatching SINGLE order for ref ${cleanRef} (${isFlexa ? 'MTN Flexa' : 'Standard Bundle'}) to ${cleanRecipient}...`);
 
       const order = isFlexa
         ? await buyFlexaBundle({
-            productId,
+            productId: effectiveProductId,
             recipient: cleanRecipient,
             idempotencyKey: deterministicKey,
           })
         : await buyDataBundle({
-            productId,
+            productId: effectiveProductId,
             recipient: cleanRecipient,
             idempotencyKey: deterministicKey,
           });

@@ -228,6 +228,7 @@ export async function saveCustomerOrderMetadata(
     orderId?: string | null;
     status?: string;
     failureReason?: string | null;
+    dismissed?: boolean;
   }
 ): Promise<boolean> {
   if (!customerCode || !reference) return false;
@@ -253,9 +254,10 @@ export async function saveCustomerOrderMetadata(
 
     // 2. Merge order info
     currentOrders[reference] = {
-      orderId: orderData.orderId || currentOrders[reference]?.orderId || null,
+      orderId: orderData.orderId ?? currentOrders[reference]?.orderId ?? null,
       status: orderData.status || currentOrders[reference]?.status || 'processing',
-      failureReason: orderData.failureReason || currentOrders[reference]?.failureReason || null,
+      failureReason: orderData.failureReason ?? currentOrders[reference]?.failureReason ?? null,
+      dismissed: orderData.dismissed ?? currentOrders[reference]?.dismissed ?? false,
       updatedAt: new Date().toISOString(),
     };
 
