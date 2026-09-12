@@ -62,11 +62,28 @@ export async function GET(req: NextRequest) {
         const gross = (Number(t.amount) || 0) / 100;
         const fee = (Number(t.fees) || 0) / 100;
         const meta = t.metadata || {};
+        const customerOrders = t.customer?.metadata?.orders || {};
+        const saved = customerOrders[t.reference] || {};
 
         // Extract bundle GB from metadata or estimate from amount
         const parsedGb = Number(meta.bundle_gb || (meta.bundle_name || '').replace(/\D/g, ''));
         const gb = parsedGb > 0 ? parsedGb : gross < 5 ? 1 : gross < 10 ? 2 : gross < 14 ? 3 : 1;
-        const cost = WHOLESALE_COST_MAP[gb] || gb * 4.0;
+        const standardCost = WHOLESALE_COST_MAP[gb] || gb * 4.0;
+
+        // Exclude fraudulent underpayment transactions (e.g. paying 1 GHS for 30GB or 50GB)
+        const isFraud =
+          (gross <= 1.0 && gb > 1) ||
+          (gross < standardCost * 0.6 && gb >= 3) ||
+          saved.status === 'fraud_blocked';
+
+        if (isFraud) {
+          // Do not contaminate business revenue or incur phantom wholesale cost
+          return;
+        }
+
+        // Only incur wholesale cost if DataSika actually dispatched the order
+        const isUndispatched = saved.orderId === null && !!saved.failureReason && saved.status !== 'delivered';
+        const cost = isUndispatched ? 0 : standardCost;
         const profit = gross - fee - cost;
 
         const day = (t.paid_at || t.created_at || '').substring(0, 10);
