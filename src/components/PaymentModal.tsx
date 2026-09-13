@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { X, CheckCircle2, ShieldCheck, Loader2, AlertCircle, PackageSearch, Smartphone, ExternalLink } from 'lucide-react';
-import { Network, BundleOption } from '../data/bundles';
+import { Network, BundleOption, calculateCheckoutPrice } from '../data/bundles';
 import { WhatsAppIcon } from './NetworkLogos';
 
 interface PaymentModalProps {
@@ -33,6 +33,7 @@ export function PaymentModal({
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   const cleanPhone = phoneNumber.replace(/\D/g, '');
+  const { basePrice, processingFee, totalPrice } = calculateCheckoutPrice(bundle.price);
 
   useEffect(() => {
     return () => {
@@ -75,7 +76,7 @@ export function PaymentModal({
               networkId: network.id,
               bundle: `${bundle.name} Data Bundle`,
               data: bundle.data,
-              price: bundle.price,
+              price: totalPrice,
               recipient: cleanPhone,
               status: isDelivered ? 'delivered' : 'processing',
               timestamp: new Date().toISOString(),
@@ -129,7 +130,7 @@ export function PaymentModal({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: bundle.price,
+          amount: totalPrice,
           phone: cleanPhone,
           bundleName: bundle.name,
           productId: bundle.productId,
@@ -205,6 +206,8 @@ export function PaymentModal({
                 { label: 'Bundle', value: `${bundle.name} Data Bundle` },
                 { label: 'Recipient', value: phoneNumber, mono: true },
                 { label: 'Validity', value: bundle.validity, green: true },
+                { label: 'Bundle Price', value: `GH₵ ${basePrice.toFixed(2)}` },
+                { label: 'Processing Fee (2%)', value: `GH₵ ${processingFee.toFixed(2)}` },
               ].map(({ label, value, mono, green }) => (
                 <div key={label} className="flex justify-between items-center">
                   <span className={isDark ? 'text-[#8E9CAE]' : 'text-slate-500'}>{label}</span>
@@ -212,8 +215,8 @@ export function PaymentModal({
                 </div>
               ))}
               <div className="pt-2.5 border-t border-slate-700/30 flex justify-between items-baseline">
-                <span className="font-bold">Total</span>
-                <span className="text-xl font-black text-[#00C853]">GH₵ {bundle.price.toFixed(2)}</span>
+                <span className="font-bold">Total Due</span>
+                <span className="text-xl font-black text-[#00C853]">GH₵ {totalPrice.toFixed(2)}</span>
               </div>
             </div>
 
@@ -228,7 +231,7 @@ export function PaymentModal({
               className="w-full h-12 bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white font-bold tracking-tight rounded-xl shadow-[0_4px_16px_rgba(0,200,83,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] transition-all flex items-center justify-center gap-2 cursor-pointer select-none"
             >
               <Smartphone className="w-4 h-4" />
-              <span>Pay GH₵ {bundle.price.toFixed(2)} with MoMo</span>
+              <span>Pay GH₵ {totalPrice.toFixed(2)} with MoMo</span>
             </button>
           </div>
         )}
@@ -252,7 +255,7 @@ export function PaymentModal({
             </div>
             <h4 className="font-extrabold text-lg tracking-tight mb-2">Redirecting to Payment</h4>
             <p className={`text-xs mb-5 ${isDark ? 'text-[#8E9CAE]' : 'text-slate-500'}`}>
-              If the payment page didn&apos;t open automatically, click the button below to authorize <span className="font-bold text-[#00C853]">GH₵ {bundle.price.toFixed(2)}</span>:
+              If the payment page didn&apos;t open automatically, click the button below to authorize <span className="font-bold text-[#00C853]">GH₵ {totalPrice.toFixed(2)}</span>:
             </p>
 
             {authUrl && (

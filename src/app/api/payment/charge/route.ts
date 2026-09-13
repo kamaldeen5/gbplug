@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { initializePayment } from '@/lib/paystack';
-import { getOfficialBundle } from '@/data/bundles';
+import { getOfficialBundle, calculateCheckoutPrice } from '@/data/bundles';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,12 +34,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. DETECT CLIENT-SIDE PRICE TAMPERING FRAUD
+    // 2. ENFORCE 2% TRANSACTION FEE TRANSFERRED TO USER AT CHECKOUT
+    const { basePrice, processingFee, totalPrice } = calculateCheckoutPrice(officialBundle.price);
+
+    // 3. DETECT CLIENT-SIDE PRICE TAMPERING FRAUD
     if (amount !== undefined && amount !== null) {
       const clientAmount = Number(amount);
-      if (isNaN(clientAmount) || Math.abs(clientAmount - officialBundle.price) > 0.01) {
+      if (isNaN(clientAmount) || Math.abs(clientAmount - totalPrice) > 0.03) {
         console.error(
-          `[SECURITY FRAUD BLOCKED] Price tampering attempt detected! Phone: ${cleanPhone}, Product: ${officialBundle.name} (${officialBundle.productId}), Client claimed: GHS ${clientAmount}, Official Price: GHS ${officialBundle.price}`
+          `[SECURITY FRAUD BLOCKED] Price tampering attempt detected! Phone: ${cleanPhone}, Product: ${officialBundle.name} (${officialBundle.productId}), Client claimed: GHS ${clientAmount}, Expected Total: GHS ${totalPrice}`
         );
         return NextResponse.json(
           {
@@ -51,8 +54,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. ALWAYS USE THE SERVER OFFICIAL PRICE FOR PAYMENT INITIALIZATION
-    const verifiedAmount = officialBundle.price;
+    // 4. ALWAYS USE THE SERVER OFFICIAL TOTAL PRICE (BASE + 2% FEE) FOR PAYMENT INITIALIZATION
+    const verifiedAmount = totalPrice;
     const verifiedBundleName = officialBundle.name;
     const verifiedServiceType = officialBundle.serviceType || serviceType || 'data_bundles';
 

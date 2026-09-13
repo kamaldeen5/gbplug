@@ -133,3 +133,22 @@ export function getOfficialBundle(productIdOrId: string): (BundleOption & { netw
 
   return null;
 }
+
+/**
+ * Calculate checkout pricing with a 2% payment processing fee transferred to the user.
+ * Displayed exclusively at checkout.
+ */
+export function calculateCheckoutPrice(basePrice: number): {
+  basePrice: number;
+  processingFee: number;
+  totalPrice: number;
+} {
+  const safeBase = Number(basePrice) || 0;
+  const processingFee = Math.round(safeBase * 0.02 * 100) / 100;
+  const totalPrice = Math.round((safeBase + processingFee) * 100) / 100;
+  return {
+    basePrice: safeBase,
+    processingFee,
+    totalPrice,
+  };
+}

@@ -32,8 +32,8 @@ export async function GET(
       const customerCode = result.data.raw?.customer?.customer_code;
 
       if (productId && recipient) {
-        // ANTI-FRAUD: Validate that the amount paid strictly matches the official price
-        const { getOfficialBundle } = await import('@/data/bundles');
+        // ANTI-FRAUD: Validate that the amount paid covers the official price
+        const { getOfficialBundle, calculateCheckoutPrice } = await import('@/data/bundles');
         const officialBundle = getOfficialBundle(productId);
 
         if (!officialBundle) {
@@ -41,16 +41,17 @@ export async function GET(
           return NextResponse.json({ success: false, error: 'Invalid product bundle' }, { status: 400 });
         }
 
+        const { totalPrice } = calculateCheckoutPrice(officialBundle.price);
         const paidGhs = Number(result.data.amount) || 0;
-        if (paidGhs < officialBundle.price - 0.01) {
+        if (paidGhs < officialBundle.price - 0.05) {
           console.error(
-            `[SECURITY FRAUD BLOCKED] Underpayment intercepted on verify! Ref: ${reference}, Paid: GHS ${paidGhs.toFixed(2)}, Required: GHS ${officialBundle.price.toFixed(2)}. Dispatch prevented.`
+            `[SECURITY FRAUD BLOCKED] Underpayment intercepted on verify! Ref: ${reference}, Paid: GHS ${paidGhs.toFixed(2)}, Required: GHS ${totalPrice.toFixed(2)}. Dispatch prevented.`
           );
           const { saveCustomerOrderMetadata } = await import('@/lib/paystack');
           if (customerCode) {
             saveCustomerOrderMetadata(customerCode, reference, {
               status: 'fraud_blocked',
-              failureReason: `Security Alert: Underpaid GHS ${paidGhs.toFixed(2)} for ${officialBundle.name} (Required: GHS ${officialBundle.price.toFixed(2)})`,
+              failureReason: `Security Alert: Underpaid GHS ${paidGhs.toFixed(2)} for ${officialBundle.name} (Required: GHS ${totalPrice.toFixed(2)})`,
             }).catch(() => {});
           }
           return NextResponse.json(

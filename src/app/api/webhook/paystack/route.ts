@@ -39,21 +39,22 @@ export async function POST(req: NextRequest) {
       if (reference && productId && recipientPhone) {
         const cleanRecipient = recipientPhone.toString().replace(/\D/g, '');
 
-        // ANTI-FRAUD: Validate that the amount paid strictly matches the official price
-        const { getOfficialBundle } = await import('@/data/bundles');
+        // ANTI-FRAUD: Validate that the amount paid covers the official price
+        const { getOfficialBundle, calculateCheckoutPrice } = await import('@/data/bundles');
         const officialBundle = getOfficialBundle(productId);
 
         if (officialBundle) {
+          const { totalPrice } = calculateCheckoutPrice(officialBundle.price);
           const paidGhs = (Number(data.amount) || 0) / 100;
-          if (paidGhs < officialBundle.price - 0.01) {
+          if (paidGhs < officialBundle.price - 0.05) {
             console.error(
-              `[SECURITY CRITICAL - WEBHOOK FRAUD INTERCEPTED] Underpayment detected! Ref: ${reference}, Paid: GHS ${paidGhs.toFixed(2)}, Required: GHS ${officialBundle.price.toFixed(2)}. Dispatch REFUSED!`
+              `[SECURITY CRITICAL - WEBHOOK FRAUD INTERCEPTED] Underpayment detected! Ref: ${reference}, Paid: GHS ${paidGhs.toFixed(2)}, Required: GHS ${totalPrice.toFixed(2)}. Dispatch REFUSED!`
             );
             const { saveCustomerOrderMetadata } = await import('@/lib/paystack');
             if (customerCode) {
               saveCustomerOrderMetadata(customerCode, reference, {
                 status: 'fraud_blocked',
-                failureReason: `Security Alert: Underpaid GHS ${paidGhs.toFixed(2)} for ${officialBundle.name} (Required: GHS ${officialBundle.price.toFixed(2)})`,
+                failureReason: `Security Alert: Underpaid GHS ${paidGhs.toFixed(2)} for ${officialBundle.name} (Required: GHS ${totalPrice.toFixed(2)})`,
               }).catch(() => {});
             }
             return NextResponse.json({ status: true, message: 'Underpaid transaction blocked' }, { status: 200 });
