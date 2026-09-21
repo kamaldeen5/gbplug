@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 
 // Exact wholesale cost by bundle size (in GHS)
 const WHOLESALE_COST_MAP: Record<number, number> = {
-  1: 3.95,
+  1: 4.00,
   2: 8.00,
   3: 12.00,
   4: 16.00,
@@ -13,7 +13,7 @@ const WHOLESALE_COST_MAP: Record<number, number> = {
   6: 24.00,
   8: 33.00,
   10: 40.00,
-  15: 60.00,
+  15: 59.00,
   20: 78.00,
   25: 98.00,
   30: 119.00,
