@@ -27,7 +27,7 @@ export const NETWORKS: Network[] = [
     name: 'MTN',
     displayName: 'MTN',
     color: '#FFCC00',
-    phonePrefixes: ['024', '054', '055', '059', '025'],
+    phonePrefixes: ['024', '054', '055', '059', '025', '053'],
   },
   {
     id: 'telecel',

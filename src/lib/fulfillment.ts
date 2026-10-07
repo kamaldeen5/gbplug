@@ -95,6 +95,11 @@ export async function fulfillOrderOnce(params: FulfillOrderParams): Promise<BuyD
 
       if (order?.order_id) {
         console.log(`[Fulfillment] Order successfully created with ID: ${order.order_id}`);
+        (order as any).recipient = (order as any).recipient || cleanRecipient;
+        (order as any).network = (order as any).network || (isFlexa ? 'MTN' : (officialBundle?.network?.toUpperCase() || 'MTN'));
+        (order as any).bundle_gb = (order as any).bundle_gb || (officialBundle ? parseFloat(officialBundle.data) : undefined);
+        (order as any).product_id = (order as any).product_id || effectiveProductId;
+
         registerOrderEntry({ orderId: order.order_id, recipient: cleanRecipient, reference: cleanRef });
         g.__gbplug_fulfilled_refs__?.set(cleanRef, order);
 

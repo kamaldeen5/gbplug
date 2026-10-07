@@ -1,23 +1,74 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { registerOrderEntry, getOrdersByPhone } from '@/lib/order-registry';
-import { NETWORK_BUNDLES } from '@/data/bundles';
+import { NETWORK_BUNDLES, getOfficialBundle } from '@/data/bundles';
 import { getOrderStatus } from '@/lib/datasika';
 import { verifyPayment } from '@/lib/paystack';
 import { fulfillOrderOnce } from '@/lib/fulfillment';
 
 export const dynamic = 'force-dynamic';
 
-function normalizeNetwork(networkStr?: string, phone?: string): { id: 'mtn' | 'telecel' | 'airteltigo'; name: string } {
-  const netLower = (networkStr || '').toLowerCase();
-  if (netLower.includes('mtn') || netLower.includes('flexa')) return { id: 'mtn', name: 'MTN Ghana' };
-  if (netLower.includes('telecel') || netLower.includes('vodafone')) return { id: 'telecel', name: 'Telecel Ghana' };
-  if (netLower.includes('airtel') || netLower.includes('tigo') || netLower.includes('at')) return { id: 'airteltigo', name: 'AirtelTigo' };
+function normalizeNetwork(
+  networkStr?: string,
+  phone?: string,
+  productId?: string,
+  orderId?: string
+): { id: 'mtn' | 'telecel' | 'airteltigo'; name: string } {
+  const cleanOrderId = (orderId || '').toUpperCase().trim();
+  const netLower = (networkStr || '').toLowerCase().trim();
 
-  // Fallback to phone prefix detection only if network was not specified
-  const p = (phone || '').replace(/\D/g, '');
-  if (/^(024|054|055|059|025)/.test(p)) return { id: 'mtn', name: 'MTN Ghana' };
-  if (/^(020|050)/.test(p)) return { id: 'telecel', name: 'Telecel Ghana' };
-  return { id: 'airteltigo', name: 'AirtelTigo' };
+  // 1. Order ID check: Any order starting with FLX- is strictly MTN Flexa
+  if (cleanOrderId.startsWith('FLX-') || netLower.includes('flexa') || netLower === 'mtn' || netLower.includes('mtn')) {
+    return { id: 'mtn', name: 'MTN Ghana' };
+  }
+
+  // 2. Product ID check: Check official catalog
+  if (productId) {
+    const officialBundle = getOfficialBundle(productId);
+    if (officialBundle) {
+      if (officialBundle.network === 'mtn') return { id: 'mtn', name: 'MTN Ghana' };
+      if (officialBundle.network === 'telecel') return { id: 'telecel', name: 'Telecel Ghana' };
+      if (officialBundle.network === 'airteltigo') return { id: 'airteltigo', name: 'AirtelTigo' };
+    }
+  }
+
+  // 3. String matches (Strict boundaries — NEVER match 'at' inside 'data' or 'data_bundles')
+  if (netLower.includes('telecel') || netLower.includes('vodafone')) {
+    return { id: 'telecel', name: 'Telecel Ghana' };
+  }
+  if (
+    netLower.includes('airtel') ||
+    netLower.includes('tigo') ||
+    netLower === 'at' ||
+    netLower.startsWith('at ') ||
+    netLower.endsWith(' at') ||
+    /\bat\b/.test(netLower)
+  ) {
+    return { id: 'airteltigo', name: 'AirtelTigo' };
+  }
+
+  // 4. Phone prefix detection (with Ghana 233 normalization)
+  let p = (phone || '').replace(/\D/g, '');
+  if (p.startsWith('233') && p.length === 12) {
+    p = '0' + p.slice(3);
+  } else if (p.length === 9) {
+    p = '0' + p;
+  }
+
+  // MTN prefixes: 024, 025, 053, 054, 055, 059
+  if (/^(024|025|053|054|055|059)/.test(p)) {
+    return { id: 'mtn', name: 'MTN Ghana' };
+  }
+  // Telecel prefixes: 020, 050
+  if (/^(020|050)/.test(p)) {
+    return { id: 'telecel', name: 'Telecel Ghana' };
+  }
+  // AirtelTigo prefixes: 027, 057, 026, 056
+  if (/^(027|057|026|056)/.test(p)) {
+    return { id: 'airteltigo', name: 'AirtelTigo' };
+  }
+
+  // 5. Safe Default: MTN is the dominant telco in Ghana
+  return { id: 'mtn', name: 'MTN Ghana' };
 }
 
 function findExactRetailPrice(network: string, bundleGb: number): number {
@@ -36,7 +87,12 @@ function findExactRetailPrice(network: string, bundleGb: number): number {
 }
 
 function dsOrderToUi(ds: any) {
-  const { id: networkId, name: networkName } = normalizeNetwork(ds.network, ds.recipient || '');
+  const { id: networkId, name: networkName } = normalizeNetwork(
+    ds.network,
+    ds.recipient || '',
+    ds.product_id,
+    ds.order_id
+  );
   const rawStatus = (ds.status || '').toLowerCase();
 
   const isDelivered = rawStatus === 'delivered';
@@ -44,7 +100,7 @@ function dsOrderToUi(ds: any) {
   const displayStatus = isDelivered ? 'delivered' : isFailed ? 'failed' : 'processing';
   const gb = Number(ds.bundle_gb || 0);
 
-  let retailAmount = findExactRetailPrice(ds.network || networkId, gb);
+  let retailAmount = findExactRetailPrice(networkId, gb);
   if (!retailAmount && ds.amount_charged) {
     retailAmount = Math.ceil((Number(ds.amount_charged) * 1.125) / 0.5) * 0.5;
   }
@@ -120,12 +176,23 @@ async function resolveSingleOrder(idOrRef: string): Promise<any | null> {
 
             if (dsOrder && dsOrder.order_id) {
               registerOrderEntry({ orderId: dsOrder.order_id, recipient: cleanRecipient });
-              return dsOrderToUi(dsOrder);
+              const enrichedDsOrder = {
+                ...dsOrder,
+                recipient: dsOrder.recipient || cleanRecipient,
+                network: dsOrder.network || (dsOrder.order_id?.startsWith('FLX-') ? 'MTN' : undefined),
+                product_id: (dsOrder as any).product_id || productId,
+              };
+              return dsOrderToUi(enrichedDsOrder);
             }
           } catch (fErr) {}
         }
 
-        const { id: netId, name: netName } = normalizeNetwork(metadata.bundle_name || serviceType, cleanRecipient);
+        const { id: netId, name: netName } = normalizeNetwork(
+          metadata.bundle_name || serviceType,
+          cleanRecipient,
+          productId,
+          clean
+        );
 
         // If payment explicitly failed
         if (pData.status === 'failed') {
