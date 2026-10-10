@@ -22,6 +22,7 @@ export interface InitializePaymentParams {
   callbackUrl?: string;
   redirectUrl?: string;
   serviceType?: string;
+  referralCode?: string;
 }
 
 export interface InitializePaymentResponse {
@@ -59,6 +60,7 @@ export async function initializePayment({
   productId,
   callbackUrl,
   serviceType,
+  referralCode,
 }: InitializePaymentParams): Promise<InitializePaymentResponse> {
   const { secretKey } = getPaystackConfig();
 
@@ -81,6 +83,7 @@ export async function initializePayment({
       recipient_phone: cleanPhone,
       bundle_name: bundleName,
       service_type: serviceType || 'data_bundles',
+      referral_code: referralCode || undefined,
       custom_fields: [
         {
           display_name: 'Recipient Phone',

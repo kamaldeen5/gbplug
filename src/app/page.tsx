@@ -7,6 +7,7 @@ import { PurchaseCard } from '@/components/PurchaseCard';
 import { TrustBadges } from '@/components/TrustBadges';
 import { PaymentModal } from '@/components/PaymentModal';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
+import { ReferralBanner } from '@/components/ReferralBanner';
 import { Footer } from '@/components/Footer';
 import { NETWORKS, Network, BundleOption } from '@/data/bundles';
 
@@ -18,7 +19,7 @@ export default function Home() {
   const [isPaymentOpen, setIsPaymentOpen] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Sync dark class to html document
+  // Sync dark class and capture ?ref referral parameter
   useEffect(() => {
     if (isDark) {
       document.documentElement.classList.add('dark');
@@ -26,6 +27,18 @@ export default function Home() {
     } else {
       document.documentElement.classList.remove('dark');
       document.body.style.backgroundColor = '#F8FAFC';
+    }
+
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const ref = params.get('ref');
+      if (ref) {
+        const cleanRef = ref.trim().toUpperCase();
+        document.cookie = `gbplug_ref=${encodeURIComponent(cleanRef)}; path=/; max-age=2592000; SameSite=Lax`;
+        try {
+          localStorage.setItem('gbplug_ref', cleanRef);
+        } catch {}
+      }
     }
   }, [isDark]);
 
@@ -89,6 +102,7 @@ export default function Home() {
               setPhoneNumber={setPhoneNumber}
               onBuyNow={handleBuyNow}
             />
+            <ReferralBanner isDark={isDark} />
           </div>
         </div>
       </main>

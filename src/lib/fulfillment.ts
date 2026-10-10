@@ -12,6 +12,7 @@ export interface FulfillOrderParams {
   recipient: string;
   serviceType?: string;
   customerCode?: string;
+  referralCode?: string;
 }
 
 const g = global as unknown as {
@@ -104,14 +105,31 @@ export async function fulfillOrderOnce(params: FulfillOrderParams): Promise<BuyD
         g.__gbplug_fulfilled_refs__?.set(cleanRef, order);
 
         // Persist to Paystack customer metadata so it survives across all Vercel lambdas
+        const rawStatus = (order.status || '').toLowerCase();
+        const isRefunded = rawStatus === 'failed' || rawStatus === 'refunded' || !!(order as any).failure_reason;
+
         if (customerCode) {
-          const rawStatus = (order.status || '').toLowerCase();
-          const isRefunded = rawStatus === 'failed' || rawStatus === 'refunded' || !!(order as any).failure_reason;
           saveCustomerOrderMetadata(customerCode, cleanRef, {
             orderId: order.order_id,
             status: isRefunded ? 'refunded' : rawStatus || 'processing',
             failureReason: (order as any).failure_reason || (isRefunded ? 'Refunded by DataSika' : null),
           }).catch((err) => console.error('[Fulfillment] Error persisting metadata:', err));
+        }
+
+        // Process referral rewards & progression if not refunded
+        if (!isRefunded) {
+          const bundleGb = (order as any).bundle_gb || (officialBundle ? parseFloat(officialBundle.data) : 0);
+          if (bundleGb > 0) {
+            import('./referrals').then(({ processReferralForOrder }) => {
+              processReferralForOrder({
+                buyerPhone: cleanRecipient,
+                bundleGb,
+                orderId: order.order_id,
+                reference: cleanRef,
+                referralCode: params.referralCode,
+              }).catch((err) => console.error('[Fulfillment] Error processing referral:', err));
+            }).catch(() => {});
+          }
         }
       }
 

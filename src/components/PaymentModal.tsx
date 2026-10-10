@@ -125,6 +125,16 @@ export function PaymentModal({
     setStatus('redirecting');
     setErrorMessage(null);
 
+    let referralCode: string | undefined = undefined;
+    if (typeof document !== 'undefined') {
+      const match = document.cookie.match(/(?:^|;\s*)gbplug_ref=([^;]+)/);
+      if (match) {
+        referralCode = decodeURIComponent(match[1]);
+      } else {
+        referralCode = localStorage.getItem('gbplug_ref') || undefined;
+      }
+    }
+
     try {
       const res = await fetch('/api/payment/charge', {
         method: 'POST',
@@ -135,6 +145,7 @@ export function PaymentModal({
           bundleName: bundle.name,
           productId: bundle.productId,
           serviceType: bundle.serviceType || 'data_bundles',
+          referralCode,
         }),
       });
 

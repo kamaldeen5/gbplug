@@ -30,6 +30,7 @@ export async function GET(
       const recipient = url.searchParams.get('recipient') || result.data.raw?.metadata?.recipient_phone;
       const serviceType = url.searchParams.get('serviceType') || result.data.raw?.metadata?.service_type;
       const customerCode = result.data.raw?.customer?.customer_code;
+      const referralCode = result.data.raw?.metadata?.referral_code || url.searchParams.get('ref') || req.cookies.get('gbplug_ref')?.value;
 
       if (productId && recipient) {
         // ANTI-FRAUD: Validate that the amount paid covers the official price
@@ -68,6 +69,7 @@ export async function GET(
             recipient: cleanRecipient,
             serviceType: officialBundle.serviceType || serviceType,
             customerCode,
+            referralCode: referralCode || undefined,
           });
 
           return NextResponse.json({

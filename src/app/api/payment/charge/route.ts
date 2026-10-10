@@ -8,6 +8,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { amount, phone, email, productId, callbackUrl, serviceType } = body;
+    const referralCode = body.referralCode || req.cookies.get('gbplug_ref')?.value;
 
     if (!phone || !productId) {
       return NextResponse.json(
@@ -67,6 +68,7 @@ export async function POST(req: NextRequest) {
       productId: officialBundle.productId,
       callbackUrl,
       serviceType: verifiedServiceType,
+      referralCode: referralCode || undefined,
     });
 
     if (!result.status || !result.data) {
