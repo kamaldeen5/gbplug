@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     template: '%s | GB Plug Ghana',
   },
   description:
-    'Ghana’s #1 data plug. Get affordable, high-speed data bundles for MTN, Telecel, and AT from GH₵ 5. Instant SIM delivery 24/7 with Mobile Money on GB Plug.',
+    'Instant SIM delivery 24/7. Get free 1 GB per friend on GB Plug!',
   applicationName: 'GB Plug',
   authors: [{ name: 'GB Plug Ghana', url: 'https://gbplug.com' }],
   keywords: [
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'GB Plug | Buy Cheap MTN, Telecel & AT Data Bundles in Ghana',
     description:
-      'Ghana’s #1 data plug. Get affordable, high-speed data bundles for MTN, Telecel, and AT from GH₵ 5. Instant SIM delivery 24/7 with Mobile Money on GB Plug.',
+      'Instant SIM delivery 24/7. Get free 1 GB per friend on GB Plug!',
     url: 'https://gbplug.com',
     siteName: 'GB Plug Ghana',
     locale: 'en_GH',
@@ -50,7 +50,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'GB Plug | Buy Cheap MTN, Telecel & AT Data Bundles in Ghana',
     description:
-      'Ghana’s #1 data plug. Get affordable, high-speed data bundles for MTN, Telecel, and AT from GH₵ 5. Instant SIM delivery 24/7 with Mobile Money.',
+      'Instant SIM delivery 24/7. Get free 1 GB per friend on GB Plug!',
     images: ['https://gbplug.com/logo.jpg'],
   },
   robots: {
