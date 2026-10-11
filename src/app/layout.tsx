@@ -37,19 +37,21 @@ export const metadata: Metadata = {
     type: 'website',
     images: [
       {
-        url: '/icon.png',
-        width: 512,
-        height: 512,
-        alt: 'GB Plug - Fast Automated Data Bundles Ghana',
+        url: 'https://gbplug.com/logo.jpg',
+        secureUrl: 'https://gbplug.com/logo.jpg',
+        width: 1024,
+        height: 527,
+        alt: 'GB Plug Ghana - Automated Data Bundles',
+        type: 'image/jpeg',
       },
     ],
   },
   twitter: {
-    card: 'summary',
+    card: 'summary_large_image',
     title: 'GB Plug | Buy Cheap MTN, Telecel & AT Data Bundles in Ghana',
     description:
       'Ghana’s #1 data plug. Get affordable, high-speed data bundles for MTN, Telecel, and AT from GH₵ 5. Instant SIM delivery 24/7 with Mobile Money.',
-    images: ['/icon.png'],
+    images: ['https://gbplug.com/logo.jpg'],
   },
   robots: {
     index: true,
@@ -99,6 +101,13 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/apple-icon.png" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <meta property="og:image" content="https://gbplug.com/logo.jpg" />
+        <meta property="og:image:secure_url" content="https://gbplug.com/logo.jpg" />
+        <meta property="og:image:type" content="image/jpeg" />
+        <meta property="og:image:width" content="1024" />
+        <meta property="og:image:height" content="527" />
+        <meta name="twitter:image" content="https://gbplug.com/logo.jpg" />
+        <meta name="twitter:card" content="summary_large_image" />
         <link
           href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap"
           rel="stylesheet"
