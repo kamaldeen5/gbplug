@@ -378,7 +378,8 @@ export async function getReferrerByCode(code: string): Promise<ReferrerProfile |
  */
 export async function isEligibleNewCustomer(
   customerPhone: string,
-  currentReference?: string
+  currentReference?: string,
+  allowedReferences: string[] = []
 ): Promise<{ isEligible: boolean; reason?: string }> {
   const clean = normalizeGhanaPhone(customerPhone);
   if (!clean || clean.length !== 10) {
@@ -408,9 +409,14 @@ export async function isEligibleNewCustomer(
         return { isEligible: true };
       }
 
-      // Check if there are ANY prior orders other than the current reference being processed
+      const allowedSet = new Set([
+        ...(currentReference ? [currentReference] : []),
+        ...allowedReferences,
+      ]);
+
+      // Check if there are ANY prior orders other than the current or existing referral purchases
       const priorOrderKeys = Object.keys(orders).filter((ref) => {
-        if (currentReference && ref === currentReference) return false;
+        if (allowedSet.has(ref)) return false;
         const ord = orders[ref];
         const status = (ord?.status || '').toLowerCase();
         return status !== 'fraud_blocked';
@@ -588,27 +594,28 @@ export async function processReferralForOrder(params: {
     return { credited: false, reason: 'Self-referral ignored' };
   }
 
-  // Safety check: ensure attributed buyer has no prior orders before their attribution
-  const eligibility = await isEligibleNewCustomer(cleanBuyer, reference);
-  if (!eligibility.isEligible) {
-    console.warn(`[Referrals] Disqualifying existing customer ${cleanBuyer}: ${eligibility.reason}`);
-    delete master.attributions[cleanBuyer];
-    await saveMasterRegistry(master);
-    const existingReferrer = await getOrCreateReferrer(referrerPhone);
-    if (existingReferrer && existingReferrer.referredCustomers[cleanBuyer]) {
-      delete existingReferrer.referredCustomers[cleanBuyer];
-      existingReferrer.totalEligibleGb = Object.values(existingReferrer.referredCustomers).reduce((acc, c) => acc + (c.cumulativeGb || 0), 0);
-      await saveReferrerProfile(existingReferrer);
-    }
-    return { credited: false, reason: eligibility.reason };
-  }
-
   const referrer = await getOrCreateReferrer(referrerPhone);
   if (!referrer) {
     return { credited: false, reason: 'Referrer profile not found' };
   }
 
   let customerRecord = referrer.referredCustomers[cleanBuyer];
+  const existingPurchases = customerRecord?.purchases?.map((p) => p.reference) || [];
+
+  // Safety check: ensure attributed buyer has no outside prior orders predating referral
+  const eligibility = await isEligibleNewCustomer(cleanBuyer, reference, existingPurchases);
+  if (!eligibility.isEligible) {
+    console.warn(`[Referrals] Disqualifying existing customer ${cleanBuyer}: ${eligibility.reason}`);
+    delete master.attributions[cleanBuyer];
+    await saveMasterRegistry(master);
+    if (referrer.referredCustomers[cleanBuyer]) {
+      delete referrer.referredCustomers[cleanBuyer];
+      referrer.totalEligibleGb = Object.values(referrer.referredCustomers).reduce((acc, c) => acc + (c.cumulativeGb || 0), 0);
+      await saveReferrerProfile(referrer);
+    }
+    return { credited: false, reason: eligibility.reason };
+  }
+
   if (!customerRecord) {
     customerRecord = {
       phone: cleanBuyer,
