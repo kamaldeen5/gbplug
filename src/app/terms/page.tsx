@@ -160,17 +160,35 @@ export default function TermsPage() {
           {/* Section 8 */}
           <section className="space-y-3">
             <h2 className={`text-lg font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-              8. Governing Law &amp; Jurisdiction
+              8. Referral &amp; Earn Program
+            </h2>
+            <p className="text-sm">
+              GB Plug operates an automated customer referral rewards program. Participation in the program is governed by the following rules:
+            </p>
+            <div className={`p-4 rounded-xl border text-xs sm:text-sm font-medium ${
+              isDark ? 'bg-[#070D18] border-emerald-500/30 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-900'
+            }`}>
+              <strong>New Customers Only:</strong> Referral rewards apply exclusively to first-time buyers on GB Plug. Existing users who have already purchased data cannot be referred.
+            </div>
+            <p className="text-sm">
+              Referrers receive 1 GB of free data delivered to their verified phone number when each qualifying new customer reaches a cumulative total of 7 GB in completed data bundle purchases. Self-referrals and duplicate attribution attempts are strictly prohibited and will be disqualified.
+            </p>
+          </section>
+
+          {/* Section 9 */}
+          <section className="space-y-3">
+            <h2 className={`text-lg font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              9. Governing Law &amp; Jurisdiction
             </h2>
             <p className="text-sm">
               These Terms of Service are governed by and construed in accordance with the laws of the <strong>Republic of Ghana</strong>. Any disputes arising in connection with these terms shall be subject to the exclusive jurisdiction of the courts of Ghana.
             </p>
           </section>
 
-          {/* Section 9 */}
+          {/* Section 10 */}
           <section className="space-y-3 pt-4 border-t border-slate-700/20">
             <h2 className={`text-lg font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-              9. Contact &amp; Support
+              10. Contact &amp; Support
             </h2>
             <p className="text-sm">
               If you have questions regarding these Terms of Service or need assistance with an order, please contact us:

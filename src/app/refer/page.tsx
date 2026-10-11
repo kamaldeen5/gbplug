@@ -340,9 +340,6 @@ export default function ReferPage() {
                 <div>
                   <div className="flex items-center gap-2">
                     <h2 className="text-sm sm:text-base font-bold">Referral Dashboard</h2>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                      Active
-                    </span>
                   </div>
                   <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                     Rewards deliver to: <span className="font-semibold text-white">{referrer.phone}</span>
@@ -503,9 +500,6 @@ export default function ReferPage() {
                     Each new friend earns you 1 GB of free data once they accumulate 7 GB.
                   </p>
                 </div>
-                <span className="text-xs font-bold px-2 py-1 rounded bg-[#00C853]/10 text-[#00C853] border border-[#00C853]/20">
-                  Goal: 7 GB / Friend
-                </span>
               </div>
 
               {referrer.referredCustomers.length === 0 ? (
