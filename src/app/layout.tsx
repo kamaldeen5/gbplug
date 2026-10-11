@@ -28,11 +28,9 @@ export const metadata: Metadata = {
     canonical: '/',
   },
   openGraph: {
-    title: 'GB Plug | Buy Cheap MTN, Telecel & AT Data Bundles in Ghana',
-    description:
-      'Instant SIM delivery 24/7. Get free 1 GB per friend on GB Plug!',
+    title: 'GB Plug',
     url: 'https://gbplug.com',
-    siteName: 'GB Plug Ghana',
+    siteName: 'GB Plug',
     locale: 'en_GH',
     type: 'website',
     images: [
@@ -41,16 +39,14 @@ export const metadata: Metadata = {
         secureUrl: 'https://gbplug.com/logo.jpg',
         width: 1024,
         height: 527,
-        alt: 'GB Plug Ghana - Automated Data Bundles',
+        alt: 'GB Plug',
         type: 'image/jpeg',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'GB Plug | Buy Cheap MTN, Telecel & AT Data Bundles in Ghana',
-    description:
-      'Instant SIM delivery 24/7. Get free 1 GB per friend on GB Plug!',
+    title: 'GB Plug',
     images: ['https://gbplug.com/logo.jpg'],
   },
   robots: {

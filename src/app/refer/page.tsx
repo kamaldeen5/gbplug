@@ -144,7 +144,7 @@ export default function ReferPage() {
 
   const handleWhatsAppShare = () => {
     if (!referralLink || !referrer) return;
-    const text = `🎁 Get FREE 1 GB per friend when you join and invite friends!\n\n⚡ Instant SIM delivery 24/7. Get free 1 GB per friend on GB Plug!\n\n👉 Check it out here: ${referralLink}`;
+    const text = `🎁 Get FREE 1 GB per friend when you join and invite friends!\n\n🚀 Hey! Buy fast, affordable data bundles (MTN, Telecel, AirtelTigo) on GB Plug with instant delivery! ⚡ No login needed.\n\n👉 Check it out here: ${referralLink}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
 
