@@ -181,7 +181,7 @@ export default function ReferPage() {
               </div>
 
               <h1 className="text-2xl sm:text-4xl font-black tracking-tight mb-3">
-                Refer Friends, Get <span className="text-[#00C853]">Free 1 GB</span>
+                Refer New Friends, Get <span className="text-[#00C853]">Free 1 GB</span>
               </h1>
 
               <p
@@ -189,7 +189,7 @@ export default function ReferPage() {
                   isDark ? 'text-slate-300' : 'text-slate-600'
                 }`}
               >
-                Earn <span className="font-bold text-white">1 GB of free data</span> automatically sent to your phone every time a referred friend accumulates <span className="font-bold text-white">7 GB</span> of purchases!
+                Earn <span className="font-bold text-white">1 GB of free data</span> automatically sent to your phone every time a <span className="font-bold text-[#00C853]">new friend</span> you invite buys a cumulative total of <span className="font-bold text-white">7 GB</span>!
               </p>
 
               {/* How it works cards */}
@@ -202,9 +202,9 @@ export default function ReferPage() {
                   <div className="w-7 h-7 rounded-lg bg-[#00C853]/20 text-[#00C853] font-bold text-xs flex items-center justify-center mb-2">
                     1
                   </div>
-                  <h4 className="font-bold text-sm mb-1">Share Your Link</h4>
+                  <h4 className="font-bold text-sm mb-1">Invite New Friends</h4>
                   <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                    Send your unique link to friends via WhatsApp or social media.
+                    Send your link to friends who haven't used GB Plug before.
                   </p>
                 </div>
 
@@ -216,9 +216,9 @@ export default function ReferPage() {
                   <div className="w-7 h-7 rounded-lg bg-[#00C853]/20 text-[#00C853] font-bold text-xs flex items-center justify-center mb-2">
                     2
                   </div>
-                  <h4 className="font-bold text-sm mb-1">Friends Buy 7 GB</h4>
+                  <h4 className="font-bold text-sm mb-1">They Buy 7 GB</h4>
                   <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                    Friends buy data normally with zero account or login required.
+                    They purchase data as usual with zero account or login needed.
                   </p>
                 </div>
 
@@ -232,9 +232,23 @@ export default function ReferPage() {
                   </div>
                   <h4 className="font-bold text-sm mb-1">Get 1 GB Free</h4>
                   <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                    When their total hits 7 GB, 1 GB is instantly delivered to you.
+                    When their total reaches 7 GB, 1 GB is instantly delivered to you.
                   </p>
                 </div>
+              </div>
+
+              {/* Top Companies Standard: Explicit New Customer Policy Callout */}
+              <div
+                className={`mt-5 p-3 sm:p-3.5 rounded-2xl border flex items-center gap-2.5 text-left text-xs ${
+                  isDark
+                    ? 'bg-emerald-950/20 border-emerald-500/25 text-emerald-300'
+                    : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                }`}
+              >
+                <ShieldCheck className="w-4 h-4 shrink-0 text-[#00C853]" />
+                <p className="font-medium leading-relaxed">
+                  <span className="font-bold">New Customers Only:</span> Referral rewards apply exclusively to first-time buyers on GB Plug. Existing users who have already purchased data cannot be referred.
+                </p>
               </div>
             </div>
 
@@ -443,7 +457,7 @@ export default function ReferPage() {
                 </div>
                 <div className="text-xl sm:text-3xl font-black text-white">{referrer.totalReferredCount}</div>
                 <div className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                  Friends Referred
+                  New Friends Referred
                 </div>
               </div>
 
@@ -457,7 +471,7 @@ export default function ReferPage() {
                 </div>
                 <div className="text-xl sm:text-3xl font-black text-white">{referrer.totalEligibleGb} GB</div>
                 <div className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                  Data Bought by Friends
+                  New Friends Data
                 </div>
               </div>
 
@@ -484,9 +498,9 @@ export default function ReferPage() {
             >
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-base sm:text-lg font-bold tracking-tight">Referred Friends Progress</h3>
+                  <h3 className="text-base sm:text-lg font-bold tracking-tight">New Friends Progress</h3>
                   <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                    Each friend earns you 1 GB of free data once they reach 7 GB.
+                    Each new friend earns you 1 GB of free data once they accumulate 7 GB.
                   </p>
                 </div>
                 <span className="text-xs font-bold px-2 py-1 rounded bg-[#00C853]/10 text-[#00C853] border border-[#00C853]/20">
@@ -500,9 +514,9 @@ export default function ReferPage() {
                   <div className="w-14 h-14 rounded-full bg-slate-800/60 border border-slate-700/60 flex items-center justify-center mx-auto mb-3">
                     <Users className="w-6 h-6 text-slate-400" />
                   </div>
-                  <h4 className="font-bold text-sm sm:text-base mb-1">No referrals yet</h4>
+                  <h4 className="font-bold text-sm sm:text-base mb-1">No new referrals yet</h4>
                   <p className={`text-xs sm:text-sm max-w-sm mx-auto mb-4 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                    Share your unique link on WhatsApp or with friends. As soon as they make their first data purchase, they will appear here!
+                    Share your unique link on WhatsApp with friends who haven't used GB Plug yet. As soon as they make their first data purchase, they will appear here!
                   </p>
                   <button
                     onClick={handleWhatsAppShare}

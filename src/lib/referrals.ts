@@ -371,12 +371,75 @@ export async function getReferrerByCode(code: string): Promise<ReferrerProfile |
 }
 
 /**
+ * Checks whether a customer phone number is eligible as a NEW customer for referral attribution.
+ * Top companies (Uber, DoorDash, Revolut, Cash App) strictly enforce that referral programs
+ * only credit first-time users. An existing customer is any customer who has placed previous orders
+ * on GB Plug prior to the current transaction.
+ */
+export async function isEligibleNewCustomer(
+  customerPhone: string,
+  currentReference?: string
+): Promise<{ isEligible: boolean; reason?: string }> {
+  const clean = normalizeGhanaPhone(customerPhone);
+  if (!clean || clean.length !== 10) {
+    return { isEligible: false, reason: 'Invalid phone number' };
+  }
+
+  const secretKey = getPaystackSecret();
+  const customerEmail = `${clean}@gbplug.com`;
+
+  try {
+    const res = await fetch(`${PAYSTACK_BASE_URL}/customer/${encodeURIComponent(customerEmail)}`, {
+      headers: { Authorization: `Bearer ${secretKey}` },
+      cache: 'no-store',
+    });
+
+    if (res.status === 404) {
+      // Customer has never transacted on GB Plug before -> 100% Brand New Customer!
+      return { isEligible: true };
+    }
+
+    if (res.ok) {
+      const data = await res.json();
+      const customer = data.data;
+      const orders = customer?.metadata?.orders;
+
+      if (!orders || typeof orders !== 'object') {
+        return { isEligible: true };
+      }
+
+      // Check if there are ANY prior orders other than the current reference being processed
+      const priorOrderKeys = Object.keys(orders).filter((ref) => {
+        if (currentReference && ref === currentReference) return false;
+        const ord = orders[ref];
+        const status = (ord?.status || '').toLowerCase();
+        return status !== 'fraud_blocked';
+      });
+
+      if (priorOrderKeys.length > 0) {
+        return {
+          isEligible: false,
+          reason: `Customer is an existing GB Plug user with ${priorOrderKeys.length} prior order(s). Referral rewards are strictly for new customers.`,
+        };
+      }
+
+      return { isEligible: true };
+    }
+  } catch (err: any) {
+    console.error(`[Referrals] Error checking customer eligibility for ${clean}:`, err);
+  }
+
+  return { isEligible: true };
+}
+
+/**
  * Attributes a customer to a referrer permanently (First-Referrer-Wins).
- * Prevents self-referral.
+ * Prevents self-referral and rejects existing customers (New Users Only).
  */
 export async function attributeCustomerToReferrer(
   customerPhone: string,
-  referralCode: string
+  referralCode: string,
+  currentReference?: string
 ): Promise<{ success: boolean; reason?: string }> {
   const cleanCustomer = normalizeGhanaPhone(customerPhone);
   const cleanCode = referralCode.trim().toUpperCase();
@@ -402,6 +465,13 @@ export async function attributeCustomerToReferrer(
     return { success: false, reason: 'Self-referral is not allowed' };
   }
 
+  // Enforce NEW CUSTOMER eligibility: existing GB Plug buyers cannot be referred
+  const eligibility = await isEligibleNewCustomer(cleanCustomer, currentReference);
+  if (!eligibility.isEligible) {
+    console.log(`[Referrals] Attribution REJECTED for ${cleanCustomer}: ${eligibility.reason}`);
+    return { success: false, reason: eligibility.reason };
+  }
+
   master.attributions[cleanCustomer] = {
     referrerPhone,
     referrerCode: cleanCode,
@@ -409,7 +479,7 @@ export async function attributeCustomerToReferrer(
   };
 
   await saveMasterRegistry(master);
-  console.log(`[Referrals] Successfully attributed customer ${cleanCustomer} to referrer ${referrerPhone} (code: ${cleanCode})`);
+  console.log(`[Referrals] Successfully attributed NEW customer ${cleanCustomer} to referrer ${referrerPhone} (code: ${cleanCode})`);
   return { success: true };
 }
 
@@ -500,7 +570,11 @@ export async function processReferralForOrder(params: {
 
   // If customer is not yet attributed, attribute them now if code is passed
   if (!master.attributions[cleanBuyer] && referralCode) {
-    await attributeCustomerToReferrer(cleanBuyer, referralCode);
+    const attrResult = await attributeCustomerToReferrer(cleanBuyer, referralCode, reference);
+    if (!attrResult.success) {
+      console.log(`[Referrals] Attribution skipped for ${cleanBuyer}: ${attrResult.reason}`);
+      return { credited: false, reason: attrResult.reason };
+    }
   }
 
   const attribution = master.attributions[cleanBuyer];
@@ -512,6 +586,21 @@ export async function processReferralForOrder(params: {
   // Anti-fraud: cannot earn referral on own purchases
   if (referrerPhone === cleanBuyer) {
     return { credited: false, reason: 'Self-referral ignored' };
+  }
+
+  // Safety check: ensure attributed buyer has no prior orders before their attribution
+  const eligibility = await isEligibleNewCustomer(cleanBuyer, reference);
+  if (!eligibility.isEligible) {
+    console.warn(`[Referrals] Disqualifying existing customer ${cleanBuyer}: ${eligibility.reason}`);
+    delete master.attributions[cleanBuyer];
+    await saveMasterRegistry(master);
+    const existingReferrer = await getOrCreateReferrer(referrerPhone);
+    if (existingReferrer && existingReferrer.referredCustomers[cleanBuyer]) {
+      delete existingReferrer.referredCustomers[cleanBuyer];
+      existingReferrer.totalEligibleGb = Object.values(existingReferrer.referredCustomers).reduce((acc, c) => acc + (c.cumulativeGb || 0), 0);
+      await saveReferrerProfile(existingReferrer);
+    }
+    return { credited: false, reason: eligibility.reason };
   }
 
   const referrer = await getOrCreateReferrer(referrerPhone);

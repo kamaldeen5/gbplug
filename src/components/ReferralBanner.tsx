@@ -35,7 +35,7 @@ export function ReferralBanner({ isDark }: ReferralBannerProps) {
             </span>
           </div>
           <p className={`text-[11.5px] sm:text-[12.5px] truncate font-medium ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-            Invite friends. Earn rewards when they buy data.
+            Invite new friends. Earn 1 GB free data for every 7 GB they buy.
           </p>
         </div>
       </div>
