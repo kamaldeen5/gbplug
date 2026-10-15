@@ -679,3 +679,74 @@ export async function processReferralForOrder(params: {
     rewardOrderId,
   };
 }
+
+/**
+ * Fetch all registered referrers with their stats and referred friends for secret-ops admin dashboard.
+ */
+export async function getAllReferrersAdmin() {
+  const master = await getMasterRegistry();
+  const phoneSet = new Set<string>();
+
+  Object.keys(master.phoneToCode || {}).forEach((p) => phoneSet.add(normalizeGhanaPhone(p)));
+  Object.values(master.codes || {}).forEach((p) => phoneSet.add(normalizeGhanaPhone(p)));
+
+  const phoneList = Array.from(phoneSet).filter(Boolean);
+
+  const profiles = await Promise.all(
+    phoneList.map(async (phone) => {
+      try {
+        return await getOrCreateReferrer(phone);
+      } catch (err) {
+        console.error(`[Admin Referrals] Error fetching referrer ${phone}:`, err);
+        return null;
+      }
+    })
+  );
+
+  const validProfiles = profiles.filter((p): p is ReferrerProfile => p !== null);
+
+  // Sort by createdAt descending
+  validProfiles.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  let totalReferredCustomers = 0;
+  let totalRewardsDelivered = 0;
+  let totalEligibleGb = 0;
+
+  const referrerList = validProfiles.map((p) => {
+    const referredList = Object.values(p.referredCustomers || {});
+    totalRewardsDelivered += p.rewardsEarned || 0;
+    totalEligibleGb += p.totalEligibleGb || 0;
+    totalReferredCustomers += referredList.length;
+
+    return {
+      phone: p.phone,
+      referralCode: p.referralCode,
+      createdAt: p.createdAt,
+      rewardsEarned: p.rewardsEarned || 0,
+      totalEligibleGb: p.totalEligibleGb || 0,
+      referredFriendsCount: referredList.length,
+      referredCustomers: referredList.map((c) => ({
+        phone: c.phone,
+        maskedPhone: c.maskedPhone,
+        cumulativeGb: c.cumulativeGb,
+        targetGb: c.targetGb || TARGET_GB_THRESHOLD,
+        status: c.status,
+        rewardOrderId: c.rewardOrderId,
+        rewardDeliveredAt: c.rewardDeliveredAt,
+        rewardFailureReason: c.rewardFailureReason,
+        purchases: c.purchases || [],
+      })),
+    };
+  });
+
+  return {
+    stats: {
+      totalReferrers: validProfiles.length,
+      totalReferredCustomers,
+      totalRewardsDelivered,
+      totalEligibleGb: Math.round(totalEligibleGb * 100) / 100,
+    },
+    referrers: referrerList,
+  };
+}
+

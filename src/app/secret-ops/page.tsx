@@ -20,6 +20,14 @@ import {
   CheckCheck,
   X,
   Trash2,
+  Gift,
+  Users,
+  ChevronDown,
+  ChevronUp,
+  Search,
+  ExternalLink,
+  Award,
+  Clock,
 } from 'lucide-react';
 import { REGULAR_MTN_PACKAGES } from '@/data/bundles';
 import { WhatsAppIcon, GBPlugLogo } from '@/components/NetworkLogos';
@@ -53,11 +61,56 @@ interface ChartPoint {
   orders: number;
 }
 
+interface ReferredFriendAdmin {
+  phone: string;
+  maskedPhone: string;
+  cumulativeGb: number;
+  targetGb: number;
+  status: 'in_progress' | 'reward_delivered';
+  rewardOrderId?: string;
+  rewardDeliveredAt?: string;
+  rewardFailureReason?: string;
+  purchases: Array<{
+    orderId: string;
+    reference: string;
+    bundleGb: number;
+    timestamp: string;
+  }>;
+}
+
+interface ReferrerAdminRecord {
+  phone: string;
+  referralCode: string;
+  createdAt: string;
+  rewardsEarned: number;
+  totalEligibleGb: number;
+  referredFriendsCount: number;
+  referredCustomers: ReferredFriendAdmin[];
+}
+
+interface ReferralStats {
+  totalReferrers: number;
+  totalReferredCustomers: number;
+  totalRewardsDelivered: number;
+  totalEligibleGb: number;
+}
+
 export default function SecretOpsPage() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [pinInput, setPinInput] = useState<string>('');
   const [authLoading, setAuthLoading] = useState<boolean>(false);
   const [authError, setAuthError] = useState<string>('');
+
+  // Tab navigation state: 'ops' | 'referrals'
+  const [activeTab, setActiveTab] = useState<'ops' | 'referrals'>('ops');
+
+  // Referrals state
+  const [referralStats, setReferralStats] = useState<ReferralStats | null>(null);
+  const [referrers, setReferrers] = useState<ReferrerAdminRecord[]>([]);
+  const [referralLoading, setReferralLoading] = useState<boolean>(false);
+  const [expandedReferrerPhone, setExpandedReferrerPhone] = useState<string | null>(null);
+  const [expandedCustomerPhone, setExpandedCustomerPhone] = useState<string | null>(null);
+  const [referralSearch, setReferralSearch] = useState<string>('');
 
   const [actionNeededOrders, setActionNeededOrders] = useState<AdminOrder[]>([]);
   const [allOrders, setAllOrders] = useState<AdminOrder[]>([]);
@@ -86,13 +139,14 @@ export default function SecretOpsPage() {
   const [dispatchSuccessMsg, setDispatchSuccessMsg] = useState<string | null>(null);
   const [dispatchErrorMsg, setDispatchErrorMsg] = useState<string | null>(null);
 
+
   const fetchData = useCallback(async (token?: string, isSilent = false) => {
     const activeToken = token || localStorage.getItem('gbplug_admin_token');
     if (!activeToken) return;
 
     if (!isSilent) setRefreshing(true);
     try {
-      const [ordersRes, statsRes] = await Promise.all([
+      const [ordersRes, statsRes, referralsRes] = await Promise.all([
         fetch('/api/admin/orders', {
           headers: { Authorization: `Bearer ${activeToken}` },
           cache: 'no-store',
@@ -101,9 +155,13 @@ export default function SecretOpsPage() {
           headers: { Authorization: `Bearer ${activeToken}` },
           cache: 'no-store',
         }),
+        fetch('/api/admin/referrals', {
+          headers: { Authorization: `Bearer ${activeToken}` },
+          cache: 'no-store',
+        }),
       ]);
 
-      if (ordersRes.status === 401 || statsRes.status === 401) {
+      if (ordersRes.status === 401 || statsRes.status === 401 || referralsRes.status === 401) {
         setIsAuthenticated(false);
         localStorage.removeItem('gbplug_admin_token');
         return;
@@ -137,12 +195,21 @@ export default function SecretOpsPage() {
           if (typeof sData.totalOrders === 'number') setTotalOrders(sData.totalOrders);
         }
       }
+
+      if (referralsRes.ok) {
+        const rData = await referralsRes.json();
+        if (rData.success) {
+          if (rData.stats) setReferralStats(rData.stats);
+          if (rData.referrers) setReferrers(rData.referrers);
+        }
+      }
     } catch (err) {
       console.error('Fetch admin data error:', err);
     } finally {
       if (!isSilent) setRefreshing(false);
     }
   }, []);
+
 
   useEffect(() => {
     const savedToken = localStorage.getItem('gbplug_admin_token');
@@ -302,12 +369,42 @@ export default function SecretOpsPage() {
   };
 
   const formatPhone = (p: string) => {
-    const raw = p.replace(/\D/g, '');
+    let raw = (p || '').replace(/\D/g, '');
+    if (raw.startsWith('233') && raw.length === 12) {
+      raw = '0' + raw.slice(3);
+    }
     if (raw.length === 10) {
       return `${raw.slice(0, 3)} ${raw.slice(3, 6)} ${raw.slice(6)}`;
     }
     return p;
   };
+
+  const formatDateTime = (dateStr?: string) => {
+    if (!dateStr) return 'N/A';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return (
+        d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) +
+        ' · ' +
+        d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      );
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const filteredReferrers = React.useMemo(() => {
+    if (!referralSearch.trim()) return referrers;
+    const q = referralSearch.toLowerCase().trim();
+    return referrers.filter(
+      (r) =>
+        r.phone.toLowerCase().includes(q) ||
+        r.referralCode.toLowerCase().includes(q) ||
+        (r.referredCustomers || []).some((c) => c.phone.toLowerCase().includes(q))
+    );
+  }, [referrers, referralSearch]);
+
 
   const formatNotifTime = (dateStr: string) => {
     try {
@@ -644,277 +741,770 @@ export default function SecretOpsPage() {
           </div>
         )}
 
-        {/* ── TOP SECTION 1: ACTION NEEDED (REFUNDED ORDERS) ── */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-amber-400" />
-              <h2 className="text-base font-extrabold tracking-tight">
-                Action Needed (Refunded Orders)
-              </h2>
-            </div>
-            <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
-              actionNeededOrders.length > 0 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-slate-800 text-slate-400'
-            }`}>
-              {actionNeededOrders.length}
-            </span>
-          </div>
+        {/* Tab Navigation Switcher */}
+        <div className="flex items-center gap-2 border-b border-[#15233A] pb-3">
+          <button
+            onClick={() => setActiveTab('ops')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs tracking-tight transition-all cursor-pointer ${
+              activeTab === 'ops'
+                ? 'bg-[#00C853] text-white shadow-[0_0_15px_rgba(0,200,83,0.3)]'
+                : 'bg-[#0C1524] text-slate-400 hover:text-white border border-[#16253C]'
+            }`}
+          >
+            <Zap className="w-4 h-4" />
+            <span>Operations & Orders</span>
+            {actionNeededOrders.length > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-black">
+                {actionNeededOrders.length}
+              </span>
+            )}
+          </button>
 
-          {actionNeededOrders.length === 0 ? (
-            <div className="bg-[#0C1524] border border-[#16253C] rounded-2xl p-6 text-center">
-              <CheckCircle2 className="w-8 h-8 text-[#00C853] mx-auto mb-2 opacity-80" />
-              <p className="text-xs font-bold text-slate-300">All clear! No refunded or stuck orders.</p>
-              <p className="text-[11px] text-slate-500 mt-0.5">Every customer order is successfully processed.</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {actionNeededOrders.map((order) => {
-                const matchedPkg = REGULAR_MTN_PACKAGES.find((p) => p.gb === order.bundleGb) || REGULAR_MTN_PACKAGES[0];
-                const isDispatching = dispatchingId === order.id || dispatchingId === order.reference;
+          <button
+            onClick={() => setActiveTab('referrals')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs tracking-tight transition-all cursor-pointer ${
+              activeTab === 'referrals'
+                ? 'bg-[#00C853] text-white shadow-[0_0_15px_rgba(0,200,83,0.3)]'
+                : 'bg-[#0C1524] text-slate-400 hover:text-white border border-[#16253C]'
+            }`}
+          >
+            <Gift className="w-4 h-4" />
+            <span>Referral Program</span>
+            {referralStats && referralStats.totalReferrers > 0 && (
+              <span
+                className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                  activeTab === 'referrals'
+                    ? 'bg-black/40 text-white'
+                    : 'bg-[#00C853]/20 text-[#00C853]'
+                }`}
+              >
+                {referralStats.totalReferrers}
+              </span>
+            )}
+          </button>
+        </div>
 
-                return (
-                  <div
-                    key={order.id || order.reference}
-                    className="bg-[#0C1524] border-2 border-amber-500/40 rounded-2xl p-4 sm:p-5 shadow-xl transition-all"
-                  >
-                    {/* Top Row: Customer Phone & Paid Amount */}
-                    <div className="flex items-start justify-between gap-3 mb-2.5">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-base sm:text-lg font-black text-white tracking-tight font-mono">
-                            {formatPhone(order.recipient)}
-                          </span>
+        {activeTab === 'ops' ? (
+          <>
+            {/* ── TOP SECTION 1: ACTION NEEDED (REFUNDED ORDERS) ── */}
+            <section>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-amber-400" />
+                  <h2 className="text-base font-extrabold tracking-tight">
+                    Action Needed (Refunded Orders)
+                  </h2>
+                </div>
+                <span
+                  className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                    actionNeededOrders.length > 0
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                      : 'bg-slate-800 text-slate-400'
+                  }`}
+                >
+                  {actionNeededOrders.length}
+                </span>
+              </div>
+
+              {actionNeededOrders.length === 0 ? (
+                <div className="bg-[#0C1524] border border-[#16253C] rounded-2xl p-6 text-center">
+                  <CheckCircle2 className="w-8 h-8 text-[#00C853] mx-auto mb-2 opacity-80" />
+                  <p className="text-xs font-bold text-slate-300">All clear! No refunded or stuck orders.</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Every customer order is successfully processed.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {actionNeededOrders.map((order) => {
+                    const matchedPkg = REGULAR_MTN_PACKAGES.find((p) => p.gb === order.bundleGb) || REGULAR_MTN_PACKAGES[0];
+                    const isDispatching = dispatchingId === order.id || dispatchingId === order.reference;
+
+                    return (
+                      <div
+                        key={order.id || order.reference}
+                        className="bg-[#0C1524] border-2 border-amber-500/40 rounded-2xl p-4 sm:p-5 shadow-xl transition-all"
+                      >
+                        {/* Top Row: Customer Phone & Paid Amount */}
+                        <div className="flex items-start justify-between gap-3 mb-2.5">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-base sm:text-lg font-black text-white tracking-tight font-mono">
+                                {formatPhone(order.recipient)}
+                              </span>
+                              <button
+                                onClick={() => handleCopy(order.recipient)}
+                                className="p-1 rounded-md bg-[#16253C] text-slate-300 hover:text-white active:scale-95"
+                                title="Copy number"
+                              >
+                                {copiedPhone === order.recipient ? <Check className="w-3.5 h-3.5 text-[#00C853]" /> : <Copy className="w-3.5 h-3.5" />}
+                              </button>
+                            </div>
+                            <span className="text-[11px] text-slate-400 block mt-0.5">
+                              Paid GH₵ {order.amountPaid.toFixed(2)} • {new Date(order.paidAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+
+                          <div className="text-right flex items-center gap-2">
+                            <span className="inline-block px-2.5 py-1 bg-amber-500/15 border border-amber-500/30 text-amber-300 font-extrabold text-xs rounded-xl">
+                              {order.bundleName}
+                            </span>
+                            <button
+                              onClick={() => handleDeleteActionNeeded(order)}
+                              className="p-1.5 rounded-lg bg-[#16253C] hover:bg-rose-950/60 border border-[#1E3456] hover:border-rose-500/50 text-slate-400 hover:text-rose-400 transition-all cursor-pointer"
+                              title="Delete from Action Needed"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Failure / Refund Info */}
+                        <div className="bg-[#121E31] rounded-xl p-2.5 mb-3.5 text-xs text-amber-200/90 border border-amber-500/20">
+                          <span className="font-bold">⚠️ Non-Flexa / Refunded:</span> {order.failureReason || 'Number not registered for Flexa. Refunded to DataSika balance.'}
+                        </div>
+
+                        {/* Action Buttons Row */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                           <button
-                            onClick={() => handleCopy(order.recipient)}
-                            className="p-1 rounded-md bg-[#16253C] text-slate-300 hover:text-white active:scale-95"
-                            title="Copy number"
+                            onClick={() =>
+                              handleDispatchRegular(
+                                order.recipient,
+                                order.bundleGb,
+                                order.id || order.reference,
+                                order.reference,
+                                order.customerCode
+                              )
+                            }
+                            disabled={isDispatching}
+                            className="h-11 bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white font-bold text-xs tracking-tight rounded-xl shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 transition-all"
                           >
-                            {copiedPhone === order.recipient ? <Check className="w-3.5 h-3.5 text-[#00C853]" /> : <Copy className="w-3.5 h-3.5" />}
+                            <Zap className="w-4 h-4 fill-current" />
+                            <span>
+                              {isDispatching ? 'Dispatching...' : `Dispatch MTN (${order.bundleGb} GB)`}
+                            </span>
+                          </button>
+
+                          <a
+                            href={`https://wa.me/233${order.recipient.replace(/\D/g, '').slice(-9)}?text=${encodeURIComponent(
+                              `Hello! We noticed a brief delay with your ${order.bundleName} bundle delivery to ${order.recipient}. We have just expedited it to you now.`
+                            )}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="h-11 bg-[#101F33] hover:bg-[#162A45] text-slate-200 border border-[#1E3456] font-semibold text-xs tracking-tight rounded-xl flex items-center justify-center gap-2 transition-all"
+                          >
+                            <WhatsAppIcon className="w-3.5 h-3.5 text-[#00C853] fill-current" />
+                            <span>WhatsApp</span>
+                          </a>
+
+                          <button
+                            onClick={() => handleDeleteActionNeeded(order)}
+                            className="h-11 bg-[#16253C]/80 hover:bg-rose-950/70 border border-[#1E3456] hover:border-rose-500/50 text-slate-300 hover:text-rose-300 font-semibold text-xs tracking-tight rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer"
+                            title="Remove from Action Needed"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                            <span>Delete Entry</span>
                           </button>
                         </div>
-                        <span className="text-[11px] text-slate-400 block mt-0.5">
-                          Paid GH₵ {order.amountPaid.toFixed(2)} • {new Date(order.paidAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
                       </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
 
-                      <div className="text-right flex items-center gap-2">
-                        <span className="inline-block px-2.5 py-1 bg-amber-500/15 border border-amber-500/30 text-amber-300 font-extrabold text-xs rounded-xl">
-                          {order.bundleName}
-                        </span>
-                        <button
-                          onClick={() => handleDeleteActionNeeded(order)}
-                          className="p-1.5 rounded-lg bg-[#16253C] hover:bg-rose-950/60 border border-[#1E3456] hover:border-rose-500/50 text-slate-400 hover:text-rose-400 transition-all cursor-pointer"
-                          title="Delete from Action Needed"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+            {/* ── TOP SECTION 2: QUICK MANUAL DISPATCH TOOL ── */}
+            <section className="bg-[#0C1524] border border-[#16253C] rounded-2xl p-4 sm:p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Smartphone className="w-4 h-4 text-[#00C853]" />
+                <h2 className="text-sm font-extrabold tracking-tight">Manual Instant Dispatch (Normal MTN)</h2>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Recipient Number</label>
+                  <input
+                    type="tel"
+                    value={manualPhone}
+                    onChange={(e) => setManualPhone(e.target.value)}
+                    placeholder="e.g. 0531310088"
+                    className="w-full h-11 px-3 bg-[#070D18] border border-[#1A2C46] rounded-xl text-sm font-bold text-white focus:outline-none focus:border-[#00C853]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Bundle Size</label>
+                  <select
+                    value={manualGb}
+                    onChange={(e) => setManualGb(Number(e.target.value))}
+                    className="w-full h-11 px-3 bg-[#070D18] border border-[#1A2C46] rounded-xl text-sm font-bold text-white focus:outline-none focus:border-[#00C853]"
+                  >
+                    {REGULAR_MTN_PACKAGES.map((pkg) => (
+                      <option key={pkg.gb} value={pkg.gb}>
+                        {pkg.name} (Cost: GH₵ {pkg.cost.toFixed(2)})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-end">
+                  <button
+                    onClick={() => handleDispatchRegular(manualPhone, manualGb, 'manual-custom')}
+                    disabled={!manualPhone || dispatchingId === 'manual-custom'}
+                    className="w-full h-11 bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer shadow-md"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>{dispatchingId === 'manual-custom' ? 'Sending...' : 'Send Normal Data'}</span>
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            {/* ── SECTION: BALANCES & REAL-TIME PROFIT CARDS ── */}
+            <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* DataSika Balance Card */}
+              <div className="bg-[#0C1524] border border-[#1A3152] rounded-2xl p-4 sm:p-5 shadow-lg">
+                <div className="flex items-center gap-2 mb-2 text-slate-400 text-xs font-bold uppercase tracking-wider">
+                  <Wallet className="w-4 h-4 text-amber-400" />
+                  <span>DataSika Wholesale</span>
+                </div>
+                <div className="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight">
+                  GH₵ {wallet ? Number(wallet.balance).toFixed(2) : '...'}
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Wholesale data spent: GH₵ {wallet ? Number(wallet.spent).toFixed(2) : '0.00'}
+                </p>
+              </div>
+
+              {/* Paystack Gross Earnings Card */}
+              <div className="bg-[#0C1524] border border-[#1A3152] rounded-2xl p-4 sm:p-5 shadow-lg">
+                <div className="flex items-center gap-2 mb-2 text-slate-400 text-xs font-bold uppercase tracking-wider">
+                  <CreditCard className="w-4 h-4 text-sky-400" />
+                  <span>Paystack Revenue</span>
+                </div>
+                <div className="text-2xl sm:text-3xl font-black text-sky-300 font-mono tracking-tight">
+                  GH₵ {totalRevenue.toFixed(2)}
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Gross from {totalOrders} customer orders
+                </p>
+              </div>
+
+              {/* Real-Time Net Profit Card */}
+              <div className="bg-gradient-to-br from-[#0B1E16] to-[#07130F] border border-emerald-500/40 rounded-2xl p-4 sm:p-5 shadow-lg relative overflow-hidden">
+                <div className="flex items-center gap-2 mb-2 text-emerald-400 text-xs font-bold uppercase tracking-wider">
+                  <PiggyBank className="w-4 h-4 text-[#00C853]" />
+                  <span>Net Profit Earned</span>
+                </div>
+                <div className="text-2xl sm:text-3xl font-black text-[#00C853] font-mono tracking-tight">
+                  GH₵ {netProfit.toFixed(2)}
+                </div>
+                <p className="text-[11px] text-emerald-300/80 mt-1">
+                  {profitMargin.toFixed(1)}% profit margin after fees and costs
+                </p>
+              </div>
+            </section>
+
+            {/* ── SECTION: REVENUE & PROFIT HISTORY ── */}
+            <section className="bg-[#0C1524] border border-[#16253C] rounded-2xl p-5 shadow-xl">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-sm font-black tracking-tight text-white uppercase">Daily Revenue & Profit</h2>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Every sale automatically recalculates your margins in real time.
+                  </p>
+                </div>
+              </div>
+
+              {/* Clean progress breakdown per day with revenue + net profit */}
+              {chartData.length === 0 ? (
+                <div className="py-8 text-center text-slate-500 text-xs font-semibold">
+                  Loading financial breakdown...
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {chartData.map((d) => {
+                    const pct = Math.max(Math.round((d.revenue / maxRevenue) * 100), 5);
+                    const formattedDate = new Date(d.date).toLocaleDateString('en-GB', {
+                      weekday: 'short',
+                      day: 'numeric',
+                      month: 'short',
+                    });
+
+                    return (
+                      <div key={d.date} className="bg-[#070D18] border border-[#142640] rounded-xl p-3">
+                        <div className="flex items-center justify-between text-xs mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-white">{formattedDate}</span>
+                            <span className="text-slate-500 text-[11px] font-mono">
+                              ({d.orders} {d.orders === 1 ? 'order' : 'orders'})
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-slate-400 text-[11px] font-mono">
+                              Revenue: GH₵ {d.revenue.toFixed(2)}
+                            </span>
+                            <span className="font-mono font-black text-[#00C853] text-sm">
+                              Profit: GH₵ {d.profit.toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Clean Progress Bar */}
+                        <div className="w-full h-2 bg-[#0C1726] rounded-full overflow-hidden">
+                          <div
+                            style={{ width: `${pct}%` }}
+                            className="h-full bg-gradient-to-r from-[#00C853] to-[#4AFFA3] rounded-full transition-all duration-500"
+                          />
+                        </div>
                       </div>
-                    </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          </>
+        ) : (
+          /* ── DEDICATED REFERRAL PROGRAM TAB ── */
+          <div className="space-y-6 animate-in fade-in duration-200">
+            {/* Top 4 Metrics Summary Cards */}
+            <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {/* Registered Referrers */}
+              <div className="bg-[#0C1524] border border-[#1A3152] rounded-2xl p-3.5 sm:p-4 shadow-lg">
+                <div className="flex items-center gap-2 mb-1.5 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                  <Users className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Total Referrers</span>
+                </div>
+                <div className="text-xl sm:text-2xl font-black text-white font-mono tracking-tight">
+                  {referralStats ? referralStats.totalReferrers : '...'}
+                </div>
+                <p className="text-[10px] text-slate-500 mt-0.5">Registered advocates</p>
+              </div>
 
-                    {/* Failure / Refund Info */}
-                    <div className="bg-[#121E31] rounded-xl p-2.5 mb-3.5 text-xs text-amber-200/90 border border-amber-500/20">
-                      <span className="font-bold">⚠️ Non-Flexa / Refunded:</span> {order.failureReason || 'Number not registered for Flexa. Refunded to DataSika balance.'}
-                    </div>
+              {/* Friends Referred */}
+              <div className="bg-[#0C1524] border border-[#1A3152] rounded-2xl p-3.5 sm:p-4 shadow-lg">
+                <div className="flex items-center gap-2 mb-1.5 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                  <Smartphone className="w-3.5 h-3.5 text-sky-400" />
+                  <span>Referred Friends</span>
+                </div>
+                <div className="text-xl sm:text-2xl font-black text-sky-300 font-mono tracking-tight">
+                  {referralStats ? referralStats.totalReferredCustomers : '...'}
+                </div>
+                <p className="text-[10px] text-slate-500 mt-0.5">Attributed buyers</p>
+              </div>
 
-                    {/* Action Buttons Row */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                      <button
-                        onClick={() =>
-                          handleDispatchRegular(
-                            order.recipient,
-                            order.bundleGb,
-                            order.id || order.reference,
-                            order.reference,
-                            order.customerCode
-                          )
-                        }
-                        disabled={isDispatching}
-                        className="h-11 bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white font-bold text-xs tracking-tight rounded-xl shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 transition-all"
-                      >
-                        <Zap className="w-4 h-4 fill-current" />
-                        <span>
-                          {isDispatching ? 'Dispatching...' : `Dispatch MTN (${order.bundleGb} GB)`}
-                        </span>
-                      </button>
+              {/* Rewards Delivered */}
+              <div className="bg-[#0C1524] border border-[#1A3152] rounded-2xl p-3.5 sm:p-4 shadow-lg">
+                <div className="flex items-center gap-2 mb-1.5 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                  <Gift className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Rewards Sent</span>
+                </div>
+                <div className="text-xl sm:text-2xl font-black text-amber-300 font-mono tracking-tight">
+                  {referralStats ? `${referralStats.totalRewardsDelivered} GB` : '...'}
+                </div>
+                <p className="text-[10px] text-slate-500 mt-0.5">Free 1 GB rewards dispatched</p>
+              </div>
 
-                      <a
-                        href={`https://wa.me/233${order.recipient.replace(/\D/g, '').slice(-9)}?text=${encodeURIComponent(
-                          `Hello! We noticed a brief delay with your ${order.bundleName} bundle delivery to ${order.recipient}. We have just expedited it to you now.`
-                        )}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="h-11 bg-[#101F33] hover:bg-[#162A45] text-slate-200 border border-[#1E3456] font-semibold text-xs tracking-tight rounded-xl flex items-center justify-center gap-2 transition-all"
-                      >
-                        <WhatsAppIcon className="w-3.5 h-3.5 text-[#00C853] fill-current" />
-                        <span>WhatsApp</span>
-                      </a>
+              {/* Total Volume */}
+              <div className="bg-[#0C1524] border border-[#1A3152] rounded-2xl p-3.5 sm:p-4 shadow-lg">
+                <div className="flex items-center gap-2 mb-1.5 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                  <Zap className="w-3.5 h-3.5 text-[#00C853]" />
+                  <span>Total Volume</span>
+                </div>
+                <div className="text-xl sm:text-2xl font-black text-[#00C853] font-mono tracking-tight">
+                  {referralStats ? `${referralStats.totalEligibleGb} GB` : '...'}
+                </div>
+                <p className="text-[10px] text-slate-500 mt-0.5">Purchased by referred buyers</p>
+              </div>
+            </section>
 
-                      <button
-                        onClick={() => handleDeleteActionNeeded(order)}
-                        className="h-11 bg-[#16253C]/80 hover:bg-rose-950/70 border border-[#1E3456] hover:border-rose-500/50 text-slate-300 hover:text-rose-300 font-semibold text-xs tracking-tight rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer"
-                        title="Remove from Action Needed"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-                        <span>Delete Entry</span>
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
-
-        {/* ── TOP SECTION 2: QUICK MANUAL DISPATCH TOOL ── */}
-        <section className="bg-[#0C1524] border border-[#16253C] rounded-2xl p-4 sm:p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <Smartphone className="w-4 h-4 text-[#00C853]" />
-            <h2 className="text-sm font-extrabold tracking-tight">Manual Instant Dispatch (Normal MTN)</h2>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label className="block text-[11px] font-bold text-slate-400 mb-1">Recipient Number</label>
-              <input
-                type="tel"
-                value={manualPhone}
-                onChange={(e) => setManualPhone(e.target.value)}
-                placeholder="e.g. 0531310088"
-                className="w-full h-11 px-3 bg-[#070D18] border border-[#1A2C46] rounded-xl text-sm font-bold text-white focus:outline-none focus:border-[#00C853]"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-bold text-slate-400 mb-1">Bundle Size</label>
-              <select
-                value={manualGb}
-                onChange={(e) => setManualGb(Number(e.target.value))}
-                className="w-full h-11 px-3 bg-[#070D18] border border-[#1A2C46] rounded-xl text-sm font-bold text-white focus:outline-none focus:border-[#00C853]"
-              >
-                {REGULAR_MTN_PACKAGES.map((pkg) => (
-                  <option key={pkg.gb} value={pkg.gb}>
-                    {pkg.name} (Cost: GH₵ {pkg.cost.toFixed(2)})
-                  </option>
-                ))}
-              </select>
+            {/* Search and Filters Bar */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={referralSearch}
+                  onChange={(e) => setReferralSearch(e.target.value)}
+                  placeholder="Search by phone, referral code, or friend number..."
+                  className="w-full h-11 pl-10 pr-10 bg-[#0C1524] border border-[#1A2E4C] rounded-xl text-xs sm:text-sm font-medium text-white placeholder-slate-500 focus:outline-none focus:border-[#00C853]"
+                />
+                {referralSearch && (
+                  <button
+                    onClick={() => setReferralSearch('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white text-xs font-bold"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+              <div className="text-xs text-slate-400 font-medium shrink-0 self-center sm:self-auto">
+                Showing <span className="font-bold text-white">{filteredReferrers.length}</span> of {referrers.length} referrers
+              </div>
             </div>
 
-            <div className="flex items-end">
-              <button
-                onClick={() => handleDispatchRegular(manualPhone, manualGb, 'manual-custom')}
-                disabled={!manualPhone || dispatchingId === 'manual-custom'}
-                className="w-full h-11 bg-[#00C853] hover:bg-[#00B74A] active:bg-[#009E40] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer shadow-md"
-              >
-                <Send className="w-3.5 h-3.5" />
-                <span>{dispatchingId === 'manual-custom' ? 'Sending...' : 'Send Normal Data'}</span>
-              </button>
-            </div>
-          </div>
-        </section>
+            {/* Referrers Directory List */}
+            {referralLoading && referrers.length === 0 ? (
+              <div className="bg-[#0C1524] border border-[#16253C] rounded-2xl p-10 text-center">
+                <RefreshCw className="w-6 h-6 text-[#00C853] animate-spin mx-auto mb-2" />
+                <p className="text-xs font-bold text-slate-300">Loading referral directory...</p>
+              </div>
+            ) : filteredReferrers.length === 0 ? (
+              <div className="bg-[#0C1524] border border-[#16253C] rounded-2xl p-8 text-center">
+                <Users className="w-8 h-8 text-slate-600 mx-auto mb-2 opacity-50" />
+                <p className="text-xs font-bold text-slate-300">
+                  {referralSearch ? 'No referrers match your search.' : 'No registered referrers yet.'}
+                </p>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Users who register on gbplug.com/refer will show up here.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredReferrers.map((referrer) => {
+                  const isExpanded = expandedReferrerPhone === referrer.phone;
+                  const refLink = `https://gbplug.com/r/${referrer.referralCode}`;
+                  const friends = referrer.referredCustomers || [];
 
-        {/* ── SECTION: BALANCES & REAL-TIME PROFIT CARDS ── */}
-        <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {/* DataSika Balance Card */}
-          <div className="bg-[#0C1524] border border-[#1A3152] rounded-2xl p-4 sm:p-5 shadow-lg">
-            <div className="flex items-center gap-2 mb-2 text-slate-400 text-xs font-bold uppercase tracking-wider">
-              <Wallet className="w-4 h-4 text-amber-400" />
-              <span>DataSika Wholesale</span>
-            </div>
-            <div className="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight">
-              GH₵ {wallet ? Number(wallet.balance).toFixed(2) : '...'}
-            </div>
-            <p className="text-[11px] text-slate-400 mt-1">
-              Wholesale data spent: GH₵ {wallet ? Number(wallet.spent).toFixed(2) : '0.00'}
-            </p>
-          </div>
-
-          {/* Paystack Gross Earnings Card */}
-          <div className="bg-[#0C1524] border border-[#1A3152] rounded-2xl p-4 sm:p-5 shadow-lg">
-            <div className="flex items-center gap-2 mb-2 text-slate-400 text-xs font-bold uppercase tracking-wider">
-              <CreditCard className="w-4 h-4 text-sky-400" />
-              <span>Paystack Revenue</span>
-            </div>
-            <div className="text-2xl sm:text-3xl font-black text-sky-300 font-mono tracking-tight">
-              GH₵ {totalRevenue.toFixed(2)}
-            </div>
-            <p className="text-[11px] text-slate-400 mt-1">
-              Gross from {totalOrders} customer orders
-            </p>
-          </div>
-
-          {/* Real-Time Net Profit Card */}
-          <div className="bg-gradient-to-br from-[#0B1E16] to-[#07130F] border border-emerald-500/40 rounded-2xl p-4 sm:p-5 shadow-lg relative overflow-hidden">
-            <div className="flex items-center gap-2 mb-2 text-emerald-400 text-xs font-bold uppercase tracking-wider">
-              <PiggyBank className="w-4 h-4 text-[#00C853]" />
-              <span>Net Profit Earned</span>
-            </div>
-            <div className="text-2xl sm:text-3xl font-black text-[#00C853] font-mono tracking-tight">
-              GH₵ {netProfit.toFixed(2)}
-            </div>
-            <p className="text-[11px] text-emerald-300/80 mt-1">
-              {profitMargin.toFixed(1)}% profit margin after fees and costs
-            </p>
-          </div>
-        </section>
-
-        {/* ── SECTION: REVENUE & PROFIT HISTORY ── */}
-        <section className="bg-[#0C1524] border border-[#16253C] rounded-2xl p-5 shadow-xl">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-sm font-black tracking-tight text-white uppercase">Daily Revenue & Profit</h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Every sale automatically recalculates your margins in real time.
-              </p>
-            </div>
-          </div>
-
-          {/* Clean progress breakdown per day with revenue + net profit */}
-          {chartData.length === 0 ? (
-            <div className="py-8 text-center text-slate-500 text-xs font-semibold">
-              Loading financial breakdown...
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {chartData.map((d) => {
-                const pct = Math.max(Math.round((d.revenue / maxRevenue) * 100), 5);
-                const formattedDate = new Date(d.date).toLocaleDateString('en-GB', {
-                  weekday: 'short',
-                  day: 'numeric',
-                  month: 'short',
-                });
-
-                return (
-                  <div key={d.date} className="bg-[#070D18] border border-[#142640] rounded-xl p-3">
-                    <div className="flex items-center justify-between text-xs mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-white">{formattedDate}</span>
-                        <span className="text-slate-500 text-[11px] font-mono">
-                          ({d.orders} {d.orders === 1 ? 'order' : 'orders'})
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-slate-400 text-[11px] font-mono">
-                          Revenue: GH₵ {d.revenue.toFixed(2)}
-                        </span>
-                        <span className="font-mono font-black text-[#00C853] text-sm">
-                          Profit: GH₵ {d.profit.toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Clean Progress Bar */}
-                    <div className="w-full h-2 bg-[#0C1726] rounded-full overflow-hidden">
+                  return (
+                    <div
+                      key={referrer.phone}
+                      className={`bg-[#0C1524] border rounded-2xl transition-all overflow-hidden ${
+                        isExpanded
+                          ? 'border-[#00C853]/60 shadow-[0_0_20px_rgba(0,200,83,0.1)]'
+                          : 'border-[#16253C] hover:border-[#1E3456]'
+                      }`}
+                    >
+                      {/* Referrer Header Card (Click to expand/collapse) */}
                       <div
-                        style={{ width: `${pct}%` }}
-                        className="h-full bg-gradient-to-r from-[#00C853] to-[#4AFFA3] rounded-full transition-all duration-500"
-                      />
+                        onClick={() => setExpandedReferrerPhone(isExpanded ? null : referrer.phone)}
+                        className="p-4 sm:p-5 cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 select-none"
+                      >
+                        {/* Left: Referrer Phone, Code, Date */}
+                        <div className="flex items-start sm:items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00C853]/20 to-[#00C853]/5 border border-[#00C853]/30 flex items-center justify-center text-[#00C853] shrink-0 mt-0.5 sm:mt-0">
+                            <Gift className="w-5 h-5" />
+                          </div>
+
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-base sm:text-lg font-black text-white font-mono">
+                                {formatPhone(referrer.phone)}
+                              </span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCopy(referrer.phone);
+                                }}
+                                className="p-1 rounded-md bg-[#16253C] text-slate-300 hover:text-white"
+                                title="Copy phone"
+                              >
+                                {copiedPhone === referrer.phone ? (
+                                  <Check className="w-3.5 h-3.5 text-[#00C853]" />
+                                ) : (
+                                  <Copy className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                              <a
+                                href={`https://wa.me/233${referrer.phone.slice(-9)}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="p-1 rounded-md bg-[#16253C] text-[#00C853] hover:text-emerald-300"
+                                title="WhatsApp Referrer"
+                              >
+                                <WhatsAppIcon className="w-3.5 h-3.5 fill-current" />
+                              </a>
+
+                              {/* Referral Code Badge */}
+                              <span className="px-2 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-[#00C853] font-mono text-xs font-black">
+                                {referrer.referralCode}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-1">
+                              <Clock className="w-3 h-3" />
+                              <span>Registered: {formatDateTime(referrer.createdAt)}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Right: Metrics & Chevron */}
+                        <div className="flex items-center justify-between sm:justify-end gap-2.5">
+                          <div className="flex items-center gap-2">
+                            <div className="px-2.5 py-1 rounded-xl bg-[#121E31] border border-[#1A2E4C] text-center">
+                              <div className="text-[10px] text-slate-400 font-bold uppercase">Friends</div>
+                              <div className="text-xs sm:text-sm font-black text-white font-mono">
+                                {referrer.referredFriendsCount}
+                              </div>
+                            </div>
+
+                            <div className="px-2.5 py-1 rounded-xl bg-[#121E31] border border-[#1A2E4C] text-center">
+                              <div className="text-[10px] text-slate-400 font-bold uppercase">Rewards</div>
+                              <div
+                                className={`text-xs sm:text-sm font-black font-mono ${
+                                  referrer.rewardsEarned > 0 ? 'text-[#00C853]' : 'text-slate-400'
+                                }`}
+                              >
+                                {referrer.rewardsEarned} GB
+                              </div>
+                            </div>
+
+                            <div className="px-2.5 py-1 rounded-xl bg-[#121E31] border border-[#1A2E4C] text-center">
+                              <div className="text-[10px] text-slate-400 font-bold uppercase">Total GB</div>
+                              <div className="text-xs sm:text-sm font-black text-sky-400 font-mono">
+                                {referrer.totalEligibleGb} GB
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="p-1 rounded-lg bg-[#16253C] text-slate-400 shrink-0">
+                            {isExpanded ? (
+                              <ChevronUp className="w-4 h-4 text-white" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4" />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Expanded Section: Referred People Drilldown */}
+                      {isExpanded && (
+                        <div className="border-t border-[#16253C] bg-[#070D18]/70 p-4 sm:p-5 space-y-4">
+                          {/* Quick Referral Link Banner */}
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-[#0C1524] border border-[#1A2E4C] rounded-xl p-3">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
+                                Referral Link:
+                              </span>
+                              <span className="text-xs font-mono text-[#00C853] font-bold truncate">
+                                {refLink}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <button
+                                onClick={() => handleCopy(refLink)}
+                                className="px-2.5 py-1 rounded-lg bg-[#16253C] hover:bg-[#1E3456] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                              >
+                                {copiedPhone === refLink ? (
+                                  <>
+                                    <Check className="w-3.5 h-3.5 text-[#00C853]" />
+                                    <span>Copied!</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3.5 h-3.5 text-slate-300" />
+                                    <span>Copy Link</span>
+                                  </>
+                                )}
+                              </button>
+                              <a
+                                href={refLink}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="p-1.5 rounded-lg bg-[#16253C] hover:bg-[#1E3456] text-slate-300 hover:text-white transition-colors"
+                                title="Open referral link in new tab"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
+                            </div>
+                          </div>
+
+                          {/* Section Header */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Users className="w-4 h-4 text-[#00C853]" />
+                              <h3 className="text-xs font-black uppercase tracking-wider text-slate-200">
+                                Referred People & Progress ({friends.length})
+                              </h3>
+                            </div>
+                            <span className="text-[11px] text-slate-500 font-medium">
+                              Goal: 7 GB per friend = 1 GB reward
+                            </span>
+                          </div>
+
+                          {/* Friends List */}
+                          {friends.length === 0 ? (
+                            <div className="bg-[#0C1524] border border-[#15233A] rounded-xl p-6 text-center">
+                              <p className="text-xs text-slate-400 font-medium">
+                                This referrer has not brought in any purchasing friends yet.
+                              </p>
+                              <p className="text-[11px] text-slate-500 mt-0.5">
+                                When someone clicks their link and buys data, they will show up here.
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              {friends.map((friend) => {
+                                const isRewardDelivered = friend.status === 'reward_delivered';
+                                const progressPercent = Math.min(
+                                  Math.round((friend.cumulativeGb / (friend.targetGb || 7)) * 100),
+                                  100
+                                );
+                                const remainingGb = Math.max(
+                                  0,
+                                  Math.round(((friend.targetGb || 7) - friend.cumulativeGb) * 100) / 100
+                                );
+                                const isFriendPurchasesOpen =
+                                  expandedCustomerPhone === `${referrer.phone}-${friend.phone}`;
+
+                                return (
+                                  <div
+                                    key={friend.phone}
+                                    className="bg-[#0C1524] border border-[#16253C] rounded-xl p-3.5 sm:p-4 space-y-3"
+                                  >
+                                    {/* Friend Row Top */}
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-sm font-black text-white font-mono">
+                                          {formatPhone(friend.phone)}
+                                        </span>
+                                        <button
+                                          onClick={() => handleCopy(friend.phone)}
+                                          className="p-1 rounded-md bg-[#16253C] text-slate-400 hover:text-white"
+                                          title="Copy number"
+                                        >
+                                          {copiedPhone === friend.phone ? (
+                                            <Check className="w-3 h-3 text-[#00C853]" />
+                                          ) : (
+                                            <Copy className="w-3 h-3" />
+                                          )}
+                                        </button>
+                                        <a
+                                          href={`https://wa.me/233${friend.phone.slice(-9)}`}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className="p-1 rounded-md bg-[#16253C] text-[#00C853] hover:text-emerald-300"
+                                          title="WhatsApp Customer"
+                                        >
+                                          <WhatsAppIcon className="w-3 h-3 fill-current" />
+                                        </a>
+                                      </div>
+
+                                      {/* Status Badge */}
+                                      <div>
+                                        {isRewardDelivered ? (
+                                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-[#00C853] border border-emerald-500/30">
+                                            <CheckCircle2 className="w-3.5 h-3.5" />
+                                            1 GB Reward Dispatched
+                                          </span>
+                                        ) : (
+                                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                                            <Clock className="w-3.5 h-3.5" />
+                                            In Progress ({remainingGb} GB left)
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {/* Progress Bar & Label */}
+                                    <div>
+                                      <div className="flex items-center justify-between text-[11px] mb-1.5">
+                                        <span className="text-slate-400 font-medium">
+                                          Purchased:{' '}
+                                          <strong className="text-white font-mono">
+                                            {friend.cumulativeGb} GB
+                                          </strong>{' '}
+                                          / {friend.targetGb || 7} GB
+                                        </span>
+                                        <span className="font-mono font-bold text-white">
+                                          {progressPercent}%
+                                        </span>
+                                      </div>
+
+                                      <div className="w-full h-2.5 bg-[#070D18] rounded-full overflow-hidden border border-[#1A2E4C]">
+                                        <div
+                                          style={{ width: `${progressPercent}%` }}
+                                          className={`h-full rounded-full transition-all duration-500 ${
+                                            isRewardDelivered
+                                              ? 'bg-gradient-to-r from-[#00C853] to-[#4AFFA3]'
+                                              : 'bg-gradient-to-r from-amber-400 to-[#00C853]'
+                                          }`}
+                                        />
+                                      </div>
+                                    </div>
+
+                                    {/* Reward Metadata (if delivered or failed) */}
+                                    {isRewardDelivered && (
+                                      <div className="text-[11px] bg-emerald-950/30 border border-emerald-500/20 rounded-lg p-2 text-emerald-300 flex items-center justify-between flex-wrap gap-1">
+                                        <span>
+                                          Delivered on: {formatDateTime(friend.rewardDeliveredAt)}
+                                        </span>
+                                        {friend.rewardOrderId && (
+                                          <span className="font-mono text-[10px] text-emerald-400">
+                                            Order #{friend.rewardOrderId}
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+
+                                    {friend.rewardFailureReason && !isRewardDelivered && (
+                                      <div className="text-[11px] bg-rose-950/40 border border-rose-500/30 rounded-lg p-2 text-rose-300 flex items-center gap-1.5">
+                                        <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-rose-400" />
+                                        <span>Reward Notice: {friend.rewardFailureReason}</span>
+                                      </div>
+                                    )}
+
+                                    {/* Purchases Breakdown Accordion */}
+                                    {friend.purchases && friend.purchases.length > 0 && (
+                                      <div>
+                                        <button
+                                          onClick={() =>
+                                            setExpandedCustomerPhone(
+                                              isFriendPurchasesOpen
+                                                ? null
+                                                : `${referrer.phone}-${friend.phone}`
+                                            )
+                                          }
+                                          className="text-[11px] font-bold text-slate-400 hover:text-slate-200 flex items-center gap-1 cursor-pointer transition-colors"
+                                        >
+                                          {isFriendPurchasesOpen ? (
+                                            <ChevronUp className="w-3.5 h-3.5" />
+                                          ) : (
+                                            <ChevronDown className="w-3.5 h-3.5" />
+                                          )}
+                                          <span>
+                                            {friend.purchases.length}{' '}
+                                            {friend.purchases.length === 1 ? 'Purchase' : 'Purchases'}{' '}
+                                            Logged
+                                          </span>
+                                        </button>
+
+                                        {isFriendPurchasesOpen && (
+                                          <div className="mt-2 space-y-1.5 pl-2 border-l border-[#1A2E4C]">
+                                            {friend.purchases.map((p, idx) => (
+                                              <div
+                                                key={p.reference || idx}
+                                                className="text-[11px] bg-[#070D18] p-2 rounded-lg flex items-center justify-between font-mono"
+                                              >
+                                                <span className="text-slate-300 font-bold">
+                                                  +{p.bundleGb} GB
+                                                </span>
+                                                <span className="text-slate-500 text-[10px]">
+                                                  Ref: {p.reference.slice(0, 12)}...
+                                                </span>
+                                                <span className="text-slate-400 text-[10px]">
+                                                  {formatDateTime(p.timestamp)}
+                                                </span>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
       </main>
     </div>
   );
